@@ -1,0 +1,40 @@
+Readme
+------
+
+Redirect module examines incoming URLs and redirects them as configured. This module is
+useful for administrators who cannot use URL rewriting (aka mod_rewrite). If
+you can use mod_rewrite on Apache, you probably should not use this module, since
+URL rewriting is more efficient than redirects.
+
+Feel free to improve this module and upload your improvements to Contrib.
+
+Requirements
+------------
+
+This module requires the Drupal 4.1
+
+Installation
+------------
+
+1. Copy the redirect.module to the Drupal modules/ directory. Drupal should
+automatically detect it. Activiate it in Site Configuration -> module selector
+
+2. Add an array similar the one below to your configuration file (aka conf.php).
+This array is named 'redirect_pairs' and has regular expressions keys and an URLs as values. You may
+list as many array pairs as you wish. They are evaluated in the same order as listed in your
+config file.
+
+Example:
+
+// array key is a regular expression. array value should be an absolute URL
+$redirect_pairs = array (
+  "node.php" => "http://www.cnn.com",
+  "blog" => "http://www.drop.org"
+);
+
+
+Author
+------
+
+Moshe Weitzman <weitzman@tejasa.com>.
+

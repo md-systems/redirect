@@ -1,0 +1,19 @@
+<?php
+
+function redirect_system($field){
+  $system["description"] = t("Redirects requests as needed.");
+  return $system[$field];
+}
+
+function redirect_init() {
+  global $redirect_pairs;
+  
+  foreach ($redirect_pairs as $key => $value) {
+    if (preg_match("|$key|", path_uri(). request_uri())) {
+      header("Location: $value");
+      exit();
+    }
+  }
+}
+
+?>
