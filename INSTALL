@@ -1,12 +1,3 @@
-Readme
-------
-
-Redirect module examines incoming URLs and redirects them as configured. This module is
-useful for administrators who cannot use URL rewriting (aka mod_rewrite). If
-you can use mod_rewrite on Apache, you probably should not use this module, since
-URL rewriting is more efficient than redirects.
-
-Feel free to improve this module and upload your improvements to Contrib.
 
 Requirements
 ------------
