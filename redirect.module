@@ -6,10 +6,10 @@ function redirect_system($field){
 }
 
 function redirect_init() {
-  global $redirect_pairs, $base_url;
+  global $redirect_pairs, $HTTP_HOST;
   
   foreach ($redirect_pairs as $key => $value) {
-    if (preg_match("|$key|", $base_url. request_uri())) {
+    if (preg_match("|$key|", $HTTP_HOST. request_uri())) {
       header("Location: $value");
       exit();
     }
