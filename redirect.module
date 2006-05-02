@@ -1,0 +1,44 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * This module lets administrators specify a redirect url for nodes in 
+ * the node insert/update form. If a url is specified, Drupal redirects 
+ * to it rather than displaying the node upon a view request.
+ * 
+ * This is useful in books, for example, in which it might be nice to 
+ * have a node placeholder in the outline that links to external content.
+ */
+
+/**
+ * Implementation of hook_nodeapi
+ */
+function redirect_nodeapi(&$node, $op){
+	switch($op){
+		case 'form admin':
+			$output = '';
+			$result = db_fetch_object(db_query('SELECT redirect FROM {redirect} WHERE nid = %d', $node->nid));
+	        $output .= form_textfield(t('Redirect to'), 'redirect', $result->redirect, 40, 100, 'Fill this blank in if the node should redirect to another url rather than displaying content');
+			return $output;
+			break;
+		case 'update':
+			db_query('DELETE FROM {redirect} WHERE nid = %d', $node->nid);
+			//Note no break here so that insert handles update as well.
+		case 'insert':
+			if($node->redirect != ''){
+				db_query('INSERT INTO {redirect} (nid, redirect) VALUES(%d, "%s")', $node->nid, $node->redirect);
+			}
+			break;
+		case 'view':
+			$result = db_fetch_object(db_query('SELECT redirect FROM {redirect} WHERE nid = %d', $node->nid));
+			if($result->redirect != ''){
+				header('Location: ' . $result->redirect);
+				exit;
+			}
+			break;	
+	}
+}
+
+
+?>
