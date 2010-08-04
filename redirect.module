@@ -477,7 +477,7 @@ function redirect_redirect(array $redirect = array()) {
     // Use the current internal URL as the default redirection URL.
     'redirect' => current_path(),
     'redirect_options' => array(),
-    'status_code' => variable_get('redirect_default_status', 301),
+    'status_code' => variable_get('redirect_default_status_code', 301),
     'type' => '',
   );
   $redirect['redirect_options'] += array(
