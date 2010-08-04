@@ -2,6 +2,14 @@
 // $Id$
 
 /**
+ * @defgroup redirect_api Redirection API
+ * @{
+ * Functions related to URL redirects.
+ *
+ * @} End of "defgroup redirect_api".
+ */
+
+/**
  * Implements hook_permission().
  */
 function redirect_permisson() {
@@ -71,7 +79,7 @@ function redirect_menu() {
  */
 function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   // Redirect to canonical URLs.
-  if (variable_get('redirect_canonical', TRUE)) {
+  if ($path && variable_get('redirect_canonical', TRUE)) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $original_path) {
       return redirect_redirect($alias);
@@ -101,12 +109,47 @@ function redirect_entity_info_alter(&$info) {
 }
 
 /**
+ * Implements hook_init().
+ */
+function redirect_init() {
+  if (!redirect_can_redirect()) {
+    return;
+  }
+
+  $current_path = current_path();
+  $current_langcode = $GLOBALS['language']->language;
+  $current_query = drupal_get_query_parameters();
+  if ($redirect = redirect_load_by_source($current_path, $current_langcode, $current_query)) {
+    redirect_redirect($redirect);
+  }
+
+  $request_uri = $original_uri = ltrim(request_uri(), '/');
+
+  // Redirect from non-clean URLs to clean URLs.
+  if (variable_get('redirect_global_clean', TRUE) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
+    $request_uri = str_replace('?q=', '', $request_uri);
+  }
+
+  if (strpos($request_uri, 'index.php') !== FALSE) {
+    $request_uri = str_replace('index.php', '', $request_uri);
+  }
+
+  $request_uri = trim($request_uri, '/');
+
+  if ($request_uri != $original_uri) {
+    redirect_redirect($request_uri);
+  }
+}
+
+/**
  * Load an URL redirect from the database.
  *
  * @param $rid
  *   The URL redirect ID.
  * @return
  *   An URL redirect array, or FALSE if loading failed.
+ *
+ * @ingroup redirect_api
  */
 function redirect_load($rid) {
   $redirects = redirect_load_multiple(array($rid));
@@ -120,6 +163,8 @@ function redirect_load($rid) {
  *   The hash of the URL redirect.
  * @return
  *   An URL redirect array, or FALSE if loading failed.
+ *
+ * @ingroup redirect_api
  */
 function redirect_load_by_hash($hash) {
   $redirects = redirect_load_multiple(array(), array('hash' => $hash));
@@ -133,9 +178,58 @@ function redirect_load_by_hash($hash) {
  *   The source of the URL redirect.
  * @return
  *   An array of URL redirect arrays indexed by redirect IDs.
+ *
+ * @see redirect_load_multiple()
+ * @see _redirect_uasort()
+ * @see redirect_compare_array_recursive()
+ *
+ * @ingroup redirect_api
  */
-function redirect_load_by_source($source) {
-  return redirect_load_multiple(array(), array('source' => $source));
+function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $query = array()) {
+  // @todo Implement a redirect cache to check if $source + $language has any
+  // redirections enabled. Much like path alias caching.
+
+  $rids = db_query("SELECT rid FROM {redirect} WHERE source = :source AND language IN (:language, :language_none)", array(
+    ':source' => $source,
+    ':language' => $language,
+    ':language_none' => LANGUAGE_NONE,
+  ))->fetchCol();
+
+  if ($rids && $redirects = redirect_load_multiple($rids)) {
+    // Sort the redirects in the proper order.
+    uasort($redirects, '_redirect_uasort');
+
+    foreach ($redirects as $rid => $redirect) {
+      if (isset($redirect['source_options']['query'])) {
+        if (!empty($query) && redirect_compare_array_recursive($redirect['source_options']['query'], $query)) {
+          return $redirect;
+        }
+      }
+      else {
+        return $redirect;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * uasort callback; Compare redirects based on language neutrality and rids.
+ */
+function _redirect_uasort($a, $b) {
+  if ($a['language'] != $b['language']) {
+    // Language is first priority.
+    return $a['language'] == LANGUAGE_NONE;
+  }
+  elseif (isset($a['source_options']['query']) != isset($b['source_options']['query'])) {
+    // Redirects with query strings are second priority.
+    return !isset($a['source_options']['query']);
+  }
+  else {
+    // Last priority is {redirect}.rid DESC.
+    return $a['rid'] < $b['rid'];
+  }
 }
 
 /**
@@ -148,6 +242,8 @@ function redirect_load_by_source($source) {
  *   $value.
  * @return
  *   An array of URL redirect arrays indexed by redirect IDs.
+ *
+ * @ingroup redirect_api
  */
 function redirect_load_multiple(array $rids = array(), array $conditions = array()) {
   // Build and execute the query.
@@ -182,6 +278,8 @@ function redirect_load_multiple(array $rids = array(), array $conditions = array
  *   An URL redirect array passed by reference to be saved.
  * @return
  *   The saved and altered URL redirect array.
+ *
+ * @ingroup redirect_api
  */
 function redirect_save(array &$redirect) {
   $redirect += array(
@@ -211,22 +309,13 @@ function redirect_save(array &$redirect) {
   return $redirect;
 }
 
-function redirect_get_redirect_hash(array $redirect) {
-  $hash = array(
-    'source' => $redirect['source'],
-    'language' => $redirect['language'],
-  );
-  if (!empty($redirect['source_options']['query'])) {
-    $hash['source_query'] = $redirect['source_options']['query'];
-  }
-  return drupal_hash_base64(serialize($hash));
-}
-
 /**
  * Delete a single URL redirect.
  *
  * @param $rid
  *   The ID of the redirect to delete.
+ *
+ * @ingroup redirect_api
  */
 function redirect_delete($rid) {
   return redirect_delete_multiple(array($rid));
@@ -240,6 +329,8 @@ function redirect_delete($rid) {
  *
  * @param $path
  *   An string with an internal Drupal path.
+ *
+ * @ingroup redirect_api
  */
 function redirect_delete_by_path($path) {
   $sql = "SELECT pid FROM {redirect} WHERE source = :source OR source LIKE :source_wildcard OR redirect = :redirect OR redirect LIKE :redirect_wildcard";
@@ -265,6 +356,8 @@ function redirect_delete_by_path($path) {
  *   A string with the entity type.
  * @param $entity
  *   An entity object.
+ *
+ * @ingroup redirect_api
  */
 function redirect_delete_by_entity_path($entity_type, $entity) {
   $uri = entity_uri($entity_type, $entity);
@@ -276,6 +369,8 @@ function redirect_delete_by_entity_path($entity_type, $entity) {
  *
  * @param $rids
  *   An array of redirect IDs to delete.
+ *
+ * @ingroup redirect_api
  */
 function redirect_delete_multiple(array $rids) {
   if ($redirects = redirect_load_multiple($rids)) {
@@ -288,6 +383,70 @@ function redirect_delete_multiple(array $rids) {
       module_invoke_all('redirect_delete', $redirect);
     }
   }
+}
+
+/**
+ * Perform an URL redirect.
+ *
+ * @param $redirect
+ *   An optional URL redirect array.
+ *
+ * @ingroup redirect_api
+ */
+function redirect_redirect(array $redirect = array()) {
+  // First check if we're in an infinite loop.
+  $session_id = session_id();
+  if (flood_is_allowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
+    flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
+  }
+  else {
+    watchdog('redirect', t('Infinite loop stopped.'));
+    return FALSE;
+  }
+
+  $redirect += array(
+    // Use the current internal URL as the default redirection URL.
+    'redirect' => current_path(),
+    'redirect_options' => array(),
+    'status_code' => variable_get('redirect_default_status', 301),
+    'type' => '',
+  );
+  $redirect['redirect_options'] += array(
+    'query' => array(),
+  );
+
+  if (variable_get('redirect_passthrough_querystring', FALSE)) {
+    // Preserve the current query parameters in the redirect.
+    $redirect['redirect_options']['query'] += drupal_get_query_parameters();
+  }
+
+  // Prevent the destination query parameter from overriding this redirect.
+  if (isset($_GET['destination'])) {
+    // Simply unset the parameter since it has already been passed into
+    // $options['query'] in the previous code.
+    unset($_GET['destination']);
+  }
+
+  // Allow other modules to alter the redirect before passing to drupal_goto().
+  drupal_alter('redirect_redirect', $redirect);
+
+  // Continue if the redirect has not been disabled by hook_redirect_redirect_alter().
+  if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE) {
+    // Perform the actual redirect.
+    drupal_goto($redirect['redirect'], $redirect['redirect_options'], $redirect['status_code']);
+  }
+}
+
+function redirect_get_redirect_hash(array $redirect) {
+  $hash = array(
+    'source' => $redirect['source'],
+    'language' => $redirect['language'],
+  );
+  if (!empty($redirect['source_options']['query'])) {
+    $hash['source_query'] = $redirect['source_options']['query'];
+    ksort($hash['source_query']);
+  }
+  return drupal_hash_base64(serialize($hash));
 }
 
 /**
@@ -324,34 +483,19 @@ function redirect_load_entity_from_path($path) {
 }
 
 /**
- * Implements hook_init().
+ * Check the ability to perform redirects with the current request context.
+ *
+ * This function checks the following conditions:
+ * - If the PHP entry point is the root index.php file.
+ * - If PHP is not running as CLI.
+ * - If the site is not offline or in install/update mode.
+ * - If the curerent page is not an admin page (check can be disabled).
+ * - If the current request does not have any POST data since a redirect
+ *   may interrupt form submission.
+ *
+ * @return
+ *   TRUE if redirections can be performed, or FALSE otherwise.
  */
-function redirect_init() {
-  if (!redirect_can_redirect()) {
-    return;
-  }
-
-  //$redirects = redirect_load_by_source(current_path());
-  //dpm($redirects);
-
-  $request_uri = $original_uri = ltrim(request_uri(), '/');
-
-  // Redirect from non-clean URLs to clean URLs.
-  if (variable_get('redirect_global_clean', TRUE) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
-    $request_uri = str_replace('?q=', '', $request_uri);
-  }
-
-  if (strpos($request_uri, 'index.php') !== FALSE) {
-    $request_uri = str_replace('index.php', '', $request_uri);
-  }
-
-  $request_uri = trim($request_uri, '/');
-
-  if ($request_uri != $original_uri) {
-    redirect_redirect($request_uri);
-  }
-}
-
 function redirect_can_redirect() {
   static $can_redirect;
 
@@ -382,45 +526,6 @@ function redirect_can_redirect() {
   }
 
   return $can_redirect;
-}
-
-function redirect_redirect($url = NULL, array $options = array(), $code = NULL) {
-  // First check if we're in an infinite loop.
-  $session_id = session_id();
-  if (flood_is_allowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
-    flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
-  }
-  else {
-    watchdog('redirect', t('Infinite loop stopped.'));
-    return FALSE;
-  }
-
-  if (!isset($url)) {
-    // Use the current internal URL as the default redirection URL.
-    $url = current_path();
-  }
-
-  $options += array(
-    'query' => array(),
-  );
-
-  if (variable_get('redirect_passthrough_querystring', FALSE)) {
-    // Preserve the current query parameters in the redirect.
-    $options['query'] += drupal_get_query_parameters();
-  }
-
-  // Prevent the destination query parameter from overriding this redirect.
-  if (isset($_GET['destination'])) {
-    // Simply unset the parameter since it has already been passed into
-    // $options['query'] in the previous code.
-    unset($_GET['destination']);
-  }
-
-  if (!isset($code)) {
-    $code = variable_get('redirect_default_status', 301);
-  }
-
-  drupal_goto($url, $options, $code);
 }
 
 /**
@@ -477,6 +582,19 @@ function feedburner_redirect_info() {
   return $redirects;
 }
 
-function feedburner_redirect_redirect() {
+function redirect_get_redirect_info() {
+  $info = &drupal_static(__FUNCTION__);
 
+  if (!isset($info)) {
+    if ($cache = cache_get('redirect:info')) {
+      $info = $cache->data;
+    }
+    else {
+      $info = module_invoke_all('redirect_info');
+      drupal_alter('redirect_info', $info);
+      cache_set('redirect:info', $info);
+    }
+  }
+
+  return $info;
 }

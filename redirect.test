@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Unit tests for the redirect module.
+ */
+
 class RedirectTestHelper extends DrupalWebTestCase {
   function setUp() {
     $args = func_get_args();

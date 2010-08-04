@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Administrative page callbacks for the redirect module.
+ */
+
 function redirect_list_form($form, &$form_state) {
   return array();
 }
@@ -48,6 +53,8 @@ function redirect_delete_form_submit($form, &$form_state) {
 
 /**
  * Form builder for redirection settings.
+ *
+ * @see system_settings_form()
  *
  * @ingroup forms
  */

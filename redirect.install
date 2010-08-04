@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Install, update and uninstall functions for the redirect module.
+ */
+
+/**
  * Implements hook_schema().
  */
 function redirect_schema() {
