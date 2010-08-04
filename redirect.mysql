@@ -1,5 +1,0 @@
-CREATE TABLE redirect(
-	id int(10) unsigned zerofill not null primary key auto_increment,
-	nid int(10) unsigned zerofill not null unique,
-	redirect varchar(200)
-);
