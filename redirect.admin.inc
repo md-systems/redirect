@@ -1,7 +1,57 @@
 <?php
 // $Id$
 
-function redirect_settings_form(&$form) {
+function redirect_list_form($form, &$form_state) {
+  return array();
+}
+
+/**
+ * Form builder to add or edit an URL redirect.
+ *
+ * @ingroup forms
+ */
+function redirect_edit_form($form, &$form_state, array $redirect = array()) {
+  return array();
+}
+
+/**
+ * Form builder to delete an URL redirect.
+ *
+ * @see redirect_delete_form()
+ * @see confirm_form()
+ *
+ * @ingroup forms
+ */
+function redirect_delete_form($form, &$form_state, array $redirect) {
+  $form['rid'] = array(
+    '#type' => 'value',
+    '#value' => $redirect['rid'],
+  );
+
+  return confirm_form(
+    $form,
+    t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => $redirect['source'], '%redirect' => $redirect['redirect'])),
+    'admin/config/search/path-redirect'
+  );
+}
+
+/**
+ * Form submit handler; delete an URL redirect after confirmation.
+ *
+ * @see redirect_delete_form()
+ */
+function redirect_delete_form_submit($form, &$form_state) {
+  redirect_delete($form_state['values']['rid']);
+  drupal_set_message(t('The redirect has been deleted.'));
+  $form_state['redirect'] = 'admin/config/search/redirect';
+}
+
+/**
+ * Form builder for redirection settings.
+ *
+ * @ingroup forms
+ */
+function redirect_settings_form($form, &$form_state) {
   $form['redirect_auto_redirect'] = array(
     '#type' => 'checkbox',
     '#title' => t('Automatically create redirects when URL aliases are changed.'),

@@ -19,7 +19,7 @@ function redirect_menu() {
     'title' => 'URL redirects',
     'description' => 'Redirect users from one URL to another.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_settings_form'),
+    'page arguments' => array('redirect_list_form'),
     'access arguments' => array('administer redirects'),
     'file' => 'redirect.admin.inc',
   );
@@ -31,7 +31,7 @@ function redirect_menu() {
   $items['admin/config/search/redirect/add'] = array(
     'title' => 'Add redirect',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_redirect_edit_form'),
+    'page arguments' => array('redirect_edit_form'),
     'access arguments' => array('create url redirects'),
     'file' => 'redirect.admin.inc',
     'type' => MENU_LOCAL_ACTION,
@@ -39,7 +39,7 @@ function redirect_menu() {
   $items['admin/config/search/redirect/edit/%redirect'] = array(
     'title' => 'Edit redirect',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_redirect_edit_form', 5),
+    'page arguments' => array('redirect_edit_form', 5),
     'access arguments' => array('administer redirects'),
     'file' => 'redirect.admin.inc',
     'type' => MENU_CALLBACK,
@@ -47,7 +47,7 @@ function redirect_menu() {
   $items['admin/config/search/redirect/delete/%redirect'] = array(
     'title' => 'Delete redirect',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_redirect_delete_form', 5),
+    'page arguments' => array('redirect_delete_form', 5),
     'access arguments' => array('administer redirects'),
     'file' => 'redirect.admin.inc',
     'type' => MENU_CALLBACK,
@@ -152,8 +152,9 @@ function redirect_load_by_source($source) {
 function redirect_load_multiple(array $rids = array(), array $conditions = array()) {
   // Build and execute the query.
   $query = db_select('redirect');
+  $query->fields('redirect');
   if (count($rids)) {
-    $conditions['rids'] = $rids;
+    $conditions['rid'] = $rids;
   }
   foreach ($conditions as $field => $value) {
     $query->condition($field, $value);
@@ -198,7 +199,7 @@ function redirect_save(array &$redirect) {
 
   $redirect['hash'] = redirect_get_redirect_hash($redirect);
 
-  if (!empty($redirect['rid'])) {
+  if (empty($redirect['rid'])) {
     drupal_write_record('redirect', $redirect, array());
     module_invoke_all('redirect_insert', $redirect);
   }
@@ -330,6 +331,9 @@ function redirect_init() {
     return;
   }
 
+  //$redirects = redirect_load_by_source(current_path());
+  //dpm($redirects);
+
   $request_uri = $original_uri = ltrim(request_uri(), '/');
 
   // Redirect from non-clean URLs to clean URLs.
@@ -343,7 +347,6 @@ function redirect_init() {
 
   $request_uri = trim($request_uri, '/');
 
-  //dpm($request_uri . ' - ' . $original_uri);
   if ($request_uri != $original_uri) {
     redirect_redirect($request_uri);
   }
