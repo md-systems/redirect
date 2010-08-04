@@ -115,9 +115,8 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   }
 }
 
-function redirect_url_outbound_alter(&$path, array &$options, $original_path) {
-
-}
+//function redirect_url_outbound_alter(&$path, array &$options, $original_path) {
+//}
 
 /**
  * Implements hook_entity_info_alter().
@@ -172,6 +171,32 @@ function redirect_cron() {
       redirect_delete_multiple($rids);
       watchdog('redirect', format_plural($count, 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
     }
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function redirect_node_delete($node) {
+  redirect_delete_by_entity_path('node', $node);
+}
+
+/**
+ * Implements hook_taxonomy_term_delete().
+ */
+function redirect_taxonomy_term_delete($term) {
+  redirect_delete_by_entity_path('taxonomy_term', $term);
+}
+
+/**
+ * Implements hook_user_cancel().
+ */
+function redirect_user_cancel($edit, $account, $method) {
+  switch ($method) {
+    case 'user_cancel_reassign':
+    case 'user_cancel_delete':
+      redirect_delete_by_entity_path('user', $account);
+      break;
   }
 }
 
@@ -396,6 +421,15 @@ function redirect_delete_by_path($path) {
 function redirect_delete_by_entity_path($entity_type, $entity) {
   $uri = entity_uri($entity_type, $entity);
   redirect_delete_by_path($uri['path']);
+
+  $info = entity_get_info($entity_type);
+  if (isset($info['default path'])) {
+    list($id, , ) = entity_extract_ids($entity_type, $entity);
+    $default_path = str_replace('[id]', $id, $info['default path']);
+    if ($uri['path'] !== $default_path) {
+      redirect_delete_by_path($default_path);
+    }
+  }
 }
 
 /**
@@ -434,7 +468,8 @@ function redirect_redirect(array $redirect = array()) {
     flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
   }
   else {
-    watchdog('redirect', t('Infinite loop stopped.'));
+    watchdog('redirect', 'Infinite loop stopped.');
+    drupal_set_message('Oops, looks like this request tried to create an infinite loop. We do not allow such things here. We are a professional website!');
     return FALSE;
   }
 

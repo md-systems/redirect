@@ -6,3 +6,4 @@ files[] = redirect.module
 files[] = redirect.admin.inc
 files[] = redirect.install
 files[] = redirect.test
+configure = admin/config/search/redirect/settings
