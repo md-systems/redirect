@@ -31,7 +31,7 @@ function hook_redirect_delete(array &$redirect) {
 
 }
 
-function hook_redirect_redirect_alter(array &$redirect) {
+function hook_redirect_alter(array &$redirect) {
 
 }
 

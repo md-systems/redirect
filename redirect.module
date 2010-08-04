@@ -10,6 +10,26 @@
  */
 
 /**
+ * Implements hook_hook_info().
+ */
+function redirect_hook_info() {
+  $hooks = array(
+    'redirect_load',
+    'redirect_presave',
+    'redirect_insert',
+    'redirect_update',
+    'redirect_delete',
+    'redirect_alter',
+  );
+
+  $hooks = array_combine($hooks, $hooks);
+  foreach ($hooks as $hook => $info) {
+    $hooks[$hook] = array('group' => 'redirect');
+  }
+  return $hooks;
+}
+
+/**
  * Implements hook_permission().
  */
 function redirect_permisson() {
@@ -442,9 +462,9 @@ function redirect_redirect(array $redirect = array()) {
   }
 
   // Allow other modules to alter the redirect before passing to drupal_goto().
-  drupal_alter('redirect_redirect', $redirect);
+  drupal_alter('redirect', $redirect);
 
-  // Continue if the redirect has not been disabled by hook_redirect_redirect_alter().
+  // Continue if the redirect has not been disabled by hook_redirect_alter().
   if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE) {
 
     // Update {redirect}.last_used with the current time stamp.

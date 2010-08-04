@@ -64,6 +64,7 @@ function redirect_settings_form($form, &$form_state) {
     '#title' => t('Automatically create redirects when URL aliases are changed.'),
     '#default_value' => variable_get('redirect_auto_redirect', TRUE),
     '#disabled' => !module_exists('path'),
+    '#access' => FALSE,
   );
   $form['redirect_passthrough_querystring'] = array(
     '#type' => 'checkbox',
@@ -74,6 +75,7 @@ function redirect_settings_form($form, &$form_state) {
     '#type' => 'checkbox',
     '#title' => t('Display a warning message to users when they are redirected.'),
     '#default_value' => variable_get('redirect_warning', FALSE),
+    '#access' => FALSE,
   );
   $form['redirect_default_status_code'] = array(
     '#type' => 'select',
@@ -84,26 +86,29 @@ function redirect_settings_form($form, &$form_state) {
   );
   $form['redirect_purge_inactive'] = array(
     '#type' => 'select',
-    '#title' => t('Discard redirects that have not been accessed for'),
+    '#title' => t('Delete redirects that have not been accessed for'),
     '#default_value' => variable_get('redirect_purge_inactive', 0),
-    '#options' => array(0 => t('Never (do not discard)')) + drupal_map_assoc(array(604800, 1209600, 2419200, 4838400, 7257600, 9676800, 31536000), 'format_interval'),
+    '#options' => array(0 => t('Never (do not discard)')) + drupal_map_assoc(array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000), 'format_interval'),
+    '#description' => t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.')
   );
 
   $form['globals'] = array(
     '#type' => 'fieldset',
     '#title' => t('Always enabled redirections'),
-    '#description' => t('Formerly Global Redirect features')
+    '#description' => t('(formerly Global Redirect features)')
   );
   $form['globals']['redirect_global_home'] = array(
     '#type' => 'checkbox',
     '#title' => t('Redirect from paths like index.php and /node to the root directory.'),
     '#default_value' => variable_get('redirect_home', 1),
+    '#access' => FALSE,
   );
   $form['globals']['redirect_global_clean'] = array(
     '#type' => 'checkbox',
     '#title' => t('Redirect from non-clean URLs to clean URLs.'),
     '#default_value' => variable_get('redirect_clean', 1),
     '#disabled' => !variable_get('clean_url', 0),
+    '#access' => FALSE,
   );
   $form['globals']['redirect_global_canonical'] = array(
     '#type' => 'checkbox',
