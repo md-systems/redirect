@@ -1,0 +1,60 @@
+<?php
+// $Id$
+
+class RedirectTestHelper extends DrupalWebTestCase {
+  function setUp() {
+    $args = func_get_args();
+
+    // Call parent::setUp() allowing test cases to pass further modules.
+    $modules = array('redirect');
+    if (isset($args[0]) && is_array($args[0])) {
+      $modules = array_merge($modules, $args[0]);
+    }
+    parent::setUp($modules);
+  }
+
+  protected function assertRedirect($source, array $source_options = array(), $redirect, array $redirect_options = array(), $code = NULL) {
+    $source_url = url($source, array('absolute' => TRUE) + $source_options);
+    $redirect_url = url($redirect, array('absolute' => TRUE) + $redirect_options);
+    $this->drupalGet($source_url);
+    $this->assertEqual($this->getUrl(), $redirect_url, t('Page %source was redirected to %redirect.', array('%source' => $source_url, '%redirect' => $redirect_url)));
+    if (isset($code)) {
+      $this->assertResponse($code);
+    }
+  }
+
+  protected function assertNoRedirect($source, array $source_options = array()) {
+    $source_url = url($source, array('absolute' => TRUE) + $source_options);
+    $this->drupalGet($source_url);
+    $this->assertEqual($this->getUrl(), $source_url, t('Page %url was not redirected.', array('%url' => $url)));
+  }
+}
+
+class RedirectUnitTest extends RedirectTestHelper {
+  public static function getInfo() {
+    return array(
+      'name' => 'Redirect unit tests',
+      'description' => 'Test basic functions and functionality.',
+      'group' => 'Redirect',
+    );
+  }
+
+  /**
+   * Test the redirect_compare_array_recursive() function.
+   */
+  function testCompareArrayRecursive() {
+    $haystack = array('a' => 'aa', 'b' => 'bb', 'c' => array('c1' => 'cc1', 'c2' => 'cc2'));
+    $cases = array(
+      array('query' => array('a' => 'aa', 'b' => 'invalid'), 'result' => FALSE),
+      array('query' => array('b' => 'bb', 'b' => 'bb'), 'result' => TRUE),
+      array('query' => array('b' => 'bb', 'c' => 'invalid'), 'result' => FALSE),
+      array('query' => array('b' => 'bb', 'c' => array()), 'result' => TRUE),
+      array('query' => array('b' => 'bb', 'c' => array('invalid')), 'result' => FALSE),
+      array('query' => array('b' => 'bb', 'c' => array('c2' => 'invalid')), 'result' => FALSE),
+      array('query' => array('b' => 'bb', 'c' => array('c2' => 'cc2')), 'result' => TRUE),
+    );
+    foreach ($cases as $index => $case) {
+      $this->assertEqual($case['result'], redirect_compare_array_recursive($case['query'], $haystack));
+    }
+  }
+}

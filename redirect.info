@@ -1,0 +1,8 @@
+; $Id$
+name = Redirect
+description = Allows users to redirect from old URLs to new URLs.
+core = 7.x
+files[] = redirect.module
+files[] = redirect.admin.inc
+files[] = redirect.install
+files[] = redirect.test

@@ -2,43 +2,478 @@
 // $Id$
 
 /**
- * @file
- * This module lets administrators specify a redirect url for nodes in 
- * the node insert/update form. If a url is specified, Drupal redirects 
- * to it rather than displaying the node upon a view request.
- * 
- * This is useful in books, for example, in which it might be nice to 
- * have a node placeholder in the outline that links to external content.
+ * Implements hook_permission().
  */
-
-/**
- * Implementation of hook_nodeapi
- */
-function redirect_nodeapi(&$node, $op){
-	switch($op){
-		case 'form admin':
-			$output = '';
-			$result = db_fetch_object(db_query('SELECT redirect FROM {redirect} WHERE nid = %d', $node->nid));
-	        $output .= form_textfield(t('Redirect to'), 'redirect', $result->redirect, 40, 100, 'Fill this blank in if the node should redirect to another url rather than displaying content');
-			return $output;
-			break;
-		case 'update':
-			db_query('DELETE FROM {redirect} WHERE nid = %d', $node->nid);
-			//Note no break here so that insert handles update as well.
-		case 'insert':
-			if($node->redirect != ''){
-				db_query('INSERT INTO {redirect} (nid, redirect) VALUES(%d, "%s")', $node->nid, $node->redirect);
-			}
-			break;
-		case 'view':
-			$result = db_fetch_object(db_query('SELECT redirect FROM {redirect} WHERE nid = %d', $node->nid));
-			if($result->redirect != ''){
-				header('Location: ' . $result->redirect);
-				exit;
-			}
-			break;	
-	}
+function redirect_permisson() {
+  $permissions['administer redirects'] = array(
+    'title' => t('Administer URL redirections'),
+  );
+  return $permissions;
 }
 
+/**
+ * Implements hook_menu().
+ */
+function redirect_menu() {
+  $items['admin/config/search/redirect'] = array(
+    'title' => 'URL redirects',
+    'description' => 'Redirect users from one URL to another.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirect_settings_form'),
+    'access arguments' => array('administer redirects'),
+    'file' => 'redirect.admin.inc',
+  );
+  $items['admin/config/search/redirect/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/config/search/redirect/add'] = array(
+    'title' => 'Add redirect',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirect_redirect_edit_form'),
+    'access arguments' => array('create url redirects'),
+    'file' => 'redirect.admin.inc',
+    'type' => MENU_LOCAL_ACTION,
+  );
+  $items['admin/config/search/redirect/edit/%redirect'] = array(
+    'title' => 'Edit redirect',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirect_redirect_edit_form', 5),
+    'access arguments' => array('administer redirects'),
+    'file' => 'redirect.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/search/redirect/delete/%redirect'] = array(
+    'title' => 'Delete redirect',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirect_redirect_delete_form', 5),
+    'access arguments' => array('administer redirects'),
+    'file' => 'redirect.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/search/redirect/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure behavior for URL redirects.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirect_settings_form'),
+    'access arguments' => array('administer redirects'),
+    'file' => 'redirect.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
 
-?>
+  return $items;
+}
+
+/**
+ * Implements hook_url_inbound_alter().
+ */
+function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
+  // Redirect to canonical URLs.
+  if (variable_get('redirect_canonical', TRUE)) {
+    $alias = drupal_get_path_alias($path, $path_language);
+    if ($alias != $original_path) {
+      return redirect_redirect($alias);
+    }
+
+    // Redirect from default entity paths to the proper entity path.
+    if ($path_entity = redirect_load_entity_from_path($path)) {
+      $uri = entity_uri($path_entity['entity_type'], $path_entity['entity']);
+      if ($path != $uri['path']) {
+        return redirect_redirect($uri['path'], $uri['options']);
+      }
+    }
+  }
+}
+
+function redirect_url_outbound_alter(&$path, array &$options, $original_path) {
+
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function redirect_entity_info_alter(&$info) {
+  $info['node']['default path'] = 'node/[id]';
+  $info['taxonomy_term']['default path'] = 'taxonomy/term/[id]';
+  $info['user']['default path'] = 'user/[id]';
+}
+
+/**
+ * Load an URL redirect from the database.
+ *
+ * @param $rid
+ *   The URL redirect ID.
+ * @return
+ *   An URL redirect array, or FALSE if loading failed.
+ */
+function redirect_load($rid) {
+  $redirects = redirect_load_multiple(array($rid));
+  return reset($redirects);
+}
+
+/**
+ * Load an URL redirect from the database by {redirect}.hash.
+ *
+ * @param $hash
+ *   The hash of the URL redirect.
+ * @return
+ *   An URL redirect array, or FALSE if loading failed.
+ */
+function redirect_load_by_hash($hash) {
+  $redirects = redirect_load_multiple(array(), array('hash' => $hash));
+  return reset($redirects);
+}
+
+/**
+ * Load multiple URL redirects from the database by {redirect}.source.
+ *
+ * @param $source
+ *   The source of the URL redirect.
+ * @return
+ *   An array of URL redirect arrays indexed by redirect IDs.
+ */
+function redirect_load_by_source($source) {
+  return redirect_load_multiple(array(), array('source' => $source));
+}
+
+/**
+ * Load multiple URL redirects from the database.
+ *
+ * @param $rids
+ *   An array of redirect IDs.
+ * @param $conditions
+ *   An array of conditions on the {redirect} table in the form 'field' =>
+ *   $value.
+ * @return
+ *   An array of URL redirect arrays indexed by redirect IDs.
+ */
+function redirect_load_multiple(array $rids = array(), array $conditions = array()) {
+  // Build and execute the query.
+  $query = db_select('redirect');
+  if (count($rids)) {
+    $conditions['rids'] = $rids;
+  }
+  foreach ($conditions as $field => $value) {
+    $query->condition($field, $value);
+  }
+  $query->orderBy('rid', 'DESC');
+  $query->addTag('redirect_load');
+  $redirects = $query->execute()->fetchAllAssoc('rid', PDO::FETCH_ASSOC);
+
+  // Perform unserialization.
+  foreach ($redirects as $rid => $redirect) {
+    $redirects[$rid]['source_options'] = unserialize($redirect['source_options']);
+    $redirects[$rid]['redirect_options'] = unserialize($redirect['redirect_options']);
+  }
+
+  // Let modules modify the redirects after loading.
+  module_invoke_all('redirect_load', $redirects);
+
+  return $redirects;
+}
+
+/**
+ * Save an URL redirect.
+ *
+ * @param $redirect
+ *   An URL redirect array passed by reference to be saved.
+ * @return
+ *   The saved and altered URL redirect array.
+ */
+function redirect_save(array &$redirect) {
+  $redirect += array(
+    'rid' => NULL,
+    'type' => '',
+    'source_options' => array(),
+    'redirect_options' => array(),
+    'language' => LANGUAGE_NONE,
+    'status_code' => variable_get('redirect_default_status_code', 301),
+    'last_used' => 0,
+  );
+
+  // Let modules modify the redirect before it is saved to the database.
+  module_invoke_all('redirect_presave', $redirect);
+
+  $redirect['hash'] = redirect_get_redirect_hash($redirect);
+
+  if (!empty($redirect['rid'])) {
+    drupal_write_record('redirect', $redirect, array());
+    module_invoke_all('redirect_insert', $redirect);
+  }
+  else {
+    drupal_write_record('redirect', $redirect, array('rid'));
+    module_invoke_all('redirect_update', $redirect);
+  }
+
+  return $redirect;
+}
+
+function redirect_get_redirect_hash(array $redirect) {
+  $hash = array(
+    'source' => $redirect['source'],
+    'language' => $redirect['language'],
+  );
+  if (!empty($redirect['source_options']['query'])) {
+    $hash['source_query'] = $redirect['source_options']['query'];
+  }
+  return drupal_hash_base64(serialize($hash));
+}
+
+/**
+ * Delete a single URL redirect.
+ *
+ * @param $rid
+ *   The ID of the redirect to delete.
+ */
+function redirect_delete($rid) {
+  return redirect_delete_multiple(array($rid));
+}
+
+/**
+ * Delete any redirects associated with a path or any of its sub-paths.
+ *
+ * Given a source like 'node/1' this function will delete any redirects that
+ * have that specific source or any sources that match 'node/1/%'.
+ *
+ * @param $path
+ *   An string with an internal Drupal path.
+ */
+function redirect_delete_by_path($path) {
+  $sql = "SELECT pid FROM {redirect} WHERE source = :source OR source LIKE :source_wildcard OR redirect = :redirect OR redirect LIKE :redirect_wildcard";
+  $args = array(
+    ':source' => $path,
+    ':source_wildcard' => $path . '/%',
+    ':redirect' => $path,
+    ':redirect_wildcard' => $path . '/%',
+  );
+  $rids = db_query($sql, $args)->fetchCol();
+  if ($rids) {
+    return redirect_delete_multiple($rids);
+  }
+}
+
+/**
+ * Delete an entity URL alias and any of its sub-paths.
+ *
+ * This function also checks to see if the default entity URI is different from
+ * the current entity URI and will delete any of the default aliases.
+ *
+ * @param $entity_type
+ *   A string with the entity type.
+ * @param $entity
+ *   An entity object.
+ */
+function redirect_delete_by_entity_path($entity_type, $entity) {
+  $uri = entity_uri($entity_type, $entity);
+  redirect_delete_by_path($uri['path']);
+}
+
+/**
+ * Delete multiple URL redirects.
+ *
+ * @param $rids
+ *   An array of redirect IDs to delete.
+ */
+function redirect_delete_multiple(array $rids) {
+  if ($redirects = redirect_load_multiple($rids)) {
+    db_delete('redirect')
+      ->condition('rid', array_keys($redirects))
+      ->execute();
+
+    // Let modules react to the individual redirects being deleted.
+    foreach ($redirects as $rid => $redirect) {
+      module_invoke_all('redirect_delete', $redirect);
+    }
+  }
+}
+
+/**
+ * Given a path determine if it is an entity default path.
+ *
+ * @param $path
+ *   The internal path. The id of the entity should be in the string as '[id]'.
+ * @return
+ *   An array with the entity type and the loaded entity object.
+ */
+function redirect_load_entity_from_path($path) {
+  $entity_paths = &drupal_static(__FUNCTION__);
+
+  if (!isset($entity_paths)) {
+    $entity_paths = array();
+    foreach (entity_get_info() as $entity_type => $entity_info) {
+      if (isset($entity_info['default path'])) {
+        $default_path = $entity_info['default path'];
+        $default_path = preg_quote($default_path, '/');
+        $default_path = str_replace('\[id\]', '(\d+)', $default_path);
+        $entity_paths[$entity_type] = $default_path;
+      }
+    }
+  }
+
+  foreach ($entity_paths as $entity_type => $default_path) {
+    if (preg_match("/^{$default_path}$/", $path, $matches)) {
+      if ($entity = entity_load($entity_type, array($matches[1]))) {
+        return array('entity_type' => $entity_type, 'entity' => reset($entity));
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * Implements hook_init().
+ */
+function redirect_init() {
+  if (!redirect_can_redirect()) {
+    return;
+  }
+
+  $request_uri = $original_uri = ltrim(request_uri(), '/');
+
+  // Redirect from non-clean URLs to clean URLs.
+  if (variable_get('redirect_global_clean', TRUE) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
+    $request_uri = str_replace('?q=', '', $request_uri);
+  }
+
+  if (strpos($request_uri, 'index.php') !== FALSE) {
+    $request_uri = str_replace('index.php', '', $request_uri);
+  }
+
+  $request_uri = trim($request_uri, '/');
+
+  //dpm($request_uri . ' - ' . $original_uri);
+  if ($request_uri != $original_uri) {
+    redirect_redirect($request_uri);
+  }
+}
+
+function redirect_can_redirect() {
+  static $can_redirect;
+
+  if (!isset($can_redirect)) {
+    $can_redirect = TRUE;
+    $current_path = current_path();
+
+    if ($_SERVER['SCRIPT_NAME'] != $GLOBALS['base_path'] . 'index.php') {
+      // Do not redirect if the root script is not /index.php.
+      $can_redirect = FALSE;
+    }
+    elseif (drupal_is_cli()) {
+      // If this is a command line request (Drush, etc), skip processing.
+      $can_redirect = FALSE;
+    }
+    elseif (variable_get('site_offline', 0) || defined('MAINTENANCE_MODE')) {
+      // Do not redirect in offline or maintenance mode.
+      $can_redirect = FALSE;
+    }
+    elseif (!variable_get('redirect_global_admin_paths', 0) && path_is_admin($current_path)) {
+      // Do not redirect on admin paths.
+      $can_redirect = FALSE;
+    }
+    elseif (!empty($_POST)) {
+      // Do not redirect if this is a post request with data.
+      $can_redirect = FALSE;
+    }
+  }
+
+  return $can_redirect;
+}
+
+function redirect_redirect($url = NULL, array $options = array(), $code = NULL) {
+  // First check if we're in an infinite loop.
+  $session_id = session_id();
+  if (flood_is_allowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
+    flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
+  }
+  else {
+    watchdog('redirect', t('Infinite loop stopped.'));
+    return FALSE;
+  }
+
+  if (!isset($url)) {
+    // Use the current internal URL as the default redirection URL.
+    $url = current_path();
+  }
+
+  $options += array(
+    'query' => array(),
+  );
+
+  if (variable_get('redirect_passthrough_querystring', FALSE)) {
+    // Preserve the current query parameters in the redirect.
+    $options['query'] += drupal_get_query_parameters();
+  }
+
+  // Prevent the destination query parameter from overriding this redirect.
+  if (isset($_GET['destination'])) {
+    // Simply unset the parameter since it has already been passed into
+    // $options['query'] in the previous code.
+    unset($_GET['destination']);
+  }
+
+  if (!isset($code)) {
+    $code = variable_get('redirect_default_status', 301);
+  }
+
+  drupal_goto($url, $options, $code);
+}
+
+/**
+ * Compare tha all values and associations in one array match another array.
+ *
+ * We cannot use array_diff_assoc() here because we need to be recursive.
+ *
+ * @param $match
+ *   The array that has the values.
+ * @param $haystack
+ *   The array that will be searched for values.
+ * @return
+ *   TRUE if all the elements of $match were found in $haystack, or FALSE
+ *   otherwise.
+ */
+function redirect_compare_array_recursive($match, $haystack) {
+  foreach ($match as $key => $value) {
+    if (!array_key_exists($key, $haystack)) {
+      return FALSE;
+    }
+    elseif (is_array($value)) {
+      if (!is_array($haystack[$key])) {
+        return FALSE;
+      }
+      elseif (!redirect_compare_array_recursive($value, $haystack[$key])) {
+        return FALSE;
+      }
+    }
+    elseif ($value != $haystack[$key]) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+function redirect_variables() {
+  return array(
+    'redirect_default_status_code' => 301,
+    'redirect_auto_redirect' => TRUE,
+    'redirect_warning' => FALSE,
+    'redirect_passthrough_querystring' => 0,
+    'redirect_purge_inactive' => 0,
+    'redirect_global_home' => 1,
+    'redirect_global_clean' => 1,
+    'redirect_global_canonical' => 1,
+    'redirect_global_admin_paths' => 0,
+  );
+}
+
+function feedburner_redirect_info() {
+  $redirects['feedburner'] = array(
+    'callback' => 'feedburner_redirect_redirect',
+  );
+  return $redirects;
+}
+
+function feedburner_redirect_redirect() {
+
+}

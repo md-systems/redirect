@@ -1,0 +1,79 @@
+<?php
+// $Id$
+
+/**
+ * Implements hook_schema().
+ */
+function redirect_schema() {
+  $schema['redirect'] = array(
+    'description' => 'Stores information on redirects.',
+    'fields' => array(
+      'rid'  => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique redirect ID.',
+      ),
+      'hash' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'A unique hash based on source, source_options, and language.',
+      ),
+      'type' => array(
+        'description' => 'The redirect type; if blank it is a normal redirect handled by the module.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'source' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The source path to redirect from.',
+      ),
+      'source_options' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+        'description' => 'A serialized array of source options.',
+      ),
+      'redirect' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The destination path to redirect to.',
+      ),
+      'redirect_options' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+        'description' => 'A serialized array of redirect options.',
+      ),
+      'language' => array(
+        'description' => 'The language this redirect is for; if blank, the alias will be used for unknown languages.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => 'und',
+      ),
+      'status_code' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'description' => 'The HTTP status code to use for the redirect.',
+      ),
+      'last_used' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The timestamp of when the redirect was last used.',
+      ),
+    ),
+    'primary key' => array('rid'),
+    'unique keys' => array('hash' => array('hash')),
+  );
+
+  return $schema;
+}
