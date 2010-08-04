@@ -77,7 +77,12 @@ function redirect_schema() {
       ),
     ),
     'primary key' => array('rid'),
-    'unique keys' => array('hash' => array('hash')),
+    'unique keys' => array(
+      'hash' => array('hash'),
+    ),
+    'indexes' => array(
+      'expires' => array('type', 'last_used'),
+    ),
   );
 
   return $schema;

@@ -142,6 +142,20 @@ function redirect_init() {
 }
 
 /**
+ * Implements hook_cron().
+ */
+function redirect_cron() {
+  // Purge inactive self-managed redirects from the database.
+  if ($purge = variable_get('redirect_purge_inactive', 0)) {
+    $rids = db_query("SELECT rid FROM {redirect} WHERE type = '' AND last_used < :interval", array(':interval' => REQUEST_TIME - $purge))->fetchCol();
+    if (count($rids)) {
+      redirect_delete_multiple($rids);
+      watchdog('redirect', format_plural($count, 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
+    }
+  }
+}
+
+/**
  * Load an URL redirect from the database.
  *
  * @param $rid
@@ -432,6 +446,15 @@ function redirect_redirect(array $redirect = array()) {
 
   // Continue if the redirect has not been disabled by hook_redirect_redirect_alter().
   if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE) {
+
+    // Update {redirect}.last_used with the current time stamp.
+    if (!empty($redirect['rid'])) {
+      db_update('redirect')
+        ->fields(array('last_used' => REQUEST_TIME))
+        ->condition('rid', $redirect['rid'])
+        ->execute();
+    }
+
     // Perform the actual redirect.
     drupal_goto($redirect['redirect'], $redirect['redirect_options'], $redirect['status_code']);
   }
