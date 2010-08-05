@@ -349,12 +349,18 @@ function redirect_save(array &$redirect) {
     'language' => LANGUAGE_NONE,
     'status_code' => variable_get('redirect_default_status_code', 301),
     'last_used' => 0,
+    'hash' => '',
   );
 
   // Let modules modify the redirect before it is saved to the database.
   module_invoke_all('redirect_presave', $redirect);
 
-  $redirect['hash'] = redirect_get_redirect_hash($redirect);
+  $hash = redirect_get_redirect_hash($redirect);
+  if (empty($redirect['rid']) || $hash !== $redirect['hash']) {
+    // Only new or changed redirects reset the last used value.
+    $redirect['hash'] = $hash;
+    $redirect['last_used'] = 0;
+  }
 
   if (empty($redirect['rid'])) {
     drupal_write_record('redirect', $redirect, array());
@@ -637,6 +643,47 @@ function redirect_compare_array_recursive($match, $haystack) {
     }
   }
   return TRUE;
+}
+
+/**
+ * Load a language object by its language code.
+ *
+ * @todo Remove when http://drupal.org/node/660736 is fixed in Drupal core.
+ *
+ * @param $language
+ *   A language code. If not provided the default language will be returned.
+ * @return
+ *   A language object.
+ */
+function redirect_language_load($language = LANGUAGE_NONE) {
+  $languages = &drupal_static(__FUNCTION__);
+
+  if (!isset($languages)) {
+    $languages = language_list();
+    $languages[LANGUAGE_NONE] = NULL;
+  }
+
+  return isset($languages[$language]) ? $languages[$language] : NULL;
+}
+
+/**
+ * Build the URL of a redirect for display purposes only.
+ */
+function redirect_url($path, array $options = array(), $clean_url = NULL) {
+  if (!isset($clean_url)) {
+    $clean_url = variable_get('clean_url', 0);
+  }
+
+  $url = $path;
+  if (isset($options['query'])) {
+    $url .= $clean_url ? '?' : '&';
+    $url .= drupal_http_build_query($options['query']);
+  }
+  if (isset($options['fragment'])) {
+    $url .= '#' . $options['fragment'];
+  }
+
+  return $url;
 }
 
 function redirect_variables() {
