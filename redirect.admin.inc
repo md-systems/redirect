@@ -357,7 +357,6 @@ function _redirect_extract_url_options(&$element, &$form_state) {
     $form_state['values']["{$type}_options"]['fragment'] = $fragment;
     $value = substr($value, 0, -strlen($fragment));
     $value = trim($value, "#");
-    $form_state['values'][$type] = $value;
   }
   else {
     unset($form_state['values']["{$type}_options"]['fragment']);
@@ -367,11 +366,12 @@ function _redirect_extract_url_options(&$element, &$form_state) {
     $form_state['values']["{$type}_options"]['query'] = drupal_get_query_array($query);
     $value = substr($value, 0, -strlen($query));
     $value = trim($value, "?&");
-    $form_state['values'][$type] = $value;
   }
   else {
     unset($form_state['values']["{$type}_options"]['query']);
   }
+
+  form_set_value($element, $value, $form_state);
 }
 
 /**

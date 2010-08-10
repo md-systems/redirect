@@ -101,15 +101,15 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   // Redirect to canonical URLs.
   if ($path && variable_get('redirect_canonical', TRUE)) {
     $alias = drupal_get_path_alias($path, $path_language);
-    if ($alias != $original_path) {
-      return redirect_redirect($alias);
+    if ($alias != $path && $alias != $original_path) {
+      return redirect_redirect(array('redirect' => $alias));
     }
 
     // Redirect from default entity paths to the proper entity path.
     if ($path_entity = redirect_load_entity_from_path($path)) {
       $uri = entity_uri($path_entity['entity_type'], $path_entity['entity']);
       if ($path != $uri['path']) {
-        return redirect_redirect($uri['path'], $uri['options']);
+        return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options']));
       }
     }
   }
@@ -528,8 +528,8 @@ function redirect_get_redirect_hash(array $redirect) {
   );
   if (!empty($redirect['source_options']['query'])) {
     $hash['source_query'] = $redirect['source_options']['query'];
-    ksort($hash['source_query']);
   }
+  redirect_sort_recursive($hash, 'ksort');
   return drupal_hash_base64(serialize($hash));
 }
 
@@ -684,6 +684,27 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
   }
 
   return $url;
+}
+
+/**
+ * Sort an array recusively.
+ *
+ * @param $array
+ *   The array to sort, by reference.
+ * @param $callback
+ *   The sorting callback to use (e.g. 'sort', 'ksort', 'asort').
+ *
+ * @return
+ *   TRUE on success or FALSE on failure.
+ */
+function redirect_sort_recursive(&$array, $callback = 'sort') {
+  $result = $callback($array);
+  foreach ($array as $key => $value) {
+    if (is_array($value)) {
+      $result &= redirect_sort_recursive($array[$key], $callback);
+    }
+  }
+  return $result;
 }
 
 function redirect_variables() {

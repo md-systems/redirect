@@ -62,4 +62,22 @@ class RedirectUnitTest extends RedirectTestHelper {
       $this->assertEqual($case['result'], redirect_compare_array_recursive($case['query'], $haystack));
     }
   }
+
+  /**
+   * Tets redirect_sort_recursive().
+   */
+  function testSortRecursive() {
+    $test_cases = array(
+      array(
+        'input' => array('b' => 'aa', 'c' => array('c2' => 'aa', 'c1' => 'aa'), 'a' => 'aa'),
+        'expected' => array('a' => 'aa', 'b' => 'aa', 'c' => array('c1' => 'aa', 'c2' => 'aa')),
+        'callback' => 'ksort',
+      ),
+    );
+    foreach ($test_cases as $index => $test_case) {
+      $output = $test_case['input'];
+      redirect_sort_recursive($output, $test_case['callback']);
+      $this->assertIdentical($output, $test_case['expected']);
+    }
+  }
 }
