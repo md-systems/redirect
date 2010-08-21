@@ -230,7 +230,7 @@ function redirect_cron() {
       // used. Therefore, we cannot remove unused redirects.
       return;
     }
-    $rids = db_query("SELECT rid FROM {redirect} WHERE type = '' AND last_used < :interval", array(':interval' => REQUEST_TIME - $purge))->fetchCol();
+    $rids = db_query("SELECT rid FROM {redirect} WHERE type = 'redirect' AND last_used < :interval", array(':interval' => REQUEST_TIME - $purge))->fetchCol();
     if (count($rids)) {
       redirect_delete_multiple($rids);
       watchdog('redirect', format_plural(count($rids), 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
@@ -490,7 +490,7 @@ function redirect_access($op, $redirect, $account = NULL) {
 function redirect_save(array &$redirect) {
   $redirect += array(
     'rid' => NULL,
-    'type' => '',
+    'type' => 'redirect',
     'uid' => $GLOBALS['user']->uid,
     'source_options' => array(),
     'redirect_options' => array(),
@@ -653,7 +653,7 @@ function redirect_redirect(array $redirect = array()) {
     // Use the current internal URL as the default redirection URL.
     'redirect' => current_path(),
     'redirect_options' => array(),
-    'type' => '',
+    'type' => 'manual',
   );
   $redirect['redirect_options'] += array(
     'query' => array(),

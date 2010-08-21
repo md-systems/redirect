@@ -59,7 +59,7 @@ function redirect_list_form($form, &$form_state) {
   // Building the SQL query and load the redirects.
   $query = db_select('redirect', 'r');
   $query->addField('r', 'rid');
-  $query->condition('r.type', '');
+  $query->condition('r.type', 'redirect');
   $query->extend('TableSort')->orderByHeader($header);
   $query->extend('PagerDefault')->limit(50);
   $query->addTag('redirect_list');
@@ -207,6 +207,7 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
   // Merge default values.
   $redirect += array(
     'rid' => NULL,
+    'type' => 'redirect',
     'source' => isset($_GET['source']) ? urldecode($_GET['source']) : '',
     'source_options' => isset($_GET['source_options']) ? drupal_get_query_array($_GET['source_options']) : array(),
     'redirect' => isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '',
@@ -221,6 +222,10 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
   $form['rid'] = array(
     '#type' => 'value',
     '#value' => $redirect['rid'],
+  );
+  $form['type'] = array(
+    '#type' => 'value',
+    '#value' => $redirect['type'],
   );
   $form['hash'] = array(
     '#type' => 'value',

@@ -154,3 +154,13 @@ function redirect_update_3() {
     ->condition('name', 'redirect')
     ->execute();
 }
+
+/**
+ * Change empty redirect types to 'redirect'.
+ */
+function redirect_update_4() {
+  db_update('redirect')
+    ->fields(array('type' => 'redirect'))
+    ->condition('type', '')
+    ->execute();
+}
