@@ -143,3 +143,14 @@ function redirect_update_2() {
     ->fields(array('uid' => 1))
     ->execute();
 }
+
+/**
+ * Enable bootstrap status for the module.
+ */
+function redirect_update_3() {
+  db_update('system')
+    ->fields(array('bootstrap' => 1))
+    ->condition('type', 'module')
+    ->condition('name', 'redirect')
+    ->execute();
+}
