@@ -536,8 +536,7 @@ function redirect_save(array &$redirect) {
  */
 function redirect_cache_clear(array $redirect) {
   if (variable_get('redirect_page_cache', 0)) {
-    $source_url = url($redirect['source'], array('absolute' => TRUE, 'query' => '') + $redirect['source_options']);
-    cache_clear_all($source_url, 'cache_page', TRUE);
+    redirect_page_cache_clear($redirect['source']);
   }
 
   module_invoke_all('redirect_cache_clear', $redirect);
@@ -724,6 +723,16 @@ function redirect_get_redirect_hash(array $redirect) {
   }
   redirect_sort_recursive($hash, 'ksort');
   return drupal_hash_base64(serialize($hash));
+}
+
+/**
+ * Clear a page from the page cache.
+ */
+function redirect_page_cache_clear($path, array $options = array()) {
+  $options['absolute'] = TRUE;
+  $options['query'] = '';
+  $url = url($path, $options);
+  cache_clear_all($url, 'cache_page', TRUE);
 }
 
 /**

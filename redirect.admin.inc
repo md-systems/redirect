@@ -493,6 +493,7 @@ function redirect_delete_form_submit($form, &$form_state) {
  * Form builder for redirection settings.
  *
  * @see system_settings_form()
+ * @see redirect_settings_form_submit()
  *
  * @ingroup forms
  */
@@ -568,7 +569,17 @@ function redirect_settings_form($form, &$form_state) {
     '#default_value' => variable_get('redirect_global_admin_paths', 0),
   );
 
+  $form['#submit'][] = 'redirect_settings_form_submit';
   return system_settings_form($form);
+}
+
+/**
+ * Form submit handler; clears the page cache.
+ *
+ * @see redirect_settings_form()
+ */
+function redirect_settings_form_submit($form, &$form_state) {
+  cache_clear_all('*', 'cache_page', TRUE);
 }
 
 function redirect_404_list($form = NULL) {
