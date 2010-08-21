@@ -88,16 +88,20 @@ function redirect_list_form($form, &$form_state) {
     $row['last_used'] = $redirect['last_used'] ? format_date($redirect['last_used'], 'short') : t('Never');
 
     $operations = array();
-    $operations['edit'] = array(
-      'title' => t('Edit'),
-      'href' => 'admin/config/search/redirect/edit/' . $rid,
-      'query' => $destination,
-    );
-    $operations['delete'] = array(
-      'title' => t('Delete'),
-      'href' => 'admin/config/search/redirect/delete/' . $rid,
-      'query' => $destination,
-    );
+    if (redirect_access('update', $redirect)) {
+      $operations['edit'] = array(
+        'title' => t('Edit'),
+        'href' => 'admin/config/search/redirect/edit/' . $rid,
+        'query' => $destination,
+      );
+    }
+    if (redirect_access('delete', $redirect)) {
+      $operations['delete'] = array(
+        'title' => t('Delete'),
+        'href' => 'admin/config/search/redirect/delete/' . $rid,
+        'query' => $destination,
+      );
+    }
     $row['operations'] = array(
       'data' => array(
         '#theme' => 'links',
@@ -607,11 +611,13 @@ function redirect_404_list($form = NULL) {
     $row['timestamp'] = format_date($result->timestamp, 'short');
 
     $operations = array();
-    $operations['add'] = array(
-      'title' => t('Add redirect'),
-      'href' => 'admin/config/search/redirect/add/',
-      'query' => array('source' => $result->message) + $destination,
-    );
+    if (redirect_access('create', 'redirect')) {
+      $operations['add'] = array(
+        'title' => t('Add redirect'),
+        'href' => 'admin/config/search/redirect/add/',
+        'query' => array('source' => $result->message) + $destination,
+      );
+    }
     $row['operations'] = array(
       'data' => array(
         '#theme' => 'links',

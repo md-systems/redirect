@@ -10,11 +10,30 @@
  */
 
 /**
+ * Modules should return this value from hook_redirect_access() to allow access
+ * to a redirect.
+ */
+define('REDIRECT_ACCESS_ALLOW', 'allow');
+
+/**
+ * Modules should return this value from hook_redirect_access() to deny access
+ * to a redirect.
+ */
+define('REDIRECT_ACCESS_DENY', 'deny');
+
+/**
+ * Modules should return this value from hook_redirect_access() to not affect
+ * redirect access.
+ */
+define('REDIRECT_ACCESS_IGNORE', NULL);
+
+/**
  * Implements hook_hook_info().
  */
 function redirect_hook_info() {
   $hooks = array(
     'redirect_load',
+    'redirect_access',
     'redirect_presave',
     'redirect_insert',
     'redirect_update',
@@ -76,7 +95,8 @@ function redirect_menu() {
     'title' => 'Add redirect',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('redirect_edit_form'),
-    'access arguments' => array('create url redirects'),
+    'access callback' => 'redirect_access',
+    'access arguments' => array('create', 'redirect'),
     'file' => 'redirect.admin.inc',
     'type' => MENU_LOCAL_ACTION,
   );
@@ -84,7 +104,8 @@ function redirect_menu() {
     'title' => 'Edit redirect',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('redirect_edit_form', 5),
-    'access arguments' => array('administer redirects'),
+    'access callback' => 'redirect_access',
+    'access arguments' => array('update', 5),
     'file' => 'redirect.admin.inc',
     'type' => MENU_CALLBACK,
   );
@@ -92,7 +113,8 @@ function redirect_menu() {
     'title' => 'Delete redirect',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('redirect_delete_form', 5),
-    'access arguments' => array('administer redirects'),
+    'access callback' => 'redirect_access',
+    'access arguments' => array('delete', 5),
     'file' => 'redirect.admin.inc',
     'type' => MENU_CALLBACK,
   );
@@ -391,6 +413,68 @@ function redirect_load_multiple(array $rids = array(), array $conditions = array
   module_invoke_all('redirect_load', $redirects);
 
   return $redirects;
+}
+
+/**
+ * Determine whether the current user may perform the given operation on the
+ * specified redirect.
+ *
+ * @param $op
+ *   The operation to be performed on the redirect. Possible values are:
+ *   - "create"
+ *   - "update"
+ *   - "delete"
+ * @param $redirect
+ *   The redirect array on which the operation is to be performed, or redirect
+ *   type (e.g. 'feedburner') for the "create" operation.
+ * @param $account
+ *   Optional, a user object representing the user for whom the operation is to
+ *   be performed. Determines access for a user other than the current user.
+ * @return
+ *   TRUE if the operation may be performed, FALSE otherwise.
+ */
+function redirect_access($op, $redirect, $account = NULL) {
+  global $user;
+
+  $rights = &drupal_static(__FUNCTION__, array());
+
+  if (!$redirect || !in_array($op, array('create', 'update', 'delete'), TRUE)) {
+    // If there was no redirect to check against, or the $op was not one of the
+    // supported ones, we return access denied.
+    return FALSE;
+  }
+  // If no user object is supplied, the access check is for the current user.
+  if (empty($account)) {
+    $account = $user;
+  }
+
+  $cid = isset($redirect['rid']) ? $redirect['rid'] : $redirect;
+
+  // Return cached value if access already checked for this redirect, user and op.
+  if (isset($rights[$account->uid][$cid][$op])) {
+    return $rights[$account->uid][$cid][$op];
+  }
+
+  // Administrators can access all redirects.
+  if (user_access('administer redirects', $account)) {
+    $rights[$account->uid][$cid][$op] = TRUE;
+    return TRUE;
+  }
+
+  // We grant access to the redirect if both of the following conditions are met:
+  // - No modules say to deny access.
+  // - At least one module says to grant access.
+  $access = module_invoke_all('redirect_access', $op, $redirect, $account);
+  if (in_array(REDIRECT_ACCESS_DENY, $access, TRUE)) {
+    $rights[$account->uid][$cid][$op] = FALSE;
+    return FALSE;
+  }
+  elseif (in_array(REDIRECT_ACCESS_ALLOW, $access, TRUE)) {
+    $rights[$account->uid][$cid][$op] = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 /**
@@ -755,6 +839,27 @@ function redirect_compare_array_recursive($match, $haystack) {
 }
 
 /**
+ * Sort an array recusively.
+ *
+ * @param $array
+ *   The array to sort, by reference.
+ * @param $callback
+ *   The sorting callback to use (e.g. 'sort', 'ksort', 'asort').
+ *
+ * @return
+ *   TRUE on success or FALSE on failure.
+ */
+function redirect_sort_recursive(&$array, $callback = 'sort') {
+  $result = $callback($array);
+  foreach ($array as $key => $value) {
+    if (is_array($value)) {
+      $result &= redirect_sort_recursive($array[$key], $callback);
+    }
+  }
+  return $result;
+}
+
+/**
  * Load a language object by its language code.
  *
  * @todo Remove when http://drupal.org/node/660736 is fixed in Drupal core.
@@ -809,27 +914,6 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
   return $url;
 }
 
-/**
- * Sort an array recusively.
- *
- * @param $array
- *   The array to sort, by reference.
- * @param $callback
- *   The sorting callback to use (e.g. 'sort', 'ksort', 'asort').
- *
- * @return
- *   TRUE on success or FALSE on failure.
- */
-function redirect_sort_recursive(&$array, $callback = 'sort') {
-  $result = $callback($array);
-  foreach ($array as $key => $value) {
-    if (is_array($value)) {
-      $result &= redirect_sort_recursive($array[$key], $callback);
-    }
-  }
-  return $result;
-}
-
 function redirect_variables() {
   return array(
     'redirect_default_status_code' => 301,
@@ -845,35 +929,22 @@ function redirect_variables() {
   );
 }
 
-function feedburner_redirect_info() {
-  $redirects['feedburner'] = array(
-    'callback' => 'feedburner_redirect_redirect',
-  );
-  return $redirects;
-}
-
-function feedburner_redirect_alter(array &$redirect) {
-  if ($redirect['type'] == 'feedburner') {
-    drupal_page_is_cacheable(FALSE);
-  }
-}
-
-function redirect_get_redirect_info() {
-  $info = &drupal_static(__FUNCTION__);
-
-  if (!isset($info)) {
-    if ($cache = cache_get('redirect:info')) {
-      $info = $cache->data;
-    }
-    else {
-      $info = module_invoke_all('redirect_info');
-      drupal_alter('redirect_info', $info);
-      cache_set('redirect:info', $info);
-    }
-  }
-
-  return $info;
-}
+//function redirect_get_redirect_info() {
+//  $info = &drupal_static(__FUNCTION__);
+//
+//  if (!isset($info)) {
+//    if ($cache = cache_get('redirect:info')) {
+//      $info = $cache->data;
+//    }
+//    else {
+//      $info = module_invoke_all('redirect_info');
+//      drupal_alter('redirect_info', $info);
+//      cache_set('redirect:info', $info);
+//    }
+//  }
+//
+//  return $info;
+//}
 
 function redirect_parse_url($url) {
   $url = trim($url, " \t\n\r\0\x0B\/");
