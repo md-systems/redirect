@@ -147,17 +147,16 @@ class RedirectUnitTest extends RedirectTestHelper {
    * Test redirect_parse_url().
    */
   function testParseURL() {
-    $test_cases = array(
-      array(
-        'input' => array('b' => 'aa', 'c' => array('c2' => 'aa', 'c1' => 'aa'), 'a' => 'aa'),
-        'expected' => array('a' => 'aa', 'b' => 'aa', 'c' => array('c1' => 'aa', 'c2' => 'aa')),
-      ),
-    );
-    foreach ($test_cases as $index => $test_case) {
-      $output = redirect_parse_url($test_case['input']);
-      $this->assertIdentical($output, $test_case['expected']);
-    }
-
+    //$test_cases = array(
+    //  array(
+    //    'input' => array('b' => 'aa', 'c' => array('c2' => 'aa', 'c1' => 'aa'), 'a' => 'aa'),
+    //    'expected' => array('a' => 'aa', 'b' => 'aa', 'c' => array('c1' => 'aa', 'c2' => 'aa')),
+    //  ),
+    //);
+    //foreach ($test_cases as $index => $test_case) {
+    //  $output = redirect_parse_url($test_case['input']);
+    //  $this->assertIdentical($output, $test_case['expected']);
+    //}
   }
 }
 
