@@ -25,11 +25,18 @@ function redirect_schema() {
         'description' => 'A unique hash based on source, source_options, and language.',
       ),
       'type' => array(
-        'description' => 'The redirect type; if blank it is a normal redirect handled by the module.',
         'type' => 'varchar',
         'length' => 64,
         'not null' => TRUE,
         'default' => '',
+        'description' => 'The redirect type; if blank it is a normal redirect handled by the module.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {users}.uid of the user who created the redirect.',
       ),
       'source' => array(
         'type' => 'varchar',
@@ -68,6 +75,13 @@ function redirect_schema() {
         'not null' => TRUE,
         'description' => 'The HTTP status code to use for the redirect.',
       ),
+      'count' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The number of times the redirect has been used.',
+      ),
       'last_used' => array(
         'type' => 'int',
         'unsigned' => TRUE,
@@ -86,4 +100,46 @@ function redirect_schema() {
   );
 
   return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function redirect_uninstall() {
+  drupal_load('module', 'redirect');
+  $variables = array_keys(redirect_variables());
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}
+
+/**
+ * Add the {redirect}.count field.
+ */
+function redirect_update_1() {
+  $field = array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+    'description' => 'The number of times the redirect has been used.',
+  );
+  db_add_field('redirect', 'count', $field);
+}
+
+/**
+ * Add the {redirect}.uid field.
+ */
+function redirect_update_2() {
+  $field = array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+    'description' => 'The {users}.uid of the user who created the redirect.',
+  );
+  db_add_field('redirect', 'uid', $field);
+  db_update('redirect')
+    ->fields(array('uid' => 1))
+    ->execute();
 }

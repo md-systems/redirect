@@ -20,6 +20,7 @@ function redirect_hook_info() {
     'redirect_update',
     'redirect_delete',
     'redirect_alter',
+    'redirect_cache_clear',
   );
 
   $hooks = array_combine($hooks, $hooks);
@@ -32,11 +33,26 @@ function redirect_hook_info() {
 /**
  * Implements hook_permission().
  */
-function redirect_permisson() {
+function redirect_permission() {
   $permissions['administer redirects'] = array(
     'title' => t('Administer URL redirections'),
   );
   return $permissions;
+}
+
+/**
+ * Implements hook_help().
+ */
+function redirect_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case 'admin/config/search/redirect/404':
+      $output = '<p>' . t('This page lists all paths that have resulted in 404 errors and do not yet have any redirects assigned to them.') . '</p>';
+      break;
+    case 'admin/reports/page-not-found':
+      break;
+  }
+  return $output;
 }
 
 /**
@@ -88,8 +104,28 @@ function redirect_menu() {
     'access arguments' => array('administer redirects'),
     'file' => 'redirect.admin.inc',
     'type' => MENU_LOCAL_TASK,
-    'weight' => 10,
+    'weight' => 50,
   );
+
+  // If the database logging module is enabled, add special 404 listing pages.
+  if (module_exists('dblog')) {
+    $items['admin/config/search/redirect/404'] = array(
+      'title' => 'Fix 404 pages',
+      'description' => 'Add redirects for 404 pages.',
+      'page callback' => 'redirect_404_list',
+      'access arguments' => array('administer redirects'),
+      'file' => 'redirect.admin.inc',
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 20,
+    );
+    $items['admin/reports/page-not-found/redirect'] = array(
+      'title' => 'Fix 404 pages with URL redirects',
+      'page callback' => 'drupal_goto',
+      'page arguments' => array('admin/config/search/redirect/404'),
+      'access arguments' => array('administer redirects'),
+      'type' => MENU_LOCAL_ACTION,
+    );
+  }
 
   return $items;
 }
@@ -156,7 +192,7 @@ function redirect_init() {
   $request_uri = trim($request_uri, '/');
 
   if ($request_uri != $original_uri) {
-    redirect_redirect($request_uri);
+    redirect_redirect(array('redirect' => $request_uri));
   }
 }
 
@@ -166,11 +202,34 @@ function redirect_init() {
 function redirect_cron() {
   // Purge inactive self-managed redirects from the database.
   if ($purge = variable_get('redirect_purge_inactive', 0)) {
+    if (variable_get('redirect_page_cache', 0) && !variable_get('page_cache_invoke_hooks', TRUE)) {
+      // If serving redirects from the page cache is enabled and hooks are not
+      // executed during page caching, then we cannot track when a redirect is
+      // used. Therefore, we cannot remove unused redirects.
+      return;
+    }
     $rids = db_query("SELECT rid FROM {redirect} WHERE type = '' AND last_used < :interval", array(':interval' => REQUEST_TIME - $purge))->fetchCol();
     if (count($rids)) {
       redirect_delete_multiple($rids);
-      watchdog('redirect', format_plural($count, 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
+      watchdog('redirect', format_plural(count($rids), 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
     }
+  }
+}
+
+/**
+ * Implements hook_exit().
+ */
+function redirect_exit($destination = NULL) {
+  // If the current page is being cached, track it.
+  if (drupal_get_http_header('Location') && $rid = drupal_get_http_header('X-Redirect-ID')) {
+    // Ensure the database is loaded. This is only the next bootstrap step
+    // after DRUPAL_BOOTSTRAP_DATABASE
+    drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
+    db_update('redirect')
+      ->fields(array('last_used' => REQUEST_TIME))
+      ->expression('count', 'count + 1')
+      ->condition('rid', $rid)
+      ->execute();
   }
 }
 
@@ -197,6 +256,27 @@ function redirect_user_cancel($edit, $account, $method) {
     case 'user_cancel_delete':
       redirect_delete_by_entity_path('user', $account);
       break;
+  }
+}
+
+/**
+ * Implements hook_page_build().
+ *
+ * Adds an action on 404 pages to create a redirect.
+ */
+function redirect_page_build(&$page) {
+  if (redirect_is_current_page_404() && user_access('administer redirects')) {
+    $actions['add'] = array(
+      'title' => t('Add an URL redirect from this page to another location'),
+      'href' => 'admin/config/search/redirect/add',
+      'query' => array('source' => current_path()) + drupal_get_destination(),
+    );
+    $page['content']['system_main']['actions'] = array(
+      '#theme' => 'links',
+      '#links' => $actions,
+      '#attributes' => array('class' => array('action-links')),
+      '#weight' => -100,
+    );
   }
 }
 
@@ -248,8 +328,9 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
   // @todo Implement a redirect cache to check if $source + $language has any
   // redirections enabled. Much like path alias caching.
 
-  $rids = db_query("SELECT rid FROM {redirect} WHERE source = :source AND language IN (:language, :language_none)", array(
+  $rids = db_query("SELECT rid FROM {redirect} WHERE source IN (:source, :source_front) AND language IN (:language, :language_none)", array(
     ':source' => $source,
+    ':source_front' => $source == variable_get('site_frontpage', 'node') ? '' : $source,
     ':language' => $language,
     ':language_none' => LANGUAGE_NONE,
   ))->fetchCol();
@@ -271,24 +352,6 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
   }
 
   return FALSE;
-}
-
-/**
- * uasort callback; Compare redirects based on language neutrality and rids.
- */
-function _redirect_uasort($a, $b) {
-  if ($a['language'] != $b['language']) {
-    // Language is first priority.
-    return $a['language'] == LANGUAGE_NONE;
-  }
-  elseif (isset($a['source_options']['query']) != isset($b['source_options']['query'])) {
-    // Redirects with query strings are second priority.
-    return !isset($a['source_options']['query']);
-  }
-  else {
-    // Last priority is {redirect}.rid DESC.
-    return $a['rid'] < $b['rid'];
-  }
 }
 
 /**
@@ -344,10 +407,12 @@ function redirect_save(array &$redirect) {
   $redirect += array(
     'rid' => NULL,
     'type' => '',
+    'uid' => $GLOBALS['user']->uid,
     'source_options' => array(),
     'redirect_options' => array(),
     'language' => LANGUAGE_NONE,
-    'status_code' => variable_get('redirect_default_status_code', 301),
+    'status_code' => 0,
+    'count' => 0,
     'last_used' => 0,
     'hash' => '',
   );
@@ -359,7 +424,13 @@ function redirect_save(array &$redirect) {
   if (empty($redirect['rid']) || $hash !== $redirect['hash']) {
     // Only new or changed redirects reset the last used value.
     $redirect['hash'] = $hash;
+    $redirect['count'] = 0;
     $redirect['last_used'] = 0;
+
+    if (!empty($redirect['rid'])) {
+      $old_redirect = redirect_load($redirect['rid']);
+      redirect_cache_clear($old_redirect);
+    }
   }
 
   if (empty($redirect['rid'])) {
@@ -371,7 +442,21 @@ function redirect_save(array &$redirect) {
     module_invoke_all('redirect_update', $redirect);
   }
 
+  redirect_cache_clear($redirect);
+
   return $redirect;
+}
+
+/**
+ * Clear a appropriate caches when a redirect is saved or deleted.
+ */
+function redirect_cache_clear(array $redirect) {
+  if (variable_get('redirect_page_cache', 0)) {
+    $source_url = url($redirect['source'], array('absolute' => TRUE, 'query' => '') + $redirect['source_options']);
+    cache_clear_all($source_url, 'cache_page', TRUE);
+  }
+
+  module_invoke_all('redirect_cache_clear', $redirect);
 }
 
 /**
@@ -455,6 +540,7 @@ function redirect_delete_multiple(array $rids) {
     // Let modules react to the individual redirects being deleted.
     foreach ($redirects as $rid => $redirect) {
       module_invoke_all('redirect_delete', $redirect);
+      redirect_cache_clear($redirect);
     }
   }
 }
@@ -483,12 +569,15 @@ function redirect_redirect(array $redirect = array()) {
     // Use the current internal URL as the default redirection URL.
     'redirect' => current_path(),
     'redirect_options' => array(),
-    'status_code' => variable_get('redirect_default_status_code', 301),
     'type' => '',
   );
   $redirect['redirect_options'] += array(
     'query' => array(),
   );
+
+  if (empty($redirect['status_code'])) {
+    $redirect['status_code'] = variable_get('redirect_default_status_code', 301);
+  }
 
   if (variable_get('redirect_passthrough_querystring', FALSE)) {
     // Preserve the current query parameters in the redirect.
@@ -496,29 +585,49 @@ function redirect_redirect(array $redirect = array()) {
   }
 
   // Prevent the destination query parameter from overriding this redirect.
-  if (isset($_GET['destination'])) {
+  //if (isset($_GET['destination'])) {
     // Simply unset the parameter since it has already been passed into
     // $options['query'] in the previous code.
-    unset($_GET['destination']);
-  }
+  //  unset($_GET['destination']);
+  //}
 
   // Allow other modules to alter the redirect before passing to drupal_goto().
   drupal_alter('redirect', $redirect);
 
   // Continue if the redirect has not been disabled by hook_redirect_alter().
   if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE) {
-
-    // Update {redirect}.last_used with the current time stamp.
-    if (!empty($redirect['rid'])) {
-      db_update('redirect')
-        ->fields(array('last_used' => REQUEST_TIME))
-        ->condition('rid', $redirect['rid'])
-        ->execute();
-    }
-
     // Perform the actual redirect.
-    drupal_goto($redirect['redirect'], $redirect['redirect_options'], $redirect['status_code']);
+    redirect_goto($redirect);
   }
+}
+
+function redirect_goto(array $redirect) {
+  $redirect['redirect_options']['absolute'] = TRUE;
+  $url = url($redirect['redirect'], $redirect['redirect_options']);
+  drupal_add_http_header('Location', $url);
+  drupal_add_http_header('Status', redirect_status_code_options($redirect['status_code']));
+  if (!empty($redirect['rid'])) {
+    drupal_add_http_header('X-Redirect-ID', $redirect['rid']);
+  }
+
+  if (!variable_get('redirect_page_cache', 0) || !variable_get('cache', 0) || !drupal_page_is_cacheable()) {
+    drupal_exit($url);
+  }
+
+  // @see drupal_exit()
+  if (drupal_get_bootstrap_phase() == DRUPAL_BOOTSTRAP_FULL) {
+    if (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'update') {
+      module_invoke_all('exit', $url);
+    }
+    drupal_session_commit();
+    if (variable_get('cache', 0)) {
+      // We must output something to allow the request to be cached.
+      echo ' ';
+      drupal_page_set_cache();
+    }
+  }
+
+  exit;
 }
 
 function redirect_get_redirect_hash(array $redirect) {
@@ -674,7 +783,21 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
     $clean_url = variable_get('clean_url', 0);
   }
 
+  if ($path == '') {
+    $path = '<front>';
+  }
+
   $url = $path;
+
+  if (!empty($options['absolute']) && !url_is_external($url)) {
+    if (!empty($options['https']) && variable_get('https', FALSE)) {
+      $url = $GLOBALS['base_secure_url'] . base_path() . $url;
+    }
+    else {
+      $url = $GLOBALS['base_insecure_url'] . base_path() . $url;
+    }
+  }
+
   if (isset($options['query'])) {
     $url .= $clean_url ? '?' : '&';
     $url .= drupal_http_build_query($options['query']);
@@ -713,6 +836,7 @@ function redirect_variables() {
     'redirect_auto_redirect' => TRUE,
     'redirect_warning' => FALSE,
     'redirect_passthrough_querystring' => 0,
+    'redirect_page_cache' => 0,
     'redirect_purge_inactive' => 0,
     'redirect_global_home' => 1,
     'redirect_global_clean' => 1,
@@ -726,6 +850,12 @@ function feedburner_redirect_info() {
     'callback' => 'feedburner_redirect_redirect',
   );
   return $redirects;
+}
+
+function feedburner_redirect_alter(array &$redirect) {
+  if ($redirect['type'] == 'feedburner') {
+    drupal_page_is_cacheable(FALSE);
+  }
 }
 
 function redirect_get_redirect_info() {
@@ -743,4 +873,86 @@ function redirect_get_redirect_info() {
   }
 
   return $info;
+}
+
+function redirect_parse_url($url) {
+  $url = trim($url, " \t\n\r\0\x0B\/");
+  $parsed = parse_url($url);
+
+  if (isset($parsed['fragment'])) {
+    $url = substr($url, 0, -strlen($parsed['fragment']));
+    $url = trim($url, '#');
+  }
+  if (isset($parsed['query'])) {
+    $url = substr($url, 0, -strlen($parsed['query']));
+    $url = trim($url, '?&');
+    $parsed['query'] = drupal_get_query_array($parsed['query']);
+  }
+
+  // Convert absolute to relative.
+  if (isset($parsed['scheme']) && isset($parsed['host'])) {
+    $base_secure_url = rtrim($GLOBALS['base_secure_url'] . base_path(), '/');
+    $base_insecure_url = rtrim($GLOBALS['base_insecure_url'] . base_path(), '/');
+    if (strpos($url, $base_secure_url) === 0) {
+      $url = str_replace($base_secure_url, '', $url);
+      $parsed['https'] = TRUE;
+    }
+    elseif (strpos($url, $base_insecure_url) === 0) {
+      $url = str_replace($base_insecure_url, '', $url);
+    }
+  }
+
+  $url = trim($url, '/');
+
+  // Convert to frontpage paths.
+  if ($url == '<front>') {
+    $url = '';
+  }
+
+  //$parsed['url'] = http_build_query($url, HTTP_URL_STRIP_QUERY | HTTP_URL_STRIP_FRAGMENT);
+  $parsed['url'] = $url;
+  return $parsed;
+}
+
+function redirect_status_code_options($code = NULL) {
+  $codes = array(
+    300 => t('300 Multiple Choices'),
+    301 => t('301 Moved Permanently'),
+    302 => t('302 Found'),
+    303 => t('303 See Other'),
+    304 => t('304 Not Modified'),
+    305 => t('305 Use Proxy'),
+    307 => t('307 Temporary Redirect'),
+  );
+  return isset($codes[$code]) ? $codes[$code] : $codes;
+}
+
+/**
+ * Returns if the current page request is a page not found (404 status error).
+ *
+ * Why the fuck do we have to do this? Why is there not an easier way???
+ *
+ * @return
+ *   TRUE if the current page is a 404, or FALSE otherwise.
+ */
+function redirect_is_current_page_404() {
+  return drupal_get_http_header('Status') == '404 Not Found';
+}
+
+/**
+ * uasort callback; Compare redirects based on language neutrality and rids.
+ */
+function _redirect_uasort($a, $b) {
+  if ($a['language'] != $b['language']) {
+    // Language is first priority.
+    return $a['language'] == LANGUAGE_NONE;
+  }
+  elseif (isset($a['source_options']['query']) != isset($b['source_options']['query'])) {
+    // Redirects with query strings are second priority.
+    return !isset($a['source_options']['query']);
+  }
+  else {
+    // Last priority is {redirect}.rid DESC.
+    return $a['rid'] < $b['rid'];
+  }
 }

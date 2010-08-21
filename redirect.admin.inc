@@ -6,10 +6,9 @@
  * Administrative page callbacks for the redirect module.
  */
 
-
-
 function redirect_list_form($form, &$form_state) {
   $destination = drupal_get_destination();
+  $default_status_code = variable_get('redirect_default_status_code', 301);
 
   // Set up the header.
   $header = array(
@@ -17,6 +16,7 @@ function redirect_list_form($form, &$form_state) {
     'redirect' => array('data' => t('To'), 'field' => 'redirect'),
     'status_code' => array('data' => t('Type'), 'field' => 'status_code'),
     'language' => array('data' => t('Language'), 'field' => 'language'),
+    'count' => array('data' => t('Count'), 'field' => 'count'),
     'last_used' => array('data' => t('Last used'), 'field' => 'last_used'),
     'operations' => array('data' => t('Operations')),
   );
@@ -57,11 +57,14 @@ function redirect_list_form($form, &$form_state) {
   //);
 
   // Building the SQL query and load the redirects.
-  $query = db_select('redirect');
-  $query->addField('redirect', 'rid');
+  $query = db_select('redirect', 'r');
+  $query->addField('r', 'rid');
+  $query->condition('r.type', '');
   $query->extend('TableSort')->orderByHeader($header);
   $query->extend('PagerDefault')->limit(50);
-  redirect_build_filter_query($query, $keys);
+  $query->addTag('redirect_list');
+  $query->addTag('redirect_access');
+  redirect_build_filter_query($query, array('source', 'redirect'), $keys);
   $rids = $query->execute()->fetchCol();
   $redirects = redirect_load_multiple($rids);
 
@@ -73,8 +76,15 @@ function redirect_list_form($form, &$form_state) {
     $redirect_url = redirect_url($redirect['redirect'], array_merge($redirect['redirect_options'], array('alias' => TRUE)));
     $row['source'] = l($source_url, $redirect['source'], $redirect['source_options']);
     $row['redirect'] = l($redirect_url, $redirect['redirect'], $redirect['redirect_options']);
-    $row['status_code'] = $redirect['status_code'];
+    $row['status_code'] = $redirect['status_code'] ? $redirect['status_code'] : t('Default (@default)', array('@default' => $default_status_code));
     $row['language'] = module_invoke('locale', 'language_name', $redirect['language']);
+    $row['count'] = $redirect['count'];
+    if ($redirect['count']) {
+      $row['count'] = array(
+        'data' => $redirect['count'],
+        'title' => t('Last used on @date', array('@date' => format_date($redirect['last_used'], 'short'))),
+      );
+    }
     $row['last_used'] = $redirect['last_used'] ? format_date($redirect['last_used'], 'short') : t('Never');
 
     $operations = array();
@@ -167,13 +177,14 @@ function redirect_list_filter_form_reset($form, &$form_state) {
  * @param $keys
  *   The filter string to use.
  */
-function redirect_build_filter_query(SelectQuery $query, $keys = '') {
-  if ($keys) {
+function redirect_build_filter_query(QueryAlterableInterface $query, array $fields, $keys = '') {
+  if ($keys && $fields) {
     // Replace wildcards with PDO wildcards.
     $conditions = db_or();
     $wildcard = '%' . trim(preg_replace('!\*+!', '%', db_like($keys)), '%') . '%';
-    $conditions->condition('source', $wildcard, 'LIKE');
-    $conditions->condition('redirect', $wildcard, 'LIKE');
+    foreach ($fields as $field) {
+      $conditions->condition($field, $wildcard, 'LIKE');
+    }
     $query->condition($conditions);
   }
 }
@@ -197,7 +208,8 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     'redirect' => isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '',
     'redirect_options' => isset($_GET['redirect_options']) ? drupal_get_query_array($_GET['redirect_options']) : array(),
     'language' => isset($_GET['language']) ? urldecode($_GET['language']) : LANGUAGE_NONE,
-    'status_code' => variable_get('path_redirect_default_status', 301),
+    'status_code' => 0,
+    'count' => 0,
     'last_used' => 0,
     'hash' => '',
   );
@@ -220,7 +232,7 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     '#title' => t('From'),
     '#description' => t("Enter an interal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')),
     '#maxlength' => 560,
-    '#default_value' => redirect_url($redirect['source'], $redirect['source_options']),
+    '#default_value' => $redirect['rid'] ? redirect_url($redirect['source'], $redirect['source_options']) : '',
     '#required' => TRUE,
     '#field_prefix' => url('', array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
     '#element_validate' => array('redirect_element_validate_source'),
@@ -233,7 +245,7 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     '#type' => 'textfield',
     '#title' => t('To'),
     '#maxlength' => 560,
-    '#default_value' => redirect_url($redirect['redirect'], $redirect['redirect_options'], TRUE),
+    '#default_value' => $redirect['rid'] ? redirect_url($redirect['redirect'], array('absolute' => TRUE) + $redirect['redirect_options'], TRUE) : '',
     '#required' => TRUE,
     '#description' => t('Enter an internal Drupal path, path alias, or complete external URL (like http://example.com/) to redirect to. Use %front to redirect to the front page.', array('%front' => '<front>')),
     '#element_validate' => array('redirect_element_validate_redirect'),
@@ -260,7 +272,7 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     '#title' => t('Redirect status'),
     '#description' => t('You can find more information about HTTP redirect status codes at <a href="@status-codes">@status-codes</a>.', array('@status-codes' => 'http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_Redirection')),
     '#default_value' => $redirect['status_code'],
-    '#options' => redirect_status_code_options(),
+    '#options' => array(0 => t('Default (@default)', array('@default' => variable_get('redirect_default_status_code', 301)))) + redirect_status_code_options(),
   );
 
   $form['override'] = array(
@@ -334,10 +346,14 @@ function redirect_element_validate_source($element, &$form_state) {
  */
 function redirect_element_validate_redirect($element, &$form_state) {
   $value = &$element['#value'];
-
   _redirect_extract_url_options($element, $form_state);
+  $value = &$form_state['values']['redirect'];
 
-  if (!valid_url($value) && !valid_url($value, TRUE) && $value != '<front>') {
+
+  // Normalize the path.
+  $value = drupal_get_normal_path($value, $form_state['values']['language']);
+
+  if (!valid_url($value) && !valid_url($value, TRUE) && $value != '<front>' && $value != '') {
     form_error($element, t('The redirect path %value is not valid.', array('%value' => $value)));
   }
 
@@ -346,32 +362,41 @@ function redirect_element_validate_redirect($element, &$form_state) {
 
 /**
  * Extract the query and fragment parts out of an URL field.
- *
- * @param
  */
 function _redirect_extract_url_options(&$element, &$form_state) {
   $value = &$element['#value'];
   $type = $element['#name'];
+  $options = & $form_state['values']["{$type}_options"];
 
-  if ($fragment = parse_url($value, PHP_URL_FRAGMENT)) {
-    $form_state['values']["{$type}_options"]['fragment'] = $fragment;
-    $value = substr($value, 0, -strlen($fragment));
-    $value = trim($value, "#");
+  $parsed = redirect_parse_url($value);
+
+  if (isset($parsed['fragment'])) {
+    $options['fragment'] = $parsed['fragment'];
   }
   else {
-    unset($form_state['values']["{$type}_options"]['fragment']);
+    unset($options['fragment']);
   }
 
-  if ($query = parse_url($value, PHP_URL_QUERY)) {
-    $form_state['values']["{$type}_options"]['query'] = drupal_get_query_array($query);
-    $value = substr($value, 0, -strlen($query));
-    $value = trim($value, "?&");
+  if (isset($parsed['query'])) {
+    $options['query'] = $parsed['query'];
   }
   else {
-    unset($form_state['values']["{$type}_options"]['query']);
+    unset($options['query']);
   }
 
-  form_set_value($element, $value, $form_state);
+  if (isset($parsed['scheme']) && $parsed['scheme'] == 'https') {
+    $options['https'] = TRUE;
+  }
+  else {
+    unset($options['https']);
+  }
+
+  if (!url_is_external($parsed['url'])) {
+    $parsed['url'] = drupal_get_normal_path($parsed['url'], $form_state['values']['language']);
+  }
+
+  form_set_value($element, $parsed['url'], $form_state);
+  return $parsed;
 }
 
 /**
@@ -474,6 +499,7 @@ function redirect_settings_form($form, &$form_state) {
     '#type' => 'checkbox',
     '#title' => t('Retain query string through redirect.'),
     '#default_value' => variable_get('redirect_querystring', 0),
+    '#description' => t('For example, given a redirect from %source to %redirect, if a user visits %sourcequery they would be redirected to %redirectquery. The query strings in the redirection will always take precedence over the current query string.', array('%source' => 'source-path', '%redirect' => 'node?a=apples', '%sourcequery' => 'source-path?a=alligators&b=bananas', '%redirectquery' => 'node?a=apples&b=bananas')),
   );
   $form['redirect_warning'] = array(
     '#type' => 'checkbox',
@@ -488,12 +514,20 @@ function redirect_settings_form($form, &$form_state) {
     '#options' => redirect_status_code_options(),
     '#default_value' => variable_get('redirect_default_status_code', 301),
   );
+  $form['redirect_page_cache'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Allow redirects to be saved into the page cache.'),
+    '#default_value' => variable_get('redirect_page_cache', 0),
+    '#description' => t('This feature is incompatible with the purge inactive redirects.'),
+    '#disabled' => !variable_get('cache', 0),
+  );
   $form['redirect_purge_inactive'] = array(
     '#type' => 'select',
     '#title' => t('Delete redirects that have not been accessed for'),
     '#default_value' => variable_get('redirect_purge_inactive', 0),
     '#options' => array(0 => t('Never (do not discard)')) + drupal_map_assoc(array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000), 'format_interval'),
-    '#description' => t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.')
+    '#description' => t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.'),
+    '#disabled' => variable_get('redirect_page_cache', 0) && !variable_get('page_cache_invoke_hooks', TRUE),
   );
 
   $form['globals'] = array(
@@ -528,14 +562,123 @@ function redirect_settings_form($form, &$form_state) {
   return system_settings_form($form);
 }
 
-function redirect_status_code_options() {
-  return array(
-    300 => t('300 Multiple Choices'),
-    301 => t('301 Moved Permanently'),
-    302 => t('302 Found'),
-    303 => t('303 See Other'),
-    304 => t('304 Not Modified'),
-    305 => t('305 Use Proxy'),
-    307 => t('307 Temporary Redirect'),
+function redirect_404_list($form = NULL) {
+  $destination = drupal_get_destination();
+
+  // Get filter keys and add the filter form.
+  $keys = func_get_args();
+  //$keys = array_splice($keys, 2); // Offset the $form and $form_state parameters.
+  $keys = implode('/', $keys);
+  $build['redirect_list_404_filter_form'] = drupal_get_form('redirect_list_404_filter_form', $keys);
+
+  $header = array(
+    array('data' => t('Page'), 'field' => 'message'),
+    array('data' => t('Count'), 'field' => 'count', 'sort' => 'desc'),
+    array('data' => t('Last accessed'), 'field' => 'timestamp'),
+    array('data' => t('Operations')),
   );
+
+  $count_query = db_select('watchdog', 'w');
+  $count_query->addExpression('COUNT(DISTINCT(w.message))');
+  $count_query->leftJoin('redirect', 'r', 'w.message = r.source');
+  $count_query->condition('w.type', 'page not found');
+  $count_query->isNull('r.rid');
+  redirect_build_filter_query($count_query, array('w.message'), $keys);
+
+  $query = db_select('watchdog', 'w');
+  $query->fields('w', array('message'));
+  $query->addExpression('COUNT(wid)', 'count');
+  $query->addExpression('MAX(timestamp)', 'timestamp');
+  $query->leftJoin('redirect', 'r', 'w.message = r.source');
+  $query->isNull('r.rid');
+  $query->condition('w.type', 'page not found');
+  $query->groupBy('w.message');
+  $query = $query->extend('PagerDefault')->limit(25);
+  $query = $query->extend('TableSort')->orderByHeader($header);
+  redirect_build_filter_query($query, array('w.message'), $keys);
+  $query->setCountQuery($count_query);
+  $results = $query->execute();
+
+  $rows = array();
+  foreach ($results as $result) {
+    $row = array();
+    $row['source'] = l($result->message, $result->message, array('query' => $destination));
+    $row['count'] = $result->count;
+    $row['timestamp'] = format_date($result->timestamp, 'short');
+
+    $operations = array();
+    $operations['add'] = array(
+      'title' => t('Add redirect'),
+      'href' => 'admin/config/search/redirect/add/',
+      'query' => array('source' => $result->message) + $destination,
+    );
+    $row['operations'] = array(
+      'data' => array(
+        '#theme' => 'links',
+        '#links' => $operations,
+        '#attributes' => array('class' => array('links', 'inline', 'nowrap')),
+      ),
+    );
+
+    $rows[] = $row;
+  }
+
+  $build['redirect_404_table']  = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#empty' => t('No 404 pages without redirects found.'),
+  );
+  $build['redirect_404_pager'] = array('#theme' => 'pager');
+  return $build;
+}
+
+/**
+ * Return a form to filter URL redirects.
+ *
+ * @see redirect_list_filter_form_submit()
+ *
+ * @ingroup forms
+ */
+function redirect_list_404_filter_form($form, &$form_state, $keys = '') {
+  $form['#attributes'] = array('class' => array('search-form'));
+  $form['basic'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Filter 404s'),
+    '#attributes' => array('class' => array('container-inline')),
+  );
+  $form['basic']['filter'] = array(
+    '#type' => 'textfield',
+    '#title' => '',
+    '#default_value' => $keys,
+    '#maxlength' => 128,
+    '#size' => 25,
+  );
+  $form['basic']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Filter'),
+    '#submit' => array('redirect_list_404_filter_form_submit'),
+  );
+  if ($keys) {
+    $form['basic']['reset'] = array(
+      '#type' => 'submit',
+      '#value' => t('Reset'),
+      '#submit' => array('redirect_list_404_filter_form_reset'),
+    );
+  }
+  return $form;
+}
+
+/**
+ * Process filter form submission when the Filter button is pressed.
+ */
+function redirect_list_404_filter_form_submit($form, &$form_state) {
+  $form_state['redirect'] = 'admin/config/search/redirect/404/' . trim($form_state['values']['filter']);
+}
+
+/**
+ * Process filter form submission when the Reset button is pressed.
+ */
+function redirect_list_404_filter_form_reset($form, &$form_state) {
+  $form_state['redirect'] = 'admin/config/search/redirect/404';
 }
