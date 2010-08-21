@@ -579,7 +579,7 @@ function redirect_settings_form($form, &$form_state) {
  * @see redirect_settings_form()
  */
 function redirect_settings_form_submit($form, &$form_state) {
-  cache_clear_all('*', 'cache_page', TRUE);
+  redirect_page_cache_clear();
 }
 
 function redirect_404_list($form = NULL) {

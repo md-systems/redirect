@@ -728,11 +728,13 @@ function redirect_get_redirect_hash(array $redirect) {
 /**
  * Clear a page from the page cache.
  */
-function redirect_page_cache_clear($path, array $options = array()) {
-  $options['absolute'] = TRUE;
-  $options['query'] = '';
-  $url = url($path, $options);
-  cache_clear_all($url, 'cache_page', TRUE);
+function redirect_page_cache_clear($path = '*', array $options = array()) {
+  if ($path != '*') {
+    $options['absolute'] = TRUE;
+    $options['query'] = '';
+    $path = url($path, $options);
+  }
+  cache_clear_all($path, 'cache_page', TRUE);
 }
 
 /**
