@@ -16,6 +16,28 @@ function hook_redirect_load(array &$redirects) {
 }
 
 /**
+ * Alter the list of redirects matching a certain source.
+ *
+ * @param $redirects
+ *   An array of redirect arrays.
+ * @param $source
+ *   The source request path.
+ * @param $context
+ *   An array with the following key/value pairs:
+ *   - language: The language code of the source request.
+ *   - query: An array of the source request query string.
+ */
+function hook_redirect_load_by_source_alter(array &$redirects, $source, array $context) {
+  foreach ($redirects as $rid => $redirect) {
+    if ($redirect['source'] !== $source) {
+      // If the redirects to do not exactly match $source (e.g. case
+      // insensitive matches), then remove them from the results.
+      unset($redirects[$rid]);
+    }
+  }
+}
+
+/**
  * Control access to a redirect.
  *
  * Modules may implement this hook if they want to have a say in whether or not

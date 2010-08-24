@@ -33,6 +33,7 @@ define('REDIRECT_ACCESS_IGNORE', NULL);
 function redirect_hook_info() {
   $hooks = array(
     'redirect_load',
+    'redirect_load_by_source_alter',
     'redirect_access',
     'redirect_presave',
     'redirect_insert',
@@ -160,14 +161,14 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   if ($path && variable_get('redirect_canonical', TRUE)) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
-      return redirect_redirect(array('redirect' => $alias));
+      return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
     }
 
     // Redirect from default entity paths to the proper entity path.
     if ($path_entity = redirect_load_entity_from_path($path)) {
       $uri = entity_uri($path_entity['entity_type'], $path_entity['entity']);
       if ($path != $uri['path']) {
-        return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options']));
+        return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options'], 'type' => 'global'));
       }
     }
   }
@@ -214,7 +215,7 @@ function redirect_init() {
   $request_uri = trim($request_uri, '/');
 
   if ($request_uri != $original_uri) {
-    redirect_redirect(array('redirect' => $request_uri));
+    redirect_redirect(array('redirect' => $request_uri, 'type' => 'global'));
   }
 }
 
@@ -347,29 +348,46 @@ function redirect_load_by_hash($hash) {
  * @ingroup redirect_api
  */
 function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $query = array()) {
-  // @todo Implement a redirect cache to check if $source + $language has any
-  // redirections enabled. Much like path alias caching.
-
-  $rids = db_query("SELECT rid FROM {redirect} WHERE source IN (:source, :source_front) AND language IN (:language, :language_none)", array(
-    ':source' => $source,
-    ':source_front' => $source == variable_get('site_frontpage', 'node') ? '' : $source,
-    ':language' => $language,
-    ':language_none' => LANGUAGE_NONE,
-  ))->fetchCol();
+  // Run a case-insensitive query for matching RIDs first.
+  $rid_query = db_select('redirect');
+  $rid_query->addField('redirect', 'rid');
+  if ($source != variable_get('site_frontpage', 'node')) {
+    $rid_query->condition('source', db_like($source), 'LIKE');
+  }
+  else {
+    $source_condition = db_or();
+    $source_condition->condition('source', db_like($source), 'LIKE');
+    $source_condition->condition('source', '');
+    $rid_query->condition($source_condition);
+  }
+  $rid_query->condition('language', array($language, LANGUAGE_NONE));
+  $rids = $rid_query->execute()->fetchCol();
 
   if ($rids && $redirects = redirect_load_multiple($rids)) {
-    // Sort the redirects in the proper order.
-    uasort($redirects, '_redirect_uasort');
-
+    // Narrow down the list of candidates.
     foreach ($redirects as $rid => $redirect) {
-      if (isset($redirect['source_options']['query'])) {
-        if (!empty($query) && redirect_compare_array_recursive($redirect['source_options']['query'], $query)) {
-          return $redirect;
+      if (!empty($redirect['source_options']['query'])) {
+        if (empty($query) || !redirect_compare_array_recursive($redirect['source_options']['query'], $query)) {
+          unset($redirects[$rid]);
+          continue;
         }
       }
-      else {
-        return $redirect;
+
+      // Add a case sensitive matches condition to be used in sorting.
+      if ($source !== $redirect['source']) {
+        $redirects[$rid]['weight'] = 1;
       }
+    }
+
+    if (!empty($redirects)) {
+      // Sort the redirects in the proper order.
+      uasort($redirects, '_redirect_uasort');
+
+      // Allow other modules to alter the redirect candidates before selecting the top one.
+      $context = array('language' => $language, 'query' => $query);
+      drupal_alter('redirect_load_by_source', $redirects, $source, $context);
+
+      return !empty($redirects) ? reset($redirects) : FALSE;
     }
   }
 
@@ -566,14 +584,16 @@ function redirect_delete($rid) {
  * @ingroup redirect_api
  */
 function redirect_delete_by_path($path) {
-  $sql = "SELECT pid FROM {redirect} WHERE source = :source OR source LIKE :source_wildcard OR redirect = :redirect OR redirect LIKE :redirect_wildcard";
-  $args = array(
-    ':source' => $path,
-    ':source_wildcard' => $path . '/%',
-    ':redirect' => $path,
-    ':redirect_wildcard' => $path . '/%',
-  );
-  $rids = db_query($sql, $args)->fetchCol();
+  $query = db_select('redirect');
+  $query->addField('redirect', 'rid');
+  $query_or = db_or();
+  $query_or->condition('source', db_like($path), 'LIKE');
+  $query_or->condition('source', db_like($path . '/') . '%', 'LIKE');
+  $query_or->condition('redirect', db_like($path), 'LIKE');
+  $query_or->condition('redirect', db_like($path . '/') . '%', 'LIKE');
+  $query->condition($query_or);
+  $rids = $query->execute()->fetchCol();
+
   if ($rids) {
     return redirect_delete_multiple($rids);
   }
@@ -1025,16 +1045,22 @@ function redirect_is_current_page_404() {
  * uasort callback; Compare redirects based on language neutrality and rids.
  */
 function _redirect_uasort($a, $b) {
-  if ($a['language'] != $b['language']) {
-    // Language is first priority.
+  $a_weight = isset($a['weight']) ? $a['weight'] : 0;
+  $b_weight = isset($b['weight']) ? $b['weight'] : 0;
+  if ($a_weight != $b_weight) {
+    // First sort by weight (case sensitivity).
+    return $b_weight < $a_weight;
+  }
+  elseif ($a['language'] != $b['language']) {
+    // Then sort by language specific over language neutral.
     return $a['language'] == LANGUAGE_NONE;
   }
   elseif (isset($a['source_options']['query']) != isset($b['source_options']['query'])) {
-    // Redirects with query strings are second priority.
+    // Then sort by redirects that do not have query strings over ones that do.
     return !isset($a['source_options']['query']);
   }
   else {
-    // Last priority is {redirect}.rid DESC.
+    // Lastly sort by the highest redirect ID.
     return $a['rid'] < $b['rid'];
   }
 }
