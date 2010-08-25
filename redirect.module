@@ -703,6 +703,7 @@ function redirect_redirect(array $redirect = array()) {
     'redirect' => current_path(),
     'redirect_options' => array(),
     'type' => 'manual',
+    'callback' => 'redirect_goto',
   );
   $redirect['redirect_options'] += array(
     'query' => array(),
@@ -728,12 +729,16 @@ function redirect_redirect(array $redirect = array()) {
   drupal_alter('redirect', $redirect);
 
   // Continue if the redirect has not been disabled by hook_redirect_alter().
-  if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE) {
+  if (isset($redirect['redirect']) && $redirect['redirect'] !== FALSE && function_exists($redirect['callback'])) {
     // Perform the actual redirect.
-    redirect_goto($redirect);
+    $callback = $redirect['callback'];
+    $callback($redirect);
   }
 }
 
+/**
+ * Redirect callback; perform an URL redirect.
+ */
 function redirect_goto(array $redirect) {
   $redirect['redirect_options']['absolute'] = TRUE;
   $url = url($redirect['redirect'], $redirect['redirect_options']);
