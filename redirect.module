@@ -271,6 +271,16 @@ function redirect_user_cancel($edit, $account, $method) {
 }
 
 /**
+ * Implements hook_views_api().
+ */
+function redirect_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'redirect') . '/views',
+  );
+}
+
+/**
  * Implements hook_page_build().
  *
  * Adds an action on 404 pages to create a redirect.
