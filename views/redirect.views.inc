@@ -102,45 +102,43 @@ function redirect_views_data() {
     ),
   );
 
-  //// {redirect}.source
-  //$data['redirect']['source'] = array(
-  //  'title' => t('Source URL'),
-  //  'help' => t('The source URL which generates a redirect'),
-  //  'field' => array(
-  //    'handler' => 'redirect_handler_field_source_url',
-  //    'parent' => 'views_handler_field',
-  //    'click sortable' => TRUE,
-  //  ),
-  //  'filter' => array(
-  //    'handler' => 'views_handler_filter_string',
-  //  ),
-  //  'sort' => array(
-  //    'handler' => 'views_handler_sort',
-  //  ),
-  //  'argument' => array(
-  //    'handler' => 'views_handler_argument_string',
-  //  ),
-  //);
-  //
-  //// {redirect}.redirect
-  //$data['redirect']['redirect'] = array(
-  //  'title' => t('Redirect URL'),
-  //  'help' => t('The destination URL'),
-  //  'field' => array(
-  //    //'handler' => 'redirect_handler_field_redirect_url',
-  //    'handler' => 'views_handler_field',
-  //    'click sortable' => TRUE,
-  //  ),
-  //  'filter' => array(
-  //    'handler' => 'views_handler_filter_string',
-  //  ),
-  //  'sort' => array(
-  //    'handler' => 'views_handler_sort',
-  //  ),
-  //  'argument' => array(
-  //    'handler' => 'views_handler_argument_string',
-  //  ),
-  //);
+  // {redirect}.source
+  $data['redirect']['source'] = array(
+    'title' => t('Source URL'),
+    'help' => t('The source URL which generates a redirect'),
+    'field' => array(
+      'handler' => 'redirect_handler_field_redirect_source',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // {redirect}.redirect
+  $data['redirect']['redirect'] = array(
+    'title' => t('Redirect URL'),
+    'help' => t('The destination URL'),
+    'field' => array(
+      'handler' => 'redirect_handler_field_redirect_redirect',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
 
   // {redirect}.count
   $data['redirect']['count'] = array(
@@ -180,15 +178,6 @@ function redirect_views_data() {
       'handler' => 'views_handler_argument_date',
     ),
   );
-
-  //$data['redirect']['link_test'] = array(
-  //  'field' => array(
-  //    'title' => t('Test URL'),
-  //    'help' => t('Redirecting link.'),
-  //    'handler' => 'redirect_handler_field_redirect_link_test',
-  //    'parent' => 'views_handler_field',
-  //  ),
-  //);
 
   $data['redirect']['edit_redirect'] = array(
     'field' => array(
