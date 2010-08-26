@@ -41,10 +41,10 @@ function redirect_views_data() {
     ),
   );
 
-  // Node type
+  // {redirect}.type
   $data['redirect']['type'] = array(
-    'title' => t('Type'), // The item it appears as on the UI,
-    'help' => t('The type of a node (for example, "blog entry", "forum post", "story", etc).'), // The help that appears on the UI,
+    'title' => t('Type'),
+    'help' => t('The type of redirect.'),
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
@@ -74,7 +74,7 @@ function redirect_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_user_uid',
-      'name field' => 'name', // display this field in the summary
+      'name field' => 'name',
     ),
     'filter' => array(
       'title' => t('Name'),
@@ -90,8 +90,6 @@ function redirect_views_data() {
       'label' => t('user'),
     ),
   );
-
-  // uid
   $data['redirect']['uid_current'] = array(
     'real field' => 'uid',
     'title' => t('Current user'),
@@ -140,6 +138,24 @@ function redirect_views_data() {
     ),
   );
 
+  // Language field
+  if (module_exists('locale')) {
+    $data['redirect']['language'] = array(
+      'title' => t('Language'),
+      'help' => t('The language the redirect is for.'),
+      'field' => array(
+        'handler' => 'views_handler_field_locale_language',
+        'click sortable' => TRUE,
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_locale_language',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument_locale_language',
+      ),
+    );
+  }
+
   // {redirect}.count
   $data['redirect']['count'] = array(
     'title' => t('Clicks'),
@@ -173,9 +189,6 @@ function redirect_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_date',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_date',
     ),
   );
 
