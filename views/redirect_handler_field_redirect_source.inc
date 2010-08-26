@@ -16,7 +16,8 @@ class redirect_handler_field_redirect_source extends views_handler_field {
   function option_definition() {
     $options = parent::option_definition();
     $options['text'] = array('default' => '', 'translatable' => TRUE);
-    $options['absolute'] = array('default' => 0, 'translatable' => FALSE);
+    $options['absolute'] = array('default' => FALSE);
+    $options['alter']['contains']['make_link']['default'] = TRUE;
     return $options;
   }
 
@@ -27,7 +28,10 @@ class redirect_handler_field_redirect_source extends views_handler_field {
     $form['empty']['#access'] = FALSE;
     $form['empty_zero']['#access'] = FALSE;
     $form['hide_empty']['#access'] = FALSE;
-    //dpm($form);
+
+    $form['alter']['make_link']['#description'] = t('If checked, this field will be made into a link.');
+    $form['alter']['absolute']['#access'] = FALSE;
+    $form['alter']['path']['#access'] = FALSE;
 
     $form['text'] = array(
       '#type' => 'textfield',
@@ -50,16 +54,14 @@ class redirect_handler_field_redirect_source extends views_handler_field {
   function render($values) {
     $source = $values->{$this->aliases['source']};
     $source_options = unserialize($values->{$this->aliases['source_options']});
-
-    if (!empty($this->options['absolute'])) {
-      $source_options['absolute'] = TRUE;
-    }
+    $source_options['absolute'] = !empty($this->options['absolute']);
 
     $url = redirect_url($source, $source_options);
     $text = !empty($this->options['text']) ? $this->options['text'] : $url;
 
     if (!empty($this->options['alter']['make_link'])) {
-      $this->options['alter']['path'] = redirect_url($source, $source_options);
+      $this->options['alter']['path'] = $url;
+      $this->options['alter']['absolute'] = $source_options['absolute'];
     }
     else {
       $text = check_plain($text);
