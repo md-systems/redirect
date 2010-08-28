@@ -32,7 +32,7 @@ define('REDIRECT_ACCESS_IGNORE', NULL);
  */
 function redirect_hook_info() {
   $hooks = array(
-    'redirect_load',
+    'redirect_load_multiple',
     'redirect_load_by_source_alter',
     'redirect_access',
     'redirect_presave',
@@ -426,7 +426,7 @@ function redirect_load_multiple(array $rids = array(), array $conditions = array
   }
 
   // Let modules modify the redirects after loading.
-  module_invoke_all('redirect_load', $redirects);
+  module_invoke_all('redirect_load_multiple', $redirects);
 
   return $redirects;
 }

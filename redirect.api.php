@@ -11,7 +11,7 @@
  * @{
  */
 
-function hook_redirect_load(array &$redirects) {
+function hook_redirect_load_multiple(array &$redirects) {
 
 }
 
