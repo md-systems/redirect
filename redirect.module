@@ -108,7 +108,6 @@ function redirect_menu() {
     'access callback' => 'redirect_access',
     'access arguments' => array('update', 5),
     'file' => 'redirect.admin.inc',
-    'type' => MENU_CALLBACK,
   );
   $items['admin/config/search/redirect/delete/%redirect'] = array(
     'title' => 'Delete redirect',
@@ -117,7 +116,6 @@ function redirect_menu() {
     'access callback' => 'redirect_access',
     'access arguments' => array('delete', 5),
     'file' => 'redirect.admin.inc',
-    'type' => MENU_CALLBACK,
   );
   $items['admin/config/search/redirect/settings'] = array(
     'title' => 'Settings',
@@ -161,14 +159,14 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   if ($path && variable_get('redirect_canonical', TRUE)) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
-      return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
+      //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
     }
 
     // Redirect from default entity paths to the proper entity path.
     if ($path_entity = redirect_load_entity_from_path($path)) {
       $uri = entity_uri($path_entity['entity_type'], $path_entity['entity']);
       if ($path != $uri['path']) {
-        return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options'], 'type' => 'global'));
+        //return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options'], 'type' => 'global'));
       }
     }
   }
@@ -198,7 +196,7 @@ function redirect_init() {
   $current_langcode = $GLOBALS['language']->language;
   $current_query = drupal_get_query_parameters();
   if ($redirect = redirect_load_by_source($current_path, $current_langcode, $current_query)) {
-    redirect_redirect($redirect);
+    //redirect_redirect($redirect);
   }
 
   $request_uri = $original_uri = ltrim(request_uri(), '/');
@@ -215,7 +213,7 @@ function redirect_init() {
   $request_uri = trim($request_uri, '/');
 
   if ($request_uri != $original_uri) {
-    redirect_redirect(array('redirect' => $request_uri, 'type' => 'global'));
+    //redirect_redirect(array('redirect' => $request_uri, 'type' => 'global'));
   }
 }
 
