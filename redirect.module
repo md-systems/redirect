@@ -855,6 +855,10 @@ function redirect_can_redirect() {
       // Do not redirect if the root script is not /index.php.
       $can_redirect = FALSE;
     }
+    elseif (!empty($_POST)) {
+      // Do not redirect if this is a post request with data.
+      $can_redirect = FALSE;
+    }
     elseif (drupal_is_cli()) {
       // If this is a command line request (Drush, etc), skip processing.
       $can_redirect = FALSE;
@@ -865,10 +869,6 @@ function redirect_can_redirect() {
     }
     elseif (!variable_get('redirect_global_admin_paths', 0) && path_is_admin($current_path)) {
       // Do not redirect on admin paths.
-      $can_redirect = FALSE;
-    }
-    elseif (!empty($_POST)) {
-      // Do not redirect if this is a post request with data.
       $can_redirect = FALSE;
     }
   }
