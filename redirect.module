@@ -156,10 +156,10 @@ function redirect_menu() {
  */
 function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   // Redirect to canonical URLs.
-  if ($path && variable_get('redirect_canonical', TRUE)) {
+  if ($path && variable_get('redirect_canonical', 1)) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
-      //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
+      return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
     }
 
     // Redirect from default entity paths to the proper entity path.
@@ -171,9 +171,6 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
     }
   }
 }
-
-//function redirect_url_outbound_alter(&$path, array &$options, $original_path) {
-//}
 
 /**
  * Implements hook_entity_info_alter().
@@ -202,7 +199,7 @@ function redirect_init() {
   $request_uri = $original_uri = ltrim(request_uri(), '/');
 
   // Redirect from non-clean URLs to clean URLs.
-  if (variable_get('redirect_global_clean', TRUE) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
+  if (variable_get('redirect_global_clean', 1) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
     $request_uri = str_replace('?q=', '', $request_uri);
   }
 
