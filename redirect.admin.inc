@@ -548,20 +548,26 @@ function redirect_settings_form($form, &$form_state) {
   $form['globals']['redirect_global_home'] = array(
     '#type' => 'checkbox',
     '#title' => t('Redirect from paths like index.php and /node to the root directory.'),
-    '#default_value' => variable_get('redirect_home', 1),
+    '#default_value' => variable_get('redirect_global_home', 1),
     '#access' => FALSE,
   );
   $form['globals']['redirect_global_clean'] = array(
     '#type' => 'checkbox',
     '#title' => t('Redirect from non-clean URLs to clean URLs.'),
-    '#default_value' => variable_get('redirect_clean', 1),
+    '#default_value' => variable_get('redirect_global_clean', 1),
     '#disabled' => !variable_get('clean_url', 0),
     '#access' => FALSE,
   );
   $form['globals']['redirect_global_canonical'] = array(
     '#type' => 'checkbox',
     '#title' => t('Redirect from non-canonical URLs to the canonical URLs.'),
-    '#default_value' => variable_get('redirect_canonical', 1),
+    '#default_value' => variable_get('redirect_global_canonical', 1),
+  );
+  $form['globals']['redirect_global_deslash'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Remove trailing slashes from paths.'),
+    '#default_value' => variable_get('redirect_global_deslash', 0),
+    '#access' => FALSE,
   );
   $form['globals']['redirect_global_admin_paths'] = array(
     '#type' => 'checkbox',

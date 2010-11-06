@@ -193,24 +193,28 @@ function redirect_init() {
   $current_langcode = $GLOBALS['language']->language;
   $current_query = drupal_get_query_parameters();
   if ($redirect = redirect_load_by_source($current_path, $current_langcode, $current_query)) {
-    //redirect_redirect($redirect);
+    redirect_redirect($redirect);
   }
 
+  $redirect_global = FALSE;
   $request_uri = $original_uri = ltrim(request_uri(), '/');
 
   // Redirect from non-clean URLs to clean URLs.
   if (variable_get('redirect_global_clean', 1) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
-    $request_uri = str_replace('?q=', '', $request_uri);
+    $redirect_global = TRUE;
+    //$request_uri = str_replace('?q=', '', $request_uri);
   }
 
   if (strpos($request_uri, 'index.php') !== FALSE) {
-    $request_uri = str_replace('index.php', '', $request_uri);
+    $redirect_global = TRUE;
+    //$request_uri = str_replace('index.php', '', $request_uri);
   }
 
-  $request_uri = trim($request_uri, '/');
+  //$request_uri = ltrim($request_uri, '/');
+  $parsed = parse_url($request_uri);
 
-  if ($request_uri != $original_uri) {
-    //redirect_redirect(array('redirect' => $request_uri, 'type' => 'global'));
+  if ($redirect_global && $request_uri != $original_uri) {
+    redirect_redirect(array(/*'redirect' => $request_uri,*/ 'type' => 'global'));
   }
 }
 
@@ -845,11 +849,11 @@ function redirect_load_entity_from_path($path) {
  *   TRUE if redirections can be performed, or FALSE otherwise.
  */
 function redirect_can_redirect() {
-  static $can_redirect;
+  $can_redirect = &drupal_static(__FUNCTION__);
 
   if (!isset($can_redirect)) {
+    $path = current_path();
     $can_redirect = TRUE;
-    $current_path = current_path();
 
     if ($_SERVER['SCRIPT_NAME'] != $GLOBALS['base_path'] . 'index.php') {
       // Do not redirect if the root script is not /index.php.
@@ -867,7 +871,7 @@ function redirect_can_redirect() {
       // Do not redirect in offline or maintenance mode.
       $can_redirect = FALSE;
     }
-    elseif (!variable_get('redirect_global_admin_paths', 0) && path_is_admin($current_path)) {
+    elseif (!variable_get('redirect_global_admin_paths', 0) && path_is_admin($path)) {
       // Do not redirect on admin paths.
       $can_redirect = FALSE;
     }
