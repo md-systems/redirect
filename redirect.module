@@ -615,7 +615,7 @@ function redirect_delete_by_entity_path($entity_type, $entity) {
 
   $info = entity_get_info($entity_type);
   if (isset($info['default path'])) {
-    list($id, , ) = entity_extract_ids($entity_type, $entity);
+    list($id) = entity_extract_ids($entity_type, $entity);
     $default_path = str_replace('[id]', $id, $info['default path']);
     if ($uri['path'] !== $default_path) {
       redirect_delete_by_path($default_path);
@@ -1093,7 +1093,7 @@ function _redirect_uasort($a, $b) {
   $b_weight = isset($b['weight']) ? $b['weight'] : 0;
   if ($a_weight != $b_weight) {
     // First sort by weight (case sensitivity).
-    return $b_weight < $a_weight;
+    return $a_weight > $b_weight;
   }
   elseif ($a['language'] != $b['language']) {
     // Then sort by language specific over language neutral.
@@ -1107,4 +1107,17 @@ function _redirect_uasort($a, $b) {
     // Lastly sort by the highest redirect ID.
     return $a['rid'] < $b['rid'];
   }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() on behalf of locale.module.
+ */
+function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
+  $form['language'] = array(
+    '#type' => 'select',
+    '#title' => t('Language'),
+    '#options' => array(LANGUAGE_NONE => t('All languages')) + locale_language_list('name'),
+    '#default_value' => $form['language']['#value'],
+    '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
+  );
 }
