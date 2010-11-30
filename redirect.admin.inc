@@ -430,7 +430,7 @@ function redirect_edit_form_validate($form, &$form_state) {
 
   if (empty($form_state['values']['override'])) {
     if ($existing = redirect_load_by_source($redirect['source'], $redirect['language'])) {
-      if ($redirect['rid'] != $existing['rid']) {
+      if ($redirect['rid'] != $existing['rid'] && $redirect['language'] == $existing['language']) {
         // The "from" path should not conflict with another redirect
         $form_state['storage']['override_messages']['redirect-conflict'] = t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect['source'], '@edit-page' => url('admin/config/search/redirect/edit/'. $existing['rid'])));
         $form_state['rebuild'] = TRUE;
