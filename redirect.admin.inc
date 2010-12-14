@@ -71,21 +71,21 @@ function redirect_list_form($form, &$form_state) {
   $rows = array();
   foreach ($redirects as $rid => $redirect) {
     $row = array();
-    $redirect['source_options'] = array_merge($redirect['source_options'], array('alias' => TRUE, 'language' => redirect_language_load($redirect['language'])));
-    $source_url = redirect_url($redirect['source'], $redirect['source_options']);
-    $redirect_url = redirect_url($redirect['redirect'], array_merge($redirect['redirect_options'], array('alias' => TRUE)));
-    $row['source'] = l($source_url, $redirect['source'], $redirect['source_options']);
-    $row['redirect'] = l($redirect_url, $redirect['redirect'], $redirect['redirect_options']);
-    $row['status_code'] = $redirect['status_code'] ? $redirect['status_code'] : t('Default (@default)', array('@default' => $default_status_code));
-    $row['language'] = module_invoke('locale', 'language_name', $redirect['language']);
-    $row['count'] = $redirect['count'];
-    if ($redirect['count']) {
+    $redirect->source_options = array_merge($redirect->source_options, array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
+    $source_url = redirect_url($redirect->source, $redirect->source_options);
+    $redirect_url = redirect_url($redirect->redirect, array_merge($redirect->redirect_options, array('alias' => TRUE)));
+    $row['source'] = l($source_url, $redirect->source, $redirect->source_options);
+    $row['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
+    $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
+    $row['language'] = module_invoke('locale', 'language_name', $redirect->language);
+    $row['count'] = $redirect->count;
+    if ($redirect->count) {
       $row['count'] = array(
-        'data' => $redirect['count'],
-        'title' => t('Last used on @date', array('@date' => format_date($redirect['last_used'], 'short'))),
+        'data' => $redirect->count,
+        'title' => t('Last used on @date', array('@date' => format_date($redirect->last_used, 'short'))),
       );
     }
-    $row['last_used'] = $redirect['last_used'] ? format_date($redirect['last_used'], 'short') : t('Never');
+    $row['last_used'] = $redirect->last_used ? format_date($redirect->last_used, 'short') : t('Never');
 
     $operations = array();
     if (redirect_access('update', $redirect)) {
@@ -203,37 +203,35 @@ function redirect_build_filter_query(QueryAlterableInterface $query, array $fiel
  *
  * @ingroup forms
  */
-function redirect_edit_form($form, &$form_state, array $redirect = array()) {
+function redirect_edit_form($form, &$form_state, $redirect = NULL) {
+  if (!isset($redirect)) {
+    $redirect = new stdClass();
+  }
+
   // Merge default values.
-  $redirect += array(
-    'rid' => NULL,
-    'type' => 'redirect',
+  redirect_object_prepare($redirect, array(
     'source' => isset($_GET['source']) ? urldecode($_GET['source']) : '',
     'source_options' => isset($_GET['source_options']) ? drupal_get_query_array($_GET['source_options']) : array(),
     'redirect' => isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '',
     'redirect_options' => isset($_GET['redirect_options']) ? drupal_get_query_array($_GET['redirect_options']) : array(),
     'language' => isset($_GET['language']) ? urldecode($_GET['language']) : LANGUAGE_NONE,
-    'status_code' => 0,
-    'count' => 0,
-    'last_used' => 0,
-    'hash' => '',
-  );
+  ));
 
   $form['rid'] = array(
     '#type' => 'value',
-    '#value' => $redirect['rid'],
+    '#value' => $redirect->rid,
   );
   $form['type'] = array(
     '#type' => 'value',
-    '#value' => $redirect['type'],
+    '#value' => $redirect->type,
   );
   $form['hash'] = array(
     '#type' => 'value',
-    '#value' => $redirect['hash'],
+    '#value' => $redirect->hash,
   );
   $form['last_used'] = array(
     '#type' => 'value',
-    '#value' => $redirect['last_used'],
+    '#value' => $redirect->last_used,
   );
 
   $form['source'] = array(
@@ -241,33 +239,33 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     '#title' => t('From'),
     '#description' => t("Enter an interal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')),
     '#maxlength' => 560,
-    '#default_value' => $redirect['rid'] ? redirect_url($redirect['source'], $redirect['source_options']) : '',
+    '#default_value' => $redirect->rid ? redirect_url($redirect->source, $redirect->source_options) : '',
     '#required' => TRUE,
     '#field_prefix' => url('', array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
     '#element_validate' => array('redirect_element_validate_source'),
   );
   $form['source_options'] = array(
     '#type' => 'value',
-    '#value' => $redirect['source_options'],
+    '#value' => $redirect->source_options,
   );
   $form['redirect'] = array(
     '#type' => 'textfield',
     '#title' => t('To'),
     '#maxlength' => 560,
-    '#default_value' => $redirect['rid'] ? redirect_url($redirect['redirect'], array('absolute' => TRUE) + $redirect['redirect_options'], TRUE) : '',
+    '#default_value' => $redirect->rid ? redirect_url($redirect->redirect, array('absolute' => TRUE) + $redirect->redirect_options, TRUE) : '',
     '#required' => TRUE,
     '#description' => t('Enter an internal Drupal path, path alias, or complete external URL (like http://example.com/) to redirect to. Use %front to redirect to the front page.', array('%front' => '<front>')),
     '#element_validate' => array('redirect_element_validate_redirect'),
   );
   $form['redirect_options'] = array(
     '#type' => 'value',
-    '#value' => $redirect['redirect_options'],
+    '#value' => $redirect->redirect_options,
   );
 
   // This will be a hidden value unless locale module is enabled.
   $form['language'] = array(
     '#type' => 'value',
-    '#value' => $redirect['language'],
+    '#value' => $redirect->language,
   );
 
   $form['advanced'] = array(
@@ -280,7 +278,7 @@ function redirect_edit_form($form, &$form_state, array $redirect = array()) {
     '#type' => 'select',
     '#title' => t('Redirect status'),
     '#description' => t('You can find more information about HTTP redirect status codes at <a href="@status-codes">@status-codes</a>.', array('@status-codes' => 'http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_Redirection')),
-    '#default_value' => $redirect['status_code'],
+    '#default_value' => $redirect->status_code,
     '#options' => array(0 => t('Default (@default)', array('@default' => variable_get('redirect_default_status_code', 301)))) + redirect_status_code_options(),
   );
 
@@ -375,7 +373,7 @@ function redirect_element_validate_redirect($element, &$form_state) {
 function _redirect_extract_url_options(&$element, &$form_state) {
   $value = &$element['#value'];
   $type = $element['#name'];
-  $options = & $form_state['values']["{$type}_options"];
+  $options = &$form_state['values']["{$type}_options"];
 
   $parsed = redirect_parse_url($value);
 
@@ -414,25 +412,13 @@ function _redirect_extract_url_options(&$element, &$form_state) {
  * @see redirect_edit_form()
  */
 function redirect_edit_form_validate($form, &$form_state) {
-  $redirect = &$form_state['values'];
-
-  // check that there there are no redirect loops
-  if (url($redirect['source']) == url($redirect['redirect'])) {
-    form_set_error('redirect', t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
-  }
-
-  $hash = redirect_get_redirect_hash($redirect);
-  if ($existing = redirect_load_by_hash($hash)) {
-    if ($redirect['rid'] != $existing['rid']) {
-      form_set_error('source', t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => redirect_url($redirect['source'], $redirect['source_options']), '@edit-page' => url('admin/config/search/redirect/edit/'. $existing['rid']))));
-    }
-  }
+  $redirect = (object) $form_state['values'];
 
   if (empty($form_state['values']['override'])) {
-    if ($existing = redirect_load_by_source($redirect['source'], $redirect['language'])) {
-      if ($redirect['rid'] != $existing['rid'] && $redirect['language'] == $existing['language']) {
+    if ($existing = redirect_load_by_source($redirect->source, $redirect->language)) {
+      if ($redirect->rid != $existing->rid && $redirect->language == $existing->language) {
         // The "from" path should not conflict with another redirect
-        $form_state['storage']['override_messages']['redirect-conflict'] = t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect['source'], '@edit-page' => url('admin/config/search/redirect/edit/'. $existing['rid'])));
+        $form_state['storage']['override_messages']['redirect-conflict'] = t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->source, '@edit-page' => url('admin/config/search/redirect/edit/'. $existing->rid)));
         $form_state['rebuild'] = TRUE;
       }
     }
@@ -443,6 +429,8 @@ function redirect_edit_form_validate($form, &$form_state) {
       //form_set_error('override', 'CLICK DA BUTTON!');
     }
   }
+
+  redirect_validate($redirect, $form, $form_state);
 }
 
 /**
@@ -452,7 +440,8 @@ function redirect_edit_form_validate($form, &$form_state) {
  */
 function redirect_edit_form_submit($form, &$form_state) {
   form_state_values_clean($form_state);
-  redirect_save($form_state['values']);
+  $redirect = (object) $form_state['values'];
+  redirect_save($redirect);
   drupal_set_message(t('The redirect has been saved.'));
   $form_state['redirect'] = 'admin/config/search/redirect';
 }
@@ -465,15 +454,15 @@ function redirect_edit_form_submit($form, &$form_state) {
  *
  * @ingroup forms
  */
-function redirect_delete_form($form, &$form_state, array $redirect) {
+function redirect_delete_form($form, &$form_state, $redirect) {
   $form['rid'] = array(
     '#type' => 'value',
-    '#value' => $redirect['rid'],
+    '#value' => $redirect->rid,
   );
 
   return confirm_form(
     $form,
-    t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => $redirect['source'], '%redirect' => $redirect['redirect'])),
+    t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => $redirect->source, '%redirect' => $redirect->redirect)),
     'admin/config/search/redirect'
   );
 }
