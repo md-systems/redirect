@@ -201,17 +201,17 @@ function redirect_init() {
 
   // Redirect from non-clean URLs to clean URLs.
   if (variable_get('redirect_global_clean', 1) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
-    $redirect_global = TRUE;
+    //$redirect_global = TRUE;
     //$request_uri = str_replace('?q=', '', $request_uri);
   }
 
   if (strpos($request_uri, 'index.php') !== FALSE) {
-    $redirect_global = TRUE;
+    //$redirect_global = TRUE;
     //$request_uri = str_replace('index.php', '', $request_uri);
   }
 
   //$request_uri = ltrim($request_uri, '/');
-  $parsed = parse_url($request_uri);
+  //$parsed = parse_url($request_uri);
 
   if ($redirect_global && $request_uri != $original_uri) {
     redirect_redirect(array(/*'redirect' => $request_uri,*/ 'type' => 'global'));
