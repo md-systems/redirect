@@ -39,7 +39,7 @@ function redirect_list_form($form, &$form_state) {
   //  '#prefix' => '<div class="container-inline">',
   //  '#suffix' => '</div>',
   //);
-  //$form['#operations'] = module_invoke_all('path_redirect_operations');
+  //$form['#operations'] = module_invoke_all('redirect_operations');
   //$operations = array();
   //foreach ($form['#operations'] as $key => $operation) {
   //  $operations[$key] = $operation['action'];
@@ -52,8 +52,8 @@ function redirect_list_form($form, &$form_state) {
   //$form['operations']['submit'] = array(
   //  '#type' => 'submit',
   //  '#value' => t('Update'),
-  //  '#validate' => array('path_redirect_list_form_operations_validate'),
-  //  '#submit' => array('path_redirect_list_form_operations_submit'),
+  //  '#validate' => array('redirect_list_form_operations_validate'),
+  //  '#submit' => array('redirect_list_form_operations_submit'),
   //);
 
   // Building the SQL query and load the redirects.
@@ -543,7 +543,8 @@ function redirect_settings_form($form, &$form_state) {
   $form['globals'] = array(
     '#type' => 'fieldset',
     '#title' => t('Always enabled redirections'),
-    '#description' => t('(formerly Global Redirect features)')
+    '#description' => t('(formerly Global Redirect features)'),
+    '#access' => FALSE,
   );
   $form['globals']['redirect_global_home'] = array(
     '#type' => 'checkbox',

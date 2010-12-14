@@ -16,19 +16,11 @@ class RedirectTestHelper extends DrupalWebTestCase {
     $redirect += array(
       'source_options' => array(),
       'redirect_options' => array(),
-      'status_code' => NULL,
     );
     $source_url = url($redirect['source'], array('absolute' => TRUE) + $redirect['source_options']);
     $redirect_url = url($redirect['redirect'], array('absolute' => TRUE) + $redirect['redirect_options']);
     $this->drupalGet($source_url);
     $this->assertEqual($this->getUrl(), $redirect_url, t('Page %source was redirected to %redirect.', array('%source' => $source_url, '%redirect' => $redirect_url)));
-
-    /*if (isset($redirect['status_code'])) {
-      if (empty($redirect['status_code'])) {
-        $redirect['status_code'] = variable_get('redirect_default_status_code', 301);
-      }
-      $this->assertResponse($redirect['status_code']);
-    }*/
 
     // Reload the redirect.
     if (!empty($redirect['rid'])) {

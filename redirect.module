@@ -159,7 +159,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   if ($path && variable_get('redirect_canonical', 1)) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
-      return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
+      //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
     }
 
     // Redirect from default entity paths to the proper entity path.
