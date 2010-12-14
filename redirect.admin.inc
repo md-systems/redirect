@@ -503,7 +503,6 @@ function redirect_settings_form($form, &$form_state) {
     '#title' => t('Automatically create redirects when URL aliases are changed.'),
     '#default_value' => variable_get('redirect_auto_redirect', TRUE),
     '#disabled' => !module_exists('path'),
-    '#access' => FALSE,
   );
   $form['redirect_passthrough_querystring'] = array(
     '#type' => 'checkbox',

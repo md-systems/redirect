@@ -270,6 +270,24 @@ function redirect_user_cancel($edit, $account, $method) {
 }
 
 /**
+ * Implements hook_path_update().
+ */
+function redirect_path_update(array $path) {
+  if (!variable_get('redirect_auto_redirect', TRUE)) {
+    return;
+  }
+
+  if (!empty($path['original']['pid']) && $path['original']['pid'] == $path['pid'] && $path['original']['alias'] != $path['alias']) {
+    $redirect = array(
+      'source' => $path['original']['alias'],
+      'redirect' => $path['source'],
+      'language' => $path['original']['language'],
+    );
+    redirect_save($redirect);
+  }
+}
+
+/**
  * Implements hook_views_api().
  */
 function redirect_views_api() {
@@ -516,6 +534,11 @@ function redirect_save(array &$redirect) {
     'hash' => '',
   );
 
+  // Load the stored alias, if any.
+  if (!empty($redirect['rid']) && !isset($redirect['original'])) {
+    $redirect['original'] = redirect_load($redirect['rid']);
+  }
+
   // Let modules modify the redirect before it is saved to the database.
   module_invoke_all('redirect_presave', $redirect);
 
@@ -527,13 +550,12 @@ function redirect_save(array &$redirect) {
     $redirect['last_used'] = 0;
 
     if (!empty($redirect['rid'])) {
-      $old_redirect = redirect_load($redirect['rid']);
-      redirect_cache_clear($old_redirect);
+      redirect_cache_clear($redirect['original']);
     }
   }
 
   if (empty($redirect['rid'])) {
-    drupal_write_record('redirect', $redirect, array());
+    drupal_write_record('redirect', $redirect);
     module_invoke_all('redirect_insert', $redirect);
   }
   else {
@@ -542,6 +564,9 @@ function redirect_save(array &$redirect) {
   }
 
   redirect_cache_clear($redirect);
+
+  // Clear internal properties.
+  unset($redirect['original']);
 
   return $redirect;
 }
