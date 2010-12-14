@@ -244,29 +244,10 @@ function redirect_exit($destination = NULL) {
 }
 
 /**
- * Implements hook_node_delete().
+ * Implements hook_entity_delete().
  */
-function redirect_node_delete($node) {
-  redirect_delete_by_entity_path('node', $node);
-}
-
-/**
- * Implements hook_taxonomy_term_delete().
- */
-function redirect_taxonomy_term_delete($term) {
-  redirect_delete_by_entity_path('taxonomy_term', $term);
-}
-
-/**
- * Implements hook_user_cancel().
- */
-function redirect_user_cancel($edit, $account, $method) {
-  switch ($method) {
-    case 'user_cancel_reassign':
-    case 'user_cancel_delete':
-      redirect_delete_by_entity_path('user', $account);
-      break;
-  }
+function redirect_entity_delete($entity, $entity_type) {
+  redirect_delete_by_entity_path($entity_type, $entity);
 }
 
 /**
@@ -274,6 +255,9 @@ function redirect_user_cancel($edit, $account, $method) {
  */
 function redirect_path_update(array $path) {
   if (!variable_get('redirect_auto_redirect', TRUE)) {
+    return;
+  }
+  elseif (isset($path['redirect']) && !$path['redirect']) {
     return;
   }
 
@@ -285,6 +269,26 @@ function redirect_path_update(array $path) {
     );
     redirect_save($redirect);
   }
+}
+
+/**
+ * Implements hook_path_delete().
+ */
+function redirect_path_delete(array $path) {
+  if (!variable_get('redirect_auto_redirect', TRUE)) {
+    return;
+  }
+  elseif (isset($path['redirect']) && !$path['redirect']) {
+    return;
+  }
+
+  // Redirect from a deleted alias to
+  $redirect = array(
+    'source' => $path['alias'],
+    'redirect' => $path['source'],
+    'language' => $path['language'],
+  );
+  redirect_save($redirect);
 }
 
 /**
