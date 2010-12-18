@@ -11,6 +11,7 @@ files[] = views/redirect.views.inc
 files[] = views/redirect_handler_filter_redirect_type.inc
 files[] = views/redirect_handler_field_redirect_source.inc
 files[] = views/redirect_handler_field_redirect_redirect.inc
+files[] = views/redirect_handler_field_redirect_operations.inc
 files[] = views/redirect_handler_field_redirect_link_edit.inc
 files[] = views/redirect_handler_field_redirect_link_delete.inc
 configure = admin/config/search/redirect/settings

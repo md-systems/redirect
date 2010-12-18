@@ -192,6 +192,14 @@ function redirect_views_data() {
     ),
   );
 
+  $data['redirect']['operations'] = array(
+    'field' => array(
+      'title' => t('Operations'),
+      'help' => t('Provide links to operations the user can perform for the URL redirect.'),
+      'handler' => 'redirect_handler_field_redirect_operations',
+    ),
+  );
+
   $data['redirect']['edit_redirect'] = array(
     'field' => array(
       'title' => t('Edit link'),

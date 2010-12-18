@@ -166,34 +166,22 @@ $handler->display->display_options['fields']['access']['empty'] = 'Never';
 $handler->display->display_options['fields']['access']['hide_empty'] = 0;
 $handler->display->display_options['fields']['access']['empty_zero'] = 1;
 $handler->display->display_options['fields']['access']['date_format'] = 'time ago';
-/* Field: Redirect: Edit link */
-$handler->display->display_options['fields']['edit_redirect']['id'] = 'edit_redirect';
-$handler->display->display_options['fields']['edit_redirect']['table'] = 'redirect';
-$handler->display->display_options['fields']['edit_redirect']['field'] = 'edit_redirect';
-$handler->display->display_options['fields']['edit_redirect']['alter']['alter_text'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['alter']['make_link'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['alter']['absolute'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['alter']['trim'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['alter']['word_boundary'] = 1;
-$handler->display->display_options['fields']['edit_redirect']['alter']['ellipsis'] = 1;
-$handler->display->display_options['fields']['edit_redirect']['alter']['strip_tags'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['alter']['html'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['hide_empty'] = 0;
-$handler->display->display_options['fields']['edit_redirect']['empty_zero'] = 0;
-/* Field: Redirect: Delete link */
-$handler->display->display_options['fields']['delete_redirect']['id'] = 'delete_redirect';
-$handler->display->display_options['fields']['delete_redirect']['table'] = 'redirect';
-$handler->display->display_options['fields']['delete_redirect']['field'] = 'delete_redirect';
-$handler->display->display_options['fields']['delete_redirect']['alter']['alter_text'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['alter']['make_link'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['alter']['absolute'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['alter']['trim'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['alter']['word_boundary'] = 1;
-$handler->display->display_options['fields']['delete_redirect']['alter']['ellipsis'] = 1;
-$handler->display->display_options['fields']['delete_redirect']['alter']['strip_tags'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['alter']['html'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['hide_empty'] = 0;
-$handler->display->display_options['fields']['delete_redirect']['empty_zero'] = 0;
+/* Field: Redirect: Operations */
+$handler->display->display_options['fields']['operations']['id'] = 'operations';
+$handler->display->display_options['fields']['operations']['table'] = 'redirect';
+$handler->display->display_options['fields']['operations']['field'] = 'operations';
+$handler->display->display_options['fields']['operations']['alter']['alter_text'] = 0;
+$handler->display->display_options['fields']['operations']['alter']['make_link'] = 0;
+$handler->display->display_options['fields']['operations']['alter']['absolute'] = 0;
+$handler->display->display_options['fields']['operations']['alter']['trim'] = 0;
+$handler->display->display_options['fields']['operations']['alter']['word_boundary'] = 1;
+$handler->display->display_options['fields']['operations']['alter']['ellipsis'] = 1;
+$handler->display->display_options['fields']['operations']['alter']['strip_tags'] = 0;
+$handler->display->display_options['fields']['operations']['alter']['html'] = 0;
+$handler->display->display_options['fields']['operations']['element_label_colon'] = 1;
+$handler->display->display_options['fields']['operations']['element_default_classes'] = 1;
+$handler->display->display_options['fields']['operations']['hide_empty'] = 0;
+$handler->display->display_options['fields']['operations']['empty_zero'] = 0;
 /* Filter: Redirect: Type */
 $handler->display->display_options['filters']['type']['id'] = 'type';
 $handler->display->display_options['filters']['type']['table'] = 'redirect';
@@ -249,8 +237,7 @@ $translatables['redirects'] = array(
   t('Clicks'),
   t('Last accessed'),
   t('Never'),
-  t('Edit link'),
-  t('Delete link'),
+  t('Operations'),
   t('Page: User redirects'),
   t('Page: Admin redirects'),
 );
