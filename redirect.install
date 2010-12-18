@@ -82,12 +82,12 @@ function redirect_schema() {
         'default' => 0,
         'description' => 'The number of times the redirect has been used.',
       ),
-      'last_used' => array(
+      'access' => array(
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
-        'description' => 'The timestamp of when the redirect was last used.',
+        'description' => 'The timestamp of when the redirect was last accessed.'
       ),
     ),
     'primary key' => array('rid'),
@@ -95,7 +95,7 @@ function redirect_schema() {
       'hash' => array('hash'),
     ),
     'indexes' => array(
-      'expires' => array('type', 'last_used'),
+      'expires' => array('type', 'access'),
     ),
   );
 
@@ -163,4 +163,21 @@ function redirect_update_4() {
     ->fields(array('type' => 'redirect'))
     ->condition('type', '')
     ->execute();
+}
+
+/**
+ * Rename {redirect}.last_used to {redirect}.access.
+ */
+function redirect_update_5() {
+  if (db_field_exists('redirect', 'last_used')) {
+    db_drop_index('redirect', 'expires');
+    db_change_field('redirect', 'last_used', 'access', array(
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'The timestamp of when the redirect was last accessed.',
+    ));
+    db_add_index('redirect', 'expires', array('type', 'access'));
+  }
 }

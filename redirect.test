@@ -61,6 +61,7 @@ class RedirectTestHelper extends DrupalWebTestCase {
       $redirect['redirect_options']['fragment'] = $redirect_parsed['fragment'];
     }
 
+    $redirect = (object) $redirect;
     redirect_save($redirect);
     return $redirect;
   }
@@ -202,14 +203,14 @@ class RedirectFunctionalTest extends RedirectTestHelper {
 
     // Add a new redirect.
     $redirect = $this->addRedirect('redirect', 'node');
-    $this->assertEqual($redirect['last_used'], 0);
+    $this->assertEqual($redirect['access'], 0);
     $this->assertEqual($redirect['count'], 0);
     $this->assertPageNotCached('redirect');
 
     // Perform the redirect and check that last_used
     $redirect = $this->assertRedirect($redirect);
     $this->assertEqual($redirect['count'], 1);
-    $this->assertTrue($redirect['last_used'] > 0);
+    $this->assertTrue($redirect['access'] > 0);
     $cache = $this->assertPageCached('redirect');
     $this->assertHeader('Location', url('node', array('absolute' => TRUE)), $cache->data['headers']);
     $this->assertHeader('X-Redirect-ID', $redirect['rid'], $cache->data['headers']);
@@ -217,13 +218,13 @@ class RedirectFunctionalTest extends RedirectTestHelper {
     // Set a redirect to not used in a while and disable running bootstrap
     // hooks during cache page serve. Running cron to remove inactive redirects
     // should not remove since they cannot be tracked.
-    $redirect['last_used'] = 1;
+    $redirect['access'] = 1;
     redirect_save($redirect);
     variable_set('page_cache_invoke_hooks', FALSE);
     $this->cronRun();
     $this->assertRedirect($redirect);
 
-    $redirect['last_used'] = 1;
+    $redirect['access'] = 1;
     redirect_save($redirect);
     variable_set('page_cache_invoke_hooks', TRUE);
     $this->cronRun();

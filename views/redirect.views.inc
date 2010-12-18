@@ -176,10 +176,10 @@ function redirect_views_data() {
     ),
   );
 
-  // {redirect}.last_used
-  $data['redirect']['last_used'] = array(
-    'title' => t('Last used date'),
-    'help' => t('The last date/time the URL redirect was used.'),
+  // {redirect}.access
+  $data['redirect']['access'] = array(
+    'title' => t('Last accessed date'),
+    'help' => t('The date/time the URL redirect was last accessed.'),
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,

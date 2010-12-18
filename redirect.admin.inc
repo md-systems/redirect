@@ -17,7 +17,7 @@ function redirect_list_form($form, &$form_state) {
     'status_code' => array('data' => t('Type'), 'field' => 'status_code'),
     'language' => array('data' => t('Language'), 'field' => 'language'),
     'count' => array('data' => t('Count'), 'field' => 'count'),
-    'last_used' => array('data' => t('Last used'), 'field' => 'last_used'),
+    'access' => array('data' => t('Last accessed'), 'field' => 'access'),
     'operations' => array('data' => t('Operations')),
   );
 
@@ -79,13 +79,15 @@ function redirect_list_form($form, &$form_state) {
     $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
     $row['language'] = module_invoke('locale', 'language_name', $redirect->language);
     $row['count'] = $redirect->count;
-    if ($redirect->count) {
-      $row['count'] = array(
-        'data' => $redirect->count,
-        'title' => t('Last used on @date', array('@date' => format_date($redirect->last_used, 'short'))),
+    if ($redirect->access) {
+      $row['access'] = array(
+        'data' => t('!interval ago', array('!interval' => format_interval(REQUEST_TIME - $redirect->access))),
+        'title' => t('Last accessed on @date', array('@date' => format_date($redirect->access))),
       );
     }
-    $row['last_used'] = $redirect->last_used ? format_date($redirect->last_used, 'short') : t('Never');
+    else {
+      $row['access'] = t('Never');
+    }
 
     $operations = array();
     if (redirect_access('update', $redirect)) {
@@ -228,10 +230,6 @@ function redirect_edit_form($form, &$form_state, $redirect = NULL) {
   $form['hash'] = array(
     '#type' => 'value',
     '#value' => $redirect->hash,
-  );
-  $form['last_used'] = array(
-    '#type' => 'value',
-    '#value' => $redirect->last_used,
   );
 
   $form['source'] = array(

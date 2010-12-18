@@ -273,7 +273,7 @@ function redirect_exit($destination = NULL) {
     // after DRUPAL_BOOTSTRAP_DATABASE
     drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
     db_update('redirect')
-      ->fields(array('last_used' => REQUEST_TIME))
+      ->fields(array('access' => REQUEST_TIME))
       ->expression('count', 'count + 1')
       ->condition('rid', $rid)
       ->execute();
@@ -303,6 +303,7 @@ function redirect_path_update(array $path) {
 
   if (!empty($path['original']['pid']) && $path['original']['pid'] == $path['pid'] && $path['original']['alias'] != $path['alias']) {
     $redirect = new stdClass();
+    redirect_object_prepare($redirect);
     $redirect->source = $path['original']['alias'];
     $redirect->redirect = $path['source'];
     $redirect->language = $path['original']['language'];
@@ -321,8 +322,9 @@ function redirect_path_delete(array $path) {
     return;
   }
 
-  // Redirect from a deleted alias to the systme path.
+  // Redirect from a deleted alias to the system path.
   $redirect = new stdClass();
+  redirect_object_prepare($redirect);
   $redirect->source = $path['alias'];
   $redirect->redirect = $path['source'];
   $redirect->language = $path['language'];
@@ -357,6 +359,39 @@ function redirect_page_build(&$page) {
       '#attributes' => array('class' => array('action-links')),
       '#weight' => -100,
     );
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds support for creating redirects if a node URL alias is changed.
+ */
+function redirect_form_node_form_alter(&$form, $form_state) {
+  if (!empty($form['path']['pid']['#value']) && !isset($form['path']['original'])) {
+    $form['path']['original'] = array('#type' => 'value', '#value' => path_load($form['path']['pid']['#value']));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds support for creating redirects if a taxonomy term URL alias is changed.
+ */
+function redirect_form_taxonomy_form_term_alter(&$form, $form_state) {
+  if (!empty($form['path']['pid']['#value']) && !isset($form['path']['original'])) {
+    $form['path']['original'] = array('#type' => 'value', '#value' => path_load($form['path']['pid']['#value']));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds support for creating redirects if an URL alias is changed.
+ */
+function redirect_form_path_admin_form_alter(&$form, $form_state) {
+  if (!empty($form['pid']['#value']) && !isset($form['original'])) {
+    $form['original'] = array('#type' => 'value', '#value' => path_load($form['pid']['#value']));
   }
 }
 
@@ -576,7 +611,7 @@ function redirect_object_prepare($redirect, $defaults = array()) {
     'language' => LANGUAGE_NONE,
     'status_code' => 0,
     'count' => 0,
-    'last_used' => 0,
+    'access' => 0,
     'hash' => '',
   );
 
@@ -612,13 +647,13 @@ function redirect_save($redirect) {
     }
 
     // The changed timestamp is always updated for bookkeeping purposes.
-    $redirect->changed = time();
+    //$redirect->changed = time();
 
     redirect_hash($redirect);
     if ($redirect->is_new || $redirect->hash != $redirect->original->hash) {
       // Only new or changed redirects reset the last used value.
       $redirect->count = 0;
-      $redirect->last_used = 0;
+      $redirect->access = 0;
     }
 
     // Allow other modules to alter the redirect before saving.
@@ -812,7 +847,7 @@ function redirect_purge_inactive_redirects(array $types = array('redirect'), $in
   if (!empty($types)) {
     $query->condition('type', $types);
   }
-  $query->condition('last_used', REQUEST_TIME - $interval, '<');
+  $query->condition('access', REQUEST_TIME - $interval, '<');
   $query->addTag('redirect_purge');
   $rids = $query->execute()->fetchCol();
 
@@ -846,7 +881,7 @@ function redirect_redirect($redirect = NULL) {
   if (!isset($redirect)) {
     $redirect = new stdClass();
   }
-  redirect_object_prepare($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto'));
+  redirect_object_prepare($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto', 'cache' => TRUE));
 
   if (empty($redirect->status_code)) {
     $redirect->status_code = variable_get('redirect_default_status_code', 301);
@@ -884,11 +919,14 @@ function redirect_goto($redirect) {
   $url = url($redirect->redirect, $redirect->redirect_options);
   drupal_add_http_header('Location', $url);
   drupal_add_http_header('Status', redirect_status_code_options($redirect->status_code));
+
   if (!empty($redirect->rid)) {
+    // Add a custom header for the redirect ID so when the redirect is served
+    // from the page cache, we can track it.
     drupal_add_http_header('X-Redirect-ID', $redirect->rid);
   }
 
-  if (!variable_get('redirect_page_cache', 0) || !variable_get('cache', 0) || !drupal_page_is_cacheable()) {
+  if (!variable_get('redirect_page_cache', 0) || !variable_get('cache', 0) || !drupal_page_is_cacheable() || empty($redirect['cache'])) {
     drupal_exit($url);
   }
 
@@ -1238,9 +1276,9 @@ function _redirect_uasort($a, $b) {
     // Then sort by language specific over language neutral.
     return $a->language == LANGUAGE_NONE;
   }
-  elseif (isset($a->source_options['query']) != isset($b->source_options['query'])) {
+  elseif (!empty($a->source_options['query']) != !empty($b->source_options['query'])) {
     // Then sort by redirects that do not have query strings over ones that do.
-    return !isset($a->source_options['query']);
+    return empty($a->source_options['query']);
   }
   else {
     // Lastly sort by the highest redirect ID.
