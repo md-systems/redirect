@@ -1,4 +1,3 @@
-; $Id$
 name = Redirect
 description = Allows users to redirect from old URLs to new URLs.
 core = 7.x
