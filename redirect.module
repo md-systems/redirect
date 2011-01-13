@@ -321,11 +321,16 @@ function redirect_path_update(array $path) {
 /**
  * Implements hook_path_delete().
  */
-function redirect_path_delete(array $path) {
+function redirect_path_delete($path) {
   if (!variable_get('redirect_auto_redirect', TRUE)) {
     return;
   }
   elseif (isset($path['redirect']) && !$path['redirect']) {
+    return;
+  }
+  elseif (empty($path)) {
+    // @todo Remove this condition and allow $path to use an array type hint
+    // when http://drupal.org/node/1025904 is fixed.
     return;
   }
 
