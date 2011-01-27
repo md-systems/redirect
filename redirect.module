@@ -335,12 +335,14 @@ function redirect_path_delete($path) {
   }
 
   // Redirect from a deleted alias to the system path.
-  $redirect = new stdClass();
-  redirect_object_prepare($redirect);
-  $redirect->source = $path['alias'];
-  $redirect->redirect = $path['source'];
-  $redirect->language = $path['language'];
-  redirect_save($redirect);
+  //if (!redirect_load_by_source($path['alias'], $path['language'])) {
+  //  $redirect = new stdClass();
+  //  redirect_object_prepare($redirect);
+  //  $redirect->source = $path['alias'];
+  //  $redirect->redirect = $path['source'];
+  //  $redirect->language = $path['language'];
+  //  redirect_save($redirect);
+  //}
 }
 
 /**
