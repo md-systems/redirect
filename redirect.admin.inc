@@ -493,7 +493,7 @@ function redirect_settings_form($form, &$form_state) {
   $form['redirect_passthrough_querystring'] = array(
     '#type' => 'checkbox',
     '#title' => t('Retain query string through redirect.'),
-    '#default_value' => variable_get('redirect_querystring', 0),
+    '#default_value' => variable_get('redirect_passthrough_querystring', 1),
     '#description' => t('For example, given a redirect from %source to %redirect, if a user visits %sourcequery they would be redirected to %redirectquery. The query strings in the redirection will always take precedence over the current query string.', array('%source' => 'source-path', '%redirect' => 'node?a=apples', '%sourcequery' => 'source-path?a=alligators&b=bananas', '%redirectquery' => 'node?a=apples&b=bananas')),
   );
   $form['redirect_warning'] = array(
