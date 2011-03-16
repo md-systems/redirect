@@ -362,16 +362,18 @@ function redirect_views_api() {
  */
 function redirect_page_build(&$page) {
   if (redirect_is_current_page_404() && user_access('administer redirects')) {
-    $actions['add'] = array(
-      'title' => t('Add an URL redirect from this page to another location'),
+    if (!isset($page['content']['system_main']['actions'])) {
+      $page['content']['system_main']['actions'] = array(
+        '#theme' => 'links',
+        '#links' => array(),
+        '#attributes' => array('class' => array('action-links')),
+        '#weight' => -100,
+      );
+    }
+    $page['content']['system_main']['actions']['#links']['add_redirect'] = array(
+      'title' => t('Add URL redirect from this page to another location'),
       'href' => 'admin/config/search/redirect/add',
       'query' => array('source' => current_path()) + drupal_get_destination(),
-    );
-    $page['content']['system_main']['actions'] = array(
-      '#theme' => 'links',
-      '#links' => $actions,
-      '#attributes' => array('class' => array('action-links')),
-      '#weight' => -100,
     );
   }
 }
