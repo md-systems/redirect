@@ -56,11 +56,11 @@ function redirect_list_form($form, &$form_state) {
   //);
 
   // Building the SQL query and load the redirects.
-  $query = db_select('redirect', 'r');
+  $query = db_select('redirect', 'r')->extend('TableSort')->extend('PagerDefault');
   $query->addField('r', 'rid');
   $query->condition('r.type', 'redirect');
-  $query->extend('TableSort')->orderByHeader($header);
-  $query->extend('PagerDefault')->limit(50);
+  $query->orderByHeader($header);
+  $query->limit(50);
   $query->addTag('redirect_list');
   $query->addTag('redirect_access');
   redirect_build_filter_query($query, array('source', 'redirect'), $keys);
@@ -597,7 +597,7 @@ function redirect_404_list($form = NULL) {
   $count_query->isNull('r.rid');
   redirect_build_filter_query($count_query, array('w.message'), $keys);
 
-  $query = db_select('watchdog', 'w');
+  $query = db_select('watchdog', 'w')->extend('PagerDefault')->extend('TableSort');
   $query->fields('w', array('message'));
   $query->addExpression('COUNT(wid)', 'count');
   $query->addExpression('MAX(timestamp)', 'timestamp');
@@ -605,8 +605,8 @@ function redirect_404_list($form = NULL) {
   $query->isNull('r.rid');
   $query->condition('w.type', 'page not found');
   $query->groupBy('w.message');
-  $query = $query->extend('PagerDefault')->limit(25);
-  $query = $query->extend('TableSort')->orderByHeader($header);
+  $query->orderByHeader($header);
+  $query->limit(25);
   redirect_build_filter_query($query, array('w.message'), $keys);
   $query->setCountQuery($count_query);
   $results = $query->execute();
