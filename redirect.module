@@ -674,6 +674,7 @@ function redirect_save($redirect) {
 
     // Allow other modules to alter the redirect before saving.
     module_invoke_all('redirect_presave', $redirect);
+    module_invoke_all('entity_presave', $redirect, 'redirect');
 
     // Save the redirect to the database and invoke the post-save hooks.
     if ($redirect->is_new) {
