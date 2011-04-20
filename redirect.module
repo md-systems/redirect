@@ -1315,3 +1315,95 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
     '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
   );
 }
+
+/**
+ * Implements hook_field_attach_form().
+ *
+ * @todo Investigate using hook_entity_load() to load all entity redirects.
+ * @todo Figure out how to support entity URIs that contain query strings.
+ */
+function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
+  list($id) = entity_extract_ids($entity_type, $entity);
+  if (!empty($form['redirect']) || empty($id)) {
+    return;
+  }
+
+  $uri = entity_uri($entity_type, $entity);
+  if (empty($uri)) {
+    // If the entity has no source path, then we cannot lookup the existing
+    // redirects.
+    return;
+  }
+
+  $info = entity_get_info($entity_type);
+
+  $form['redirect'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('URL redirects'),
+    '#description' => t('The following are a list of URL redirects that point to this @entitytype.', array('@entitytype' => drupal_strtolower($info['label']))),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#access' => user_access('administer redirects'),
+    '#weight' => 30,
+    '#group' => 'additional_settings',
+    '#attached' => array(
+      'js' => array(
+        'vertical-tabs' => drupal_get_path('module', 'redirect') . '/redirect.js',
+      ),
+    ),
+    '#attributes' => array('class' => array('redirect-list')),
+  );
+
+  // We don't have to put our include in $form_state['build_info']['files']
+  // since the build array will already be cached.
+  module_load_include('inc', 'redirect', 'redirect.admin');
+  $redirects = redirect_load_multiple(FALSE, array('redirect' => $uri['path']));
+  $header = array('source', 'status_code', 'language', 'count', 'access', 'operations');
+  $form['redirect']['list'] = redirect_list_table($redirects, $header);
+
+  $redirect = array(
+    'redirect' => $uri['path'],
+    'redirect_options' => array_diff_key($uri['options'], array('entity_type' => '', 'entity' => '')),
+    'language' => $langcode,
+  );
+
+  $form['redirect']['actions'] = array(
+    '#theme' => 'links',
+    '#links' => array(),
+    '#attributes' => array('class' => array('action-links')),
+  );
+  if (redirect_access('create', 'redirect')) {
+    $form['redirect']['actions']['#links']['add'] = array(
+      'title' => t('Add URL redirect to this @entitytype', array('@entitytype' => drupal_strtolower($info['label']))),
+      'href' => 'admin/config/search/redirect/add',
+      'query' => array_filter($redirect) + drupal_get_destination(),
+    );
+  }
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function redirect_field_extra_fields() {
+  $entity_info = entity_get_info();
+  foreach (array_keys($entity_info) as $entity_type) {
+    if ($entity_type == 'comment') {
+      // The comment entity type supports URIs, but they're not real.
+      continue;
+    }
+    foreach (array_keys($entity_info[$entity_type]['bundles']) as $bundle) {
+      if (!isset($entity_info[$entity_type]['bundles'][$bundle]['uri callback']) && !isset($entity_info[$entity_type]['uri callback'])) {
+        // The bundle or base entity must have an URI callback defined otherwise
+        // we cannot use the entity_uri() function to lookup the entity's source
+        // path.
+        continue;
+      }
+      $info[$entity_type][$bundle]['form']['redirect'] = array(
+        'label' => t('URL redirects'),
+        'description' => t('Redirect module form elements'),
+        'weight' => 30,
+      );
+    }
+  }
+  return $info;
+}

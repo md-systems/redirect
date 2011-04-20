@@ -699,3 +699,82 @@ function redirect_list_404_filter_form_submit($form, &$form_state) {
 function redirect_list_404_filter_form_reset($form, &$form_state) {
   $form_state['redirect'] = 'admin/config/search/redirect/404';
 }
+
+function redirect_list_table($redirects, $header) {
+  $destination = drupal_get_destination();
+  $default_status_code = variable_get('redirect_default_status_code', 301);
+
+  // Set up the header.
+  $header = array_combine($header, $header);
+  $header = array_intersect_key(array(
+    'source' => array('data' => t('From'), 'field' => 'source', 'sort' => 'asc'),
+    'redirect' => array('data' => t('To'), 'field' => 'redirect'),
+    'status_code' => array('data' => t('Type'), 'field' => 'status_code'),
+    'language' => array('data' => t('Language'), 'field' => 'language'),
+    'count' => array('data' => t('Count'), 'field' => 'count'),
+    'access' => array('data' => t('Last accessed'), 'field' => 'access'),
+    'operations' => array('data' => t('Operations')),
+  ), $header);
+
+  // Do not include the language column if locale is disabled.
+  if (!module_exists('locale')) {
+    unset($header['language']);
+  }
+
+  $rows = array();
+  foreach ($redirects as $rid => $redirect) {
+    $row = array();
+    $redirect->source_options = array_merge($redirect->source_options, array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
+    $source_url = redirect_url($redirect->source, $redirect->source_options);
+    $redirect_url = redirect_url($redirect->redirect, array_merge($redirect->redirect_options, array('alias' => TRUE)));
+    $row['source'] = l($source_url, $redirect->source, $redirect->source_options);
+    $row['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
+    $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
+    $row['language'] = module_invoke('locale', 'language_name', $redirect->language);
+    $row['count'] = $redirect->count;
+    if ($redirect->access) {
+      $row['access'] = array(
+        'data' => t('!interval ago', array('!interval' => format_interval(REQUEST_TIME - $redirect->access))),
+        'title' => t('Last accessed on @date', array('@date' => format_date($redirect->access))),
+      );
+    }
+    else {
+      $row['access'] = t('Never');
+    }
+
+    $operations = array();
+    if (redirect_access('update', $redirect)) {
+      $operations['edit'] = array(
+        'title' => t('Edit'),
+        'href' => 'admin/config/search/redirect/edit/' . $rid,
+        'query' => $destination,
+      );
+    }
+    if (redirect_access('delete', $redirect)) {
+      $operations['delete'] = array(
+        'title' => t('Delete'),
+        'href' => 'admin/config/search/redirect/delete/' . $rid,
+        'query' => $destination,
+      );
+    }
+    $row['operations'] = array(
+      'data' => array(
+        '#theme' => 'links',
+        '#links' => $operations,
+        '#attributes' => array('class' => array('links', 'inline', 'nowrap')),
+      ),
+    );
+
+    $rows[$rid] = array_intersect_key($row, $header);
+  }
+
+  $build['list'] = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#empty' => t('No URL redirects available.'),
+    '#attributes' => array('class' => array('redirect-list')),
+  );
+
+  return $build;
+}
