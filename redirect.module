@@ -184,6 +184,19 @@ function redirect_menu() {
     );
   }
 
+  // Devel generate integration.
+  if (module_exists('devel_generate')) {
+    $items['admin/config/development/generate/redirects'] = array(
+      'title' => 'Generate redirects',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('redirect_generate_form'),
+      'access arguments' => array('administer redirects'),
+      'file' => 'redirect.generate.inc',
+    );
+    $items['admin/config/search/redirect/generate'] = $items['admin/config/development/generate/redirects'];
+    $items['admin/config/search/redirect/generate']['type'] = MENU_LOCAL_ACTION;
+  }
+
   return $items;
 }
 
