@@ -88,6 +88,12 @@ function redirect_list_form($form, &$form_state) {
       $row['access'] = t('Never');
     }
 
+    // Mark redirects that override existing paths with a warning in the table.
+    if (drupal_valid_path($redirect->source)) {
+      $row['#attributes']['class'][] = 'warning';
+      $row['#attributes']['title'] = t('This redirect overrides an existing internal path.');
+    }
+
     $operations = array();
     if (redirect_access('update', $redirect)) {
       $operations['edit'] = array(
@@ -727,19 +733,25 @@ function redirect_list_table($redirects, $header) {
     $redirect->source_options = array_merge($redirect->source_options, array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
     $source_url = redirect_url($redirect->source, $redirect->source_options);
     $redirect_url = redirect_url($redirect->redirect, array_merge($redirect->redirect_options, array('alias' => TRUE)));
-    $row['source'] = l($source_url, $redirect->source, $redirect->source_options);
-    $row['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
-    $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
-    $row['language'] = module_invoke('locale', 'language_name', $redirect->language);
-    $row['count'] = $redirect->count;
+    $row['data']['source'] = l($source_url, $redirect->source, $redirect->source_options);
+    $row['data']['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
+    $row['data']['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
+    $row['data']['language'] = module_invoke('locale', 'language_name', $redirect->language);
+    $row['data']['count'] = $redirect->count;
     if ($redirect->access) {
-      $row['access'] = array(
+      $row['data']['access'] = array(
         'data' => t('!interval ago', array('!interval' => format_interval(REQUEST_TIME - $redirect->access))),
         'title' => t('Last accessed on @date', array('@date' => format_date($redirect->access))),
       );
     }
     else {
-      $row['access'] = t('Never');
+      $row['data']['access'] = t('Never');
+    }
+
+    // Mark redirects that override existing paths with a warning in the table.
+    if (drupal_valid_path($redirect->source)) {
+      $row['class'][] = 'warning';
+      $row['title'] = t('This redirect overrides an existing internal path.');
     }
 
     $operations = array();
@@ -757,7 +769,7 @@ function redirect_list_table($redirects, $header) {
         'query' => $destination,
       );
     }
-    $row['operations'] = array(
+    $row['data']['operations'] = array(
       'data' => array(
         '#theme' => 'links',
         '#links' => $operations,
@@ -765,7 +777,8 @@ function redirect_list_table($redirects, $header) {
       ),
     );
 
-    $rows[$rid] = array_intersect_key($row, $header);
+    $row['data'] = array_intersect_key($row['data'], $header);
+    $rows[$rid] = $row;
   }
 
   $build['list'] = array(

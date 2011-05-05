@@ -1372,7 +1372,7 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
   module_load_include('inc', 'redirect', 'redirect.admin');
   $redirects = redirect_load_multiple(FALSE, array('redirect' => $uri['path']));
   $header = array('source', 'status_code', 'language', 'count', 'access', 'operations');
-  $form['redirect']['list'] = redirect_list_table($redirects, $header);
+  $form['redirect'] += redirect_list_table($redirects, $header);
 
   $redirect = array(
     'redirect' => $uri['path'],
