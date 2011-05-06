@@ -984,6 +984,7 @@ function redirect_hash($redirect) {
   if (!empty($redirect->source_options['query'])) {
     $hash['source_query'] = $redirect->source_options['query'];
   }
+  drupal_alter('redirect_hash', $hash, $redirect);
   redirect_sort_recursive($hash, 'ksort');
   $redirect->hash = drupal_hash_base64(serialize($hash));
   return $redirect->hash;
@@ -1174,15 +1175,32 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
     $path = '<front>';
   }
 
-  $url = $path;
+  if (!isset($options['alter']) || !empty($options['alter'])) {
+    drupal_alter('redirect_url', $path, $options);
+  }
 
-  if (!empty($options['absolute']) && !url_is_external($url)) {
-    if (!empty($options['https']) && variable_get('https', FALSE)) {
-      $url = $GLOBALS['base_secure_url'] . base_path() . $url;
+  // The base_url might be rewritten from the language rewrite in domain mode.
+  if (!isset($options['base_url'])) {
+    if (isset($options['https']) && variable_get('https', FALSE)) {
+      if ($options['https'] === TRUE) {
+        $options['base_url'] = $GLOBALS['base_secure_url'];
+        $options['absolute'] = TRUE;
+      }
+      elseif ($options['https'] === FALSE) {
+        $options['base_url'] = $GLOBALS['base_insecure_url'];
+        $options['absolute'] = TRUE;
+      }
     }
     else {
-      $url = $GLOBALS['base_insecure_url'] . base_path() . $url;
+      $options['base_url'] = $GLOBALS['base_url'];
     }
+  }
+
+  if (empty($options['absolute']) || url_is_external($path)) {
+    $url = $path;
+  }
+  else {
+    $url = $options['base_url'] . base_path() . $path;
   }
 
   if (isset($options['query'])) {
@@ -1337,7 +1355,7 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
  */
 function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
   list($id) = entity_extract_ids($entity_type, $entity);
-  if (!empty($form['redirect']) || empty($id)) {
+  if (!empty($form['redirect']) || empty($id) || $entity_type == 'comment') {
     return;
   }
 

@@ -73,6 +73,8 @@ function redirect_list_form($form, &$form_state) {
     $redirect->source_options = array_merge($redirect->source_options, array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
     $source_url = redirect_url($redirect->source, $redirect->source_options);
     $redirect_url = redirect_url($redirect->redirect, array_merge($redirect->redirect_options, array('alias' => TRUE)));
+    drupal_alter('redirect_url', $redirect->source, $redirect->source_options);
+    drupal_alter('redirect_url', $redirect->redirect, $redirect->redirect_options);
     $row['source'] = l($source_url, $redirect->source, $redirect->source_options);
     $row['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
     $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
@@ -245,7 +247,7 @@ function redirect_edit_form($form, &$form_state, $redirect = NULL) {
     '#title' => t('From'),
     '#description' => t("Enter an interal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')),
     '#maxlength' => 560,
-    '#default_value' => $redirect->rid || $redirect->source ? redirect_url($redirect->source, $redirect->source_options) : '',
+    '#default_value' => $redirect->rid || $redirect->source ? redirect_url($redirect->source, $redirect->source_options + array('alter' => FALSE)) : '',
     '#required' => TRUE,
     '#field_prefix' => $GLOBALS['base_url'] . '/' . (variable_get('clean_url', 0) ? '' : '?q='),
     '#element_validate' => array('redirect_element_validate_source'),
@@ -253,12 +255,13 @@ function redirect_edit_form($form, &$form_state, $redirect = NULL) {
   $form['source_options'] = array(
     '#type' => 'value',
     '#value' => $redirect->source_options,
+    '#tree' => TRUE,
   );
   $form['redirect'] = array(
     '#type' => 'textfield',
     '#title' => t('To'),
     '#maxlength' => 560,
-    '#default_value' => $redirect->rid || $redirect->redirect ? redirect_url($redirect->redirect, array('absolute' => TRUE) + $redirect->redirect_options, TRUE) : '',
+    '#default_value' => $redirect->rid || $redirect->redirect ? redirect_url($redirect->redirect, $redirect->redirect_options, TRUE) : '',
     '#required' => TRUE,
     '#description' => t('Enter an internal Drupal path, path alias, or complete external URL (like http://example.com/) to redirect to. Use %front to redirect to the front page.', array('%front' => '<front>')),
     '#element_validate' => array('redirect_element_validate_redirect'),
@@ -266,6 +269,7 @@ function redirect_edit_form($form, &$form_state, $redirect = NULL) {
   $form['redirect_options'] = array(
     '#type' => 'value',
     '#value' => $redirect->redirect_options,
+    '#tree' => TRUE,
   );
 
   // This will be a hidden value unless locale module is enabled.
