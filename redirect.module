@@ -1247,6 +1247,7 @@ function redirect_variables() {
 //}
 
 function redirect_parse_url($url) {
+  $original_url = $url;
   $url = trim($url, " \t\n\r\0\x0B\/");
   $parsed = parse_url($url);
 
@@ -1282,6 +1283,10 @@ function redirect_parse_url($url) {
 
   //$parsed['url'] = http_build_query($url, HTTP_URL_STRIP_QUERY | HTTP_URL_STRIP_FRAGMENT);
   $parsed['url'] = $url;
+
+  // Allow modules to alter the parsed URL.
+  drupal_alter('redirect_parse_url', $parsed, $original_url);
+
   return $parsed;
 }
 
@@ -1437,4 +1442,34 @@ function redirect_field_extra_fields() {
     }
   }
   return $info;
+}
+
+/**
+ * Fetch an array of redirect bulk operations.
+ *
+ * @see hook_redirect_operations()
+ * @see hook_redirect_operations_alter()
+ */
+function redirect_get_redirect_operations() {
+  $operations = &drupal_static(__FUNCTION__);
+
+  if (!isset($operations)) {
+    $operations = module_invoke_all('redirect_operations');
+    drupal_alter('redirect_operations', $operations);
+  }
+
+  return $operations;
+}
+
+/**
+ * Implements hook_redirect_operations().
+ */
+function redirect_redirect_operations() {
+  $operations['delete'] = array(
+    'action' => t('Delete'),
+    'action_past' => t('Deleted'),
+    'callback' => 'redirect_delete_multiple',
+    'confirm' => TRUE,
+  );
+  return $operations;
 }

@@ -6,6 +6,11 @@
  */
 
 function redirect_list_form($form, &$form_state) {
+  $form['#operations'] = redirect_get_redirect_operations();
+  if (isset($form_state['values']['operation']) && empty($form_state['values']['confirm'])) {
+    return redirect_list_form_operations_confirm_form($form, $form_state, $form_state['values']['operation'], array_filter($form_state['values']['rids']));
+  }
+
   $destination = drupal_get_destination();
   $default_status_code = variable_get('redirect_default_status_code', 301);
 
@@ -31,29 +36,28 @@ function redirect_list_form($form, &$form_state) {
   $keys = implode('/', $keys);
   $form['redirect_list_filter_form'] = redirect_list_filter_form($keys);
 
-  //// Build the 'Update options' form.
-  //$form['operations'] = array(
-  //  '#type' => 'fieldset',
-  //  '#title' => t('Update options'),
-  //  '#prefix' => '<div class="container-inline">',
-  //  '#suffix' => '</div>',
-  //);
-  //$form['#operations'] = module_invoke_all('redirect_operations');
-  //$operations = array();
-  //foreach ($form['#operations'] as $key => $operation) {
-  //  $operations[$key] = $operation['action'];
-  //}
-  //$form['operations']['operation'] = array(
-  //  '#type' => 'select',
-  //  '#options' => $operations,
-  //  '#default_value' => 'delete',
-  //);
-  //$form['operations']['submit'] = array(
-  //  '#type' => 'submit',
-  //  '#value' => t('Update'),
-  //  '#validate' => array('redirect_list_form_operations_validate'),
-  //  '#submit' => array('redirect_list_form_operations_submit'),
-  //);
+  // Build the 'Update options' form.
+  $form['operations'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Update options'),
+    '#prefix' => '<div class="container-inline">',
+    '#suffix' => '</div>',
+  );
+  $operations = array();
+  foreach ($form['#operations'] as $key => $operation) {
+    $operations[$key] = $operation['action'];
+  }
+  $form['operations']['operation'] = array(
+    '#type' => 'select',
+    '#options' => $operations,
+    '#default_value' => 'delete',
+  );
+  $form['operations']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Update'),
+    '#validate' => array('redirect_list_form_operations_validate'),
+    '#submit' => array('redirect_list_form_operations_submit'),
+  );
 
   // Building the SQL query and load the redirects.
   $query = db_select('redirect', 'r')->extend('TableSort')->extend('PagerDefault');
@@ -203,6 +207,86 @@ function redirect_build_filter_query(QueryAlterableInterface $query, array $fiel
     }
     $query->condition($conditions);
   }
+}
+
+/**
+ * Validate redirect_list_form form submissions.
+ *
+ * Check if any redirects have been selected to perform the chosen
+ * 'Update option' on.
+ */
+function redirect_list_form_operations_validate($form, &$form_state) {
+  // Error if there are no redirects selected.
+  if (!is_array($form_state['values']['rids']) || !count(array_filter($form_state['values']['rids']))) {
+    form_set_error('', t('No redirects selected.'));
+  }
+}
+
+/**
+ * Process redirect_list_form form submissions.
+ *
+ * Execute the chosen 'Update option' on the selected redirects.
+ */
+function redirect_list_form_operations_submit($form, &$form_state) {
+  $operations = $form['#operations'];
+  $operation = $operations[$form_state['values']['operation']];
+
+  // Filter out unchecked redirects
+  $rids = array_filter($form_state['values']['rids']);
+
+  if (!empty($operation['confirm']) && empty($form_state['values']['confirm'])) {
+    // We need to rebuild the form to go to a second step. For example, to
+    // show the confirmation form for the deletion of redirects.
+    $form_state['rebuild'] = TRUE;
+  }
+  else {
+    $function = $operation['callback'];
+
+    // Add in callback arguments if present.
+    if (isset($operation['callback arguments'])) {
+      $args = array_merge(array($rids), $operation['callback arguments']);
+    }
+    else {
+      $args = array($rids);
+    }
+    call_user_func_array($function, $args);
+
+    $count = count($form_state['values']['rids']);
+    watchdog('redirect', '@action @count redirects.', array('@action' => $operation['action_past'], '@count' => $count));
+    drupal_set_message(format_plural(count($rids), '@action @count redirect.', '@action @count redirects.', array('@action' => $operation['action_past'], '@count' => $count)));
+  }
+}
+
+function redirect_list_form_operations_confirm_form($form, &$form_state, $operation, $rids) {
+  $operations = $form['#operations'];
+  $operation = $operations[$form_state['values']['operation']];
+
+  $form['rids_list'] = array(
+    '#theme' => 'item_list',
+    '#items' => array(),
+  );
+  $form['rids'] = array(
+    '#type' => 'value',
+    '#value' => $rids,
+  );
+
+  $redirects = redirect_load_multiple($rids);
+  foreach ($redirects as $rid => $redirect) {
+    $form['rids_list']['#items'][$rid] = redirect_url($redirect->source, $redirect->source_options);
+  }
+
+  $form['operation'] = array('#type' => 'hidden', '#value' => $form_state['values']['operation']);
+  $form['#submit'][] = 'redirect_list_form_operations_submit';
+  $confirm_question = format_plural(count($rids), 'Are you sure you want to @action this redirect?', 'Are you sure you want to @action these redirects?', array('@action' => drupal_strtolower($operation['action'])));
+
+  return confirm_form(
+    $form,
+    $confirm_question,
+    'admin/config/search/redirect', // @todo This does not redirect back to filtered page.
+    t('This action cannot be undone.'),
+    $operation['action'],
+    t('Cancel')
+  );
 }
 
 /**
