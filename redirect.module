@@ -328,7 +328,11 @@ function redirect_path_update(array $path) {
     $redirect->source = $path['original']['alias'];
     $redirect->redirect = $path['source'];
     $redirect->language = $path['original']['language'];
-    redirect_save($redirect);
+    // Check if the redirect exists before saving.
+    $hash = redirect_hash($redirect);
+    if (!redirect_load_by_hash($hash)) {
+      redirect_save($redirect);
+    }
   }
 }
 

@@ -160,7 +160,7 @@ class RedirectFunctionalTest extends RedirectTestHelper {
   function setUp(array $modules = array()) {
     parent::setUp($modules);
 
-    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports'));
+    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create article content', 'edit any article content', 'create url aliases'));
     $this->drupalLogin($this->admin_user);
   }
 
@@ -222,5 +222,23 @@ class RedirectFunctionalTest extends RedirectTestHelper {
     variable_set('page_cache_invoke_hooks', TRUE);
     $this->cronRun();
     $this->assertNoRedirect($redirect);
+  }
+
+  function testPathChangeRedirects() {
+    // Create an initial article node with a path alias.
+    $node = $this->drupalCreateNode(array('type' => 'article', 'path' => array('alias' => 'first-alias')));
+
+    // Change the node's alias will create an automatic redirect from 'first-alias' to the node.
+    $this->drupalPost("node/{$node->nid}/edit", array('path[alias]' => 'second-alias'), 'Save');
+    //$redirect = redirect_load_by_source('first-alias');
+    //$this->assertRedirect($redirect);
+
+    $this->drupalPost("node/{$node->nid}/edit", array('path[alias]' => 'first-alias'), 'Save');
+    //$redirect = redirect_load_by_source('second-alias');
+    //$this->assertRedirect($redirect);
+
+    $this->drupalPost("node/{$node->nid}/edit", array('path[alias]' => 'second-alias'), 'Save');
+    //$redirect = redirect_load_by_source('first-alias');
+    //$this->assertRedirect($redirect);
   }
 }
