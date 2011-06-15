@@ -39,6 +39,7 @@ function redirect_entity_info() {
       'bundle' => 'type',
     ),
     'fieldable' => FALSE,
+    'uuid' => FALSE,
   );
 
   return $info;
