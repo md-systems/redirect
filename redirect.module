@@ -1370,6 +1370,11 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
     return;
   }
 
+  // @todo Remove when http://drupal.org/node/1057242 is fixed.
+  if ($entity_type == 'file') {
+    return;
+  }
+
   $uri = entity_uri($entity_type, $entity);
   if (empty($uri)) {
     // If the entity has no source path, then we cannot lookup the existing
