@@ -227,12 +227,12 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
  * Implements hook_entity_info_alter().
  */
 function redirect_entity_info_alter(&$info) {
-  // @todo Convert these to a tokenized default path?
   $default_paths = array(
-    'node' => 'node/[id]',
-    'taxonomy_term' => 'taxonomy/term/[id]',
-    'user' => 'user/[id]',
+    'node' => 'node/%node',
+    'user' => 'user/%user',
+    'taxonomy_term' => 'taxonomy/term/%taxonomy_term',
   );
+
   foreach ($default_paths as $entity_type => $default_path) {
     if (isset($info[$entity_type]) && !isset($info[$entity_type]['default path'])) {
       $info[$entity_type]['default path'] = $default_path;
@@ -1032,7 +1032,7 @@ function redirect_load_entity_from_path($path) {
       if (isset($entity_info['default path'])) {
         $default_path = $entity_info['default path'];
         $default_path = preg_quote($default_path, '/');
-        $default_path = str_replace('\[id\]', '(\d+)', $default_path);
+        $default_path = str_replace(preg_quote('%' . $entity_type, '/'), '(\d+)', $default_path);
         $entity_paths[$entity_type] = $default_path;
       }
     }
