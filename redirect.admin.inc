@@ -272,7 +272,7 @@ function redirect_list_form_operations_confirm_form($form, &$form_state, $operat
 
   $redirects = redirect_load_multiple($rids);
   foreach ($redirects as $rid => $redirect) {
-    $form['rids_list']['#items'][$rid] = redirect_url($redirect->source, $redirect->source_options);
+    $form['rids_list']['#items'][$rid] = check_plain(redirect_url($redirect->source, $redirect->source_options));
   }
 
   $form['operation'] = array('#type' => 'hidden', '#value' => $form_state['values']['operation']);
