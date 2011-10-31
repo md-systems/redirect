@@ -1383,7 +1383,6 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
   }
 
   $info = entity_get_info($entity_type);
-
   $form['redirect'] = array(
     '#type' => 'fieldset',
     '#title' => t('URL redirects'),
@@ -1392,14 +1391,16 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
     '#collapsed' => TRUE,
     '#access' => user_access('administer redirects'),
     '#weight' => 30,
-    '#group' => 'additional_settings',
-    '#attached' => array(
-      'js' => array(
-        'vertical-tabs' => drupal_get_path('module', 'redirect') . '/redirect.js',
-      ),
-    ),
     '#attributes' => array('class' => array('redirect-list')),
   );
+
+  // Only support vertical tabs if there is a vertical tab element.
+  foreach (element_children($form) as $key) {
+    if (isset($form[$key]['#type']) && $form[$key]['#type'] == 'vertical_tabs') {
+      $form['redirect']['#group'] = $key;
+      $form['redirect']['#attached']['js']['vertical-tabs'] = drupal_get_path('module', 'redirect') . '/redirect.js';
+    }
+  }
 
   // We don't have to put our include in $form_state['build_info']['files']
   // since the build array will already be cached.
