@@ -28,7 +28,7 @@ function redirect_schema() {
         'length' => 64,
         'not null' => TRUE,
         'default' => '',
-        'description' => 'The redirect type; if blank it is a normal redirect handled by the module.',
+        'description' => "The redirect type; if value is 'redirect' it is a normal redirect handled by the module.",
       ),
       'uid' => array(
         'type' => 'int',
