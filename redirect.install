@@ -95,6 +95,7 @@ function redirect_schema() {
     ),
     'indexes' => array(
       'expires' => array('type', 'access'),
+      'source_language' => array('source', 'language'),
     ),
   );
 
@@ -178,5 +179,14 @@ function redirect_update_5() {
       'description' => 'The timestamp of when the redirect was last accessed.',
     ));
     db_add_index('redirect', 'expires', array('type', 'access'));
+  }
+}
+
+/**
+ * Add an index on the source and language columns in the redirect table.
+ */
+function redirect_update_6() {
+  if (!db_index_exists('redirect', 'source_language')) {
+    db_add_index('redirect', 'source_language', array('source', 'language'));
   }
 }
