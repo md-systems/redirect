@@ -1083,7 +1083,7 @@ function redirect_can_redirect() {
       // If this is a command line request (Drush, etc), skip processing.
       $can_redirect = FALSE;
     }
-    elseif (variable_get('site_offline', 0) || defined('MAINTENANCE_MODE')) {
+    elseif (variable_get('maintenance_mode', 0) || defined('MAINTENANCE_MODE')) {
       // Do not redirect in offline or maintenance mode.
       $can_redirect = FALSE;
     }
