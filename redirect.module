@@ -390,10 +390,15 @@ function redirect_page_build(&$page) {
         '#weight' => -100,
       );
     }
+    // We cannot simply use current_path() because if a 404 path is set, then
+    // that value overrides whatever is in $_GET['q']. The
+    // drupal_deliver_html_page() function thankfully puts the original current
+    // path into $_GET['destination'].
+    $destination = drupal_get_destination();
     $page['content']['system_main']['actions']['#links']['add_redirect'] = array(
       'title' => t('Add URL redirect from this page to another location'),
       'href' => 'admin/config/search/redirect/add',
-      'query' => array('source' => current_path()) + drupal_get_destination(),
+      'query' => array('source' => $destination['destination']) + drupal_get_destination(),
     );
   }
 }
