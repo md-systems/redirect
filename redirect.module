@@ -40,6 +40,7 @@ function redirect_entity_info() {
     ),
     'fieldable' => FALSE,
     'uuid' => FALSE,
+    'redirect' => FALSE,
   );
 
   return $info;
@@ -276,6 +277,40 @@ function redirect_entity_info_alter(&$info) {
       $info[$entity_type]['default path'] = $default_path;
     }
   }
+
+  // Disable support for some entity types that cause problems.
+  $unsupported_entity_types = array(
+    'comment',
+    'media',
+  );
+  foreach ($unsupported_entity_types as $unsupported_entity_type) {
+    if (isset($info[$unsupported_entity_type])) {
+      $info[$unsupported_entity_type]['redirect'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Check if an entity type supports redirects.
+ *
+ * @param $entity_type
+ *   An entity type.
+ *
+ * @return
+ *   TRUE if the entity type has an uri callback and supports redirects, or
+ *   FALSE otherwise.
+ */
+function redirect_entity_type_supports_redirects($entity_type) {
+  $types = &drupal_static(__FUNCTION__);
+
+  if (!isset($types)) {
+    $types = array();
+    foreach (entity_get_info() as $type => $entity_info) {
+      $types[$type] = !empty($entity_info['uri callback']) && (!isset($entity_info['redirect']) || !empty($entity_info['redirect']));
+    }
+  }
+
+  return isset($types[$entity_type]) ? $types[$entity_type] : FALSE;
 }
 
 /**
@@ -342,10 +377,9 @@ function redirect_exit($destination = NULL) {
  * Implements hook_entity_delete().
  */
 function redirect_entity_delete($entity, $entity_type) {
-  if ($entity_type == 'redirect') {
-    return;
+  if (redirect_entity_type_supports_redirects($entity_type)) {
+    redirect_delete_by_entity_path($entity_type, $entity);
   }
-  redirect_delete_by_entity_path($entity_type, $entity);
 }
 
 /**
@@ -1413,12 +1447,12 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
  */
 function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
   list($id) = entity_extract_ids($entity_type, $entity);
-  if (!empty($form['redirect']) || empty($id) || $entity_type == 'comment') {
+  if (!empty($form['redirect']) || empty($id)) {
     return;
   }
 
-  // @todo Remove when http://drupal.org/node/1057242 is fixed.
-  if ($entity_type == 'file') {
+  // Check if this entity type supports redirects.
+  if (!redirect_entity_type_supports_redirects($entity_type)) {
     return;
   }
 
