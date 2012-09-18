@@ -1017,7 +1017,12 @@ function redirect_goto($redirect) {
     if (variable_get('cache', 0)) {
       // We must output something to allow the request to be cached.
       echo ' ';
-      drupal_page_set_cache();
+      if ($cache = drupal_page_set_cache()) {
+        // When caching this redirect for the first time we still need to ensure
+        // that the correct cache headers are sent.
+        // @see drupal_page_footer()
+        drupal_serve_page_from_cache($cache);
+      }
     }
   }
 
