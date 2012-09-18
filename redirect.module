@@ -80,11 +80,7 @@ function redirect_hook_info() {
     'redirect_alter',
   );
 
-  $hooks = array_combine($hooks, $hooks);
-  foreach ($hooks as $hook => $info) {
-    $hooks[$hook] = array('group' => 'redirect');
-  }
-  return $hooks;
+  return array_fill_keys($hooks, array('group' => 'redirect'));
 }
 
 /**
@@ -202,10 +198,51 @@ function redirect_menu() {
   return $items;
 }
 
+function redirect_set_current_redirect($redirect) {
+  $static = &drupal_static(__FUNCTION__);
+  $static = $redirect;
+}
+
+function redirect_get_current_redirect() {
+  $redirect = drupal_static('redirect_set_current_redirect', NULL);
+
+  // If a redirect has not been set with redirect_set_current_redirect(), then
+  // attempt to find a redirect matching the current path, query string, and
+  // language code.
+  if (!isset($redirect)) {
+    $redirect = redirect_load_by_source(current_path(), $GLOBALS['language']->language, drupal_get_query_parameters());
+  }
+
+  // @todo Add an alter hook here?
+  return $redirect;
+}
+
 /**
  * Implements hook_url_inbound_alter().
  */
 function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
+  // If the current path global does not exist, then drupal_get_path_alias()
+  // will fail. This condition only happens when $path is the front page.
+  // @todo Remove when http://drupal.org/node/1329914 is fixed in core.
+  if (empty($_GET['q'])) {
+    $_GET['q'] = variable_get('site_frontpage', 'node');
+    return;
+  }
+
+  // If the inbound path has been changed, then attempt to find a redirect
+  // matching the original path and save it for processing later in
+  // redirect_init(). For example, if the Sub-pathauto module changes the path
+  // 'foo/redirect' to 'node/1/redirect', and there is a redirect enabled for
+  // the path 'foo/redirect', then redirect_init() would normally fail since it
+  // would not find a match.
+  if ($path != $original_path && $original_path == current_path()) {
+    $current_langcode = !empty($path_language) ? $path_language : $GLOBALS['language']->language;
+    $current_query = drupal_get_query_parameters();
+    if ($redirect = redirect_load_by_source($original_path, $current_langcode, $current_query)) {
+      redirect_set_current_redirect($redirect);
+    }
+  }
+
   // Redirect to canonical URLs.
   if ($path && variable_get('redirect_canonical', 1)) {
     $alias = drupal_get_path_alias($path, $path_language);
@@ -249,10 +286,8 @@ function redirect_init() {
     return;
   }
 
-  $current_path = current_path();
-  $current_langcode = $GLOBALS['language']->language;
-  $current_query = drupal_get_query_parameters();
-  if ($redirect = redirect_load_by_source($current_path, $current_langcode, $current_query)) {
+  // Fetch the current redirect.
+  if ($redirect = redirect_get_current_redirect()) {
     redirect_redirect($redirect);
   }
 
