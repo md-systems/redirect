@@ -465,7 +465,7 @@ function redirect_element_validate_redirect($element, &$form_state) {
   // Normalize the path.
   $value = drupal_get_normal_path($value, $form_state['values']['language']);
 
-  if (!valid_url($value) && !valid_url($value, TRUE) && $value != '<front>' && $value != '') {
+  if (!valid_url($value) && !valid_url($value, TRUE) && $value != '<front>' && $value != '' && !file_exists($value)) {
     form_error($element, t('The redirect path %value is not valid.', array('%value' => $value)));
   }
 
