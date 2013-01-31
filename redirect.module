@@ -879,7 +879,8 @@ function redirect_delete_by_path($path) {
  * @ingroup redirect_api
  */
 function redirect_delete_by_entity_path($entity_type, $entity) {
-  if ($uri = entity_uri($entity_type, $entity)) {
+  $uri = entity_uri($entity_type, $entity);
+  if (!empty($uri['path'])) {
     redirect_delete_by_path($uri['path']);
   }
 
@@ -1457,7 +1458,7 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
   }
 
   $uri = entity_uri($entity_type, $entity);
-  if (empty($uri)) {
+  if (empty($uri['path'])) {
     // If the entity has no source path, then we cannot lookup the existing
     // redirects.
     return;
