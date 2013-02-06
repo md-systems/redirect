@@ -986,8 +986,7 @@ function redirect_redirect($redirect = NULL) {
     flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
   }
   else {
-    watchdog('redirect', 'Infinite loop stopped.');
-    drupal_set_message('Oops, looks like this request tried to create an infinite loop. We do not allow such things here. We are a professional website!');
+    trigger_error(t('Infinite redirect loop prevented.'), E_USER_WARNING);
     return FALSE;
   }
 
