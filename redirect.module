@@ -986,7 +986,10 @@ function redirect_redirect($redirect = NULL) {
     flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
   }
   else {
-    trigger_error(t('Infinite redirect loop prevented.'), E_USER_WARNING);
+    // For now don't trigger an error if being run inside SimpleTest.
+    if (empty($GLOBALS['drupal_test_info']['test_run_id'])) {
+      trigger_error(t('Infinite redirect loop prevented.'), E_USER_WARNING);
+    }
     return FALSE;
   }
 
