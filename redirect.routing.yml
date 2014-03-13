@@ -1,0 +1,50 @@
+redirect.list
+  path: '/admin/config/search/redirect'
+  defaults:
+    _form: '\Drupal\redirect\Form\RedirectListForm'
+    _title: 'URL redirects'
+  requirements:
+    _permission: 'administer redirects'
+
+redirect.add
+  path: '/admin/config/search/redirect/add'
+  defaults:
+    _form: '\Drupal\redirect\Form\RedirectAddForm'
+    _title: 'Add redirect'
+  requirements:
+    _permission: 'administer redirects'
+
+redirect.edit
+  path: '/admin/config/search/redirect/edit/{redirect}'
+    _form: '\Drupal\redirect\Form\RedirectEditForm'
+  defaults:
+    _title: Edit redirect
+
+redirect.delete
+  path: '/admin/config/search/redirect/delete/{redirect}'
+  defaults:
+    _form: '\Drupal\redirect\Form\RedirectDeleteForm'
+    _title: Delete redirect
+  requirements:
+    _permission: 'administer redirects'
+
+redirect.settings
+  path: '/admin/config/search/redirect/settings'
+    _form: '\Drupal\redirect\Form\RedirectSettingsForm'
+  defaults:
+    _title: Settings
+  requirements:
+    _permission: 'administer redirects'
+
+redirect.fix_404
+  path: '/admin/config/search/redirect/404'
+  defaults:
+    _title: Fix 404 pages
+    _form: '\Drupal\redirect\Form\RedirectFix404Form'
+  requirements:
+    _module_dependencies: 'dblog'
+    _permission: 'administer redirects'
+
+#redirect.devel_generate
+#  requirements:
+#    _module_dependencies: 'devel'
