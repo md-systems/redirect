@@ -42,7 +42,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
 
   function testPageCache() {
     // Set up cache variables.
-    variable_set('cache', 1);
+    \Drupal::config('system.performance')->set('cache.page.use_internal', TRUE)->save();
     $edit = array(
       'redirect_page_cache' => TRUE,
       'redirect_purge_inactive' => 604800,
@@ -70,13 +70,13 @@ class RedirectFunctionalTest extends RedirectTestBase {
     // should not remove since they cannot be tracked.
     $redirect->access = 1;
     redirect_save($redirect);
-    variable_set('page_cache_invoke_hooks', FALSE);
+    \Drupal::config('system.performance')->set('cache.page.invoke_hooks', FALSE)->save();
     $this->cronRun();
     $this->assertRedirect($redirect);
 
     $redirect->access = 1;
     redirect_save($redirect);
-    variable_set('page_cache_invoke_hooks', TRUE);
+    \Drupal::config('system.performance')->set('cache.page.invoke_hooks', TRUE)->save();
     $this->cronRun();
     $this->assertNoRedirect($redirect);
   }

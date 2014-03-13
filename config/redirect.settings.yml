@@ -1,0 +1,12 @@
+canonical: TRUE
+auto_redirect: TRUE
+purge_inactive: FALSE
+page_cache: FALSE
+default_status_code: 301
+passthrough_querystring: TRUE
+warning: FALSE
+
+global_clean: TRUE
+global_admin_paths: FALSE
+global_home: TRUE
+global_deslash: FALSE

@@ -226,7 +226,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   // will fail. This condition only happens when $path is the front page.
   // @todo Remove when http://drupal.org/node/1329914 is fixed in core.
   if (empty($_GET['q'])) {
-    $_GET['q'] = variable_get('site_frontpage', 'node');
+    $_GET['q'] = \Drupal::config('system.site')->get('page.front');
     return;
   }
 
@@ -245,7 +245,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   }
 
   // Redirect to canonical URLs.
-  if ($path && variable_get('redirect_canonical', 1)) {
+  if ($path && redirect_settings_get('canonical')) {
     $alias = drupal_get_path_alias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
       //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
@@ -330,7 +330,9 @@ function redirect_init() {
   $request_uri = $original_uri = ltrim(request_uri(), '/');
 
   // Redirect from non-clean URLs to clean URLs.
-  if (variable_get('redirect_global_clean', 1) && variable_get('clean_url', 0) && strpos($request_uri, '?q=') !== FALSE) {
+  // @todo - deal with clean_url configuration being removed. See
+  //   https://drupal.org/node/1659580
+  if (redirect_settings_get('global_clean') && strpos($request_uri, '?q=') !== FALSE) {
     //$redirect_global = TRUE;
     //$request_uri = str_replace('?q=', '', $request_uri);
   }
@@ -386,7 +388,7 @@ function redirect_entity_delete($entity, $entity_type) {
  * Implements hook_path_update().
  */
 function redirect_path_update(array $path) {
-  if (!variable_get('redirect_auto_redirect', TRUE)) {
+  if (!redirect_settings_get('auto_redirect')) {
     return;
   }
   elseif (isset($path['redirect']) && !$path['redirect']) {
@@ -411,7 +413,7 @@ function redirect_path_update(array $path) {
  * Implements hook_path_delete().
  */
 function redirect_path_delete($path) {
-  if (!variable_get('redirect_auto_redirect', TRUE)) {
+  if (!redirect_settings_get('auto_redirect')) {
     return;
   }
   elseif (isset($path['redirect']) && !$path['redirect']) {
@@ -560,7 +562,7 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
   // Run a case-insensitive query for matching RIDs first.
   $rid_query = db_select('redirect');
   $rid_query->addField('redirect', 'rid');
-  if ($source != variable_get('site_frontpage', 'node')) {
+  if ($source != \Drupal::config('system.site')->get('page.front')) {
     $rid_query->condition('source', db_like($source), 'LIKE');
   }
   else {
@@ -945,10 +947,10 @@ function redirect_delete_multiple(array $rids) {
  */
 function redirect_purge_inactive_redirects(array $types = array('redirect'), $interval = NULL) {
   if (!isset($interval)) {
-    $interval = variable_get('redirect_purge_inactive', 0);
+    $interval = redirect_settings_get('purge_inactive');
   }
 
-  if (!$interval || !variable_get('redirect_page_cache', 0) || !variable_get('page_cache_invoke_hooks', TRUE)) {
+  if (!$interval || !redirect_settings_get('page_cache') || !\Drupal::config('system.performance')->get('cache.page.invoke_hooks')) {
     // If serving redirects from the page cache is enabled and hooks are not
     // executed during page caching, then we cannot track when a redirect is
     // used. Therefore, we cannot remove unused redirects.
@@ -999,10 +1001,10 @@ function redirect_redirect($redirect = NULL) {
   redirect_object_prepare($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto', 'cache' => TRUE));
 
   if (empty($redirect->status_code)) {
-    $redirect->status_code = variable_get('redirect_default_status_code', 301);
+    $redirect->status_code = redirect_settings_get('default_status_code');
   }
 
-  if (variable_get('redirect_passthrough_querystring', 1)) {
+  if (redirect_settings_get('passthrough_querystring')) {
     // Preserve the current query parameters in the redirect.
     $redirect->redirect_options += array('query' => array());
     $redirect->redirect_options['query'] += drupal_get_query_parameters();
@@ -1041,7 +1043,9 @@ function redirect_goto($redirect) {
     drupal_add_http_header('X-Redirect-ID', $redirect->rid);
   }
 
-  if (!variable_get('redirect_page_cache', 0) || !variable_get('cache', 0) || !drupal_page_is_cacheable() || empty($redirect->cache)) {
+  $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
+
+  if (!redirect_settings_get('page_cache') || !$cache_enabled || !drupal_page_is_cacheable() || empty($redirect->cache)) {
     drupal_exit($url);
   }
 
@@ -1051,7 +1055,7 @@ function redirect_goto($redirect) {
       module_invoke_all('exit', $url);
     }
     drupal_session_commit();
-    if (variable_get('cache', 0)) {
+    if ($cache_enabled) {
       // We must output something to allow the request to be cached.
       echo ' ';
       if ($cache = drupal_page_set_cache()) {
@@ -1084,7 +1088,7 @@ function redirect_hash($redirect) {
  * Clear a page from the page cache.
  */
 function redirect_page_cache_clear($redirect = NULL) {
-  if (!variable_get('redirect_page_cache', 0)) {
+  if (!redirect_settings_get('page_cache')) {
     return;
   }
 
@@ -1165,11 +1169,11 @@ function redirect_can_redirect() {
       // If this is a command line request (Drush, etc), skip processing.
       $can_redirect = FALSE;
     }
-    elseif (variable_get('maintenance_mode', 0) || defined('MAINTENANCE_MODE')) {
+    elseif (\Drupal::state()->get('system.maintenance_mode') || defined('MAINTENANCE_MODE')) {
       // Do not redirect in offline or maintenance mode.
       $can_redirect = FALSE;
     }
-    elseif (!variable_get('redirect_global_admin_paths', 0) && path_is_admin($path)) {
+    elseif (!redirect_settings_get('global_admin_paths') && path_is_admin($path)) {
       // Do not redirect on admin paths.
       $can_redirect = FALSE;
     }
@@ -1257,8 +1261,10 @@ function redirect_language_load($language = LANGUAGE_NONE) {
  * Build the URL of a redirect for display purposes only.
  */
 function redirect_url($path, array $options = array(), $clean_url = NULL) {
+  // @todo - deal with removal of clean_url config. See
+  //    https://drupal.org/node/1659580
   if (!isset($clean_url)) {
-    $clean_url = variable_get('clean_url', 0);
+    //$clean_url = variable_get('clean_url', 0);
   }
 
   if ($path == '') {
@@ -1271,7 +1277,8 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
 
   // The base_url might be rewritten from the language rewrite in domain mode.
   if (!isset($options['base_url'])) {
-    if (isset($options['https']) && variable_get('https', FALSE)) {
+    // @todo - is this correct? See https://drupal.org/node/1798832.
+    if (isset($options['https']) && settings()->get('mixed_mode_sessions', FALSE)) {
       if ($options['https'] === TRUE) {
         $options['base_url'] = $GLOBALS['base_secure_url'];
         $options['absolute'] = TRUE;
@@ -1567,4 +1574,8 @@ function redirect_redirect_operations() {
     'confirm' => TRUE,
   );
   return $operations;
+}
+
+function redirect_settings_get($key) {
+  return \Drupal::config('redirect.settings')->get($key);
 }

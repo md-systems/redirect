@@ -24,7 +24,7 @@ class RedirectListForm extends FormBase {
     }
 
     $destination = drupal_get_destination();
-    $default_status_code = variable_get('redirect_default_status_code', 301);
+    $default_status_code = redirect_settings_get('default_status_code');
 
     // Set up the header.
     $header = array(
