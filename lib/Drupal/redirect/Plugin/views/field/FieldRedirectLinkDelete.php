@@ -1,11 +1,14 @@
 <?php
-
 /**
  * @file
- * Redirect field handler for edit links.
+ * Contains Drupal\redirect\Plugin\views\field\FieldRedirectLinkDelete.
  */
 
-class redirect_handler_field_redirect_link_edit extends views_handler_field {
+namespace Drupal\redirect\Plugin\views\field;
+
+use Drupal\views\Plugin\views\field\FieldPluginBase;
+
+class FieldRedirectLinkDelete extends FieldPluginBase {
   function construct() {
     parent::construct();
     $this->additional_fields['rid'] = 'rid';
@@ -33,9 +36,9 @@ class redirect_handler_field_redirect_link_edit extends views_handler_field {
 
   function render($values) {
     $rid = $values->{$this->aliases['rid']};
-    if (($redirect = redirect_load($rid)) && redirect_access('update', $redirect)) {
-      $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
-      return l($text, "admin/config/search/redirect/edit/" . $rid, array('query' => drupal_get_destination()));
+    if (($redirect = redirect_load($rid)) && redirect_access('delete', $redirect)) {
+      $text = !empty($this->options['text']) ? $this->options['text'] : t('Delete');
+      return l($text, "admin/config/search/redirect/delete/" . $rid, array('query' => drupal_get_destination()));
     }
   }
 }

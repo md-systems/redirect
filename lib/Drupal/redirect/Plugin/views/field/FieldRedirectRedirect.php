@@ -2,10 +2,14 @@
 
 /**
  * @file
- * Redirect field handler for {redirect}.redirect.
+ * Contains Drupal\redirect\Plugin\views\field\FieldRedirectRedirect.
  */
 
-class redirect_handler_field_redirect_redirect extends views_handler_field {
+namespace Drupal\redirect\Plugin\views\field;
+
+use Drupal\views\Plugin\views\field\FieldPluginBase;
+
+class FieldRedirectRedirect extends FieldPluginBase {
   function construct() {
     parent::construct();
     $this->additional_fields['redirect'] = 'redirect';

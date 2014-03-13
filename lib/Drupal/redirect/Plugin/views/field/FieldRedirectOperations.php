@@ -2,10 +2,14 @@
 
 /**
  * @file
- * Redirect field handler for redirect operations.
+ * Contains Drupal\redirect\Plugin\views\field\FieldRedirectOperations.
  */
 
-class redirect_handler_field_redirect_operations extends views_handler_field {
+namespace Drupal\redirect\Plugin\views\field;
+
+use Drupal\views\Plugin\views\field\FieldPluginBase;
+
+class FieldRedirectOperations extends FieldPluginBase {
   function construct() {
     parent::construct();
     $this->additional_fields['rid'] = 'rid';
@@ -41,7 +45,7 @@ class redirect_handler_field_redirect_operations extends views_handler_field {
     $rid = $values->{$this->aliases['rid']};
     $redirect = redirect_load($rid);
     $destination = drupal_get_destination();
-    
+
     $operations = array();
     if (redirect_access('update', $redirect)) {
       $operations['edit'] = array(

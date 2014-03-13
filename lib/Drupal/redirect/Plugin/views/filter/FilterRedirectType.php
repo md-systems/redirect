@@ -2,10 +2,14 @@
 
 /**
  * @file
- * Filter by redirect type.
+ * Contains Drupal\redirect\Plugin\views\filter\FilterRedirectType.
  */
 
-class redirect_handler_filter_redirect_type extends views_handler_filter_in_operator {
+namespace Drupal\redirect\Plugin\views\field;
+
+use Drupal\views\Plugin\views\filter\InOperator;
+
+class FilterRedirectType extends InOperator {
   function get_value_options() {
     if (!isset($this->value_options)) {
       $this->value_title = t('Redirect type');
