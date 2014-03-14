@@ -3,6 +3,8 @@
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Language\Language;
+use Drupal\Core\Url;
 
 class RedirectEditForm extends FormBase {
 
@@ -18,16 +20,21 @@ class RedirectEditForm extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, $redirect_id = NULL) {
     if (!isset($redirect)) {
-      $redirect = new \stdClass();
+      $redirect = entity_create('redirect', array('type' => 'vole'));
     }
+
+    $source_options = array();
+    parse_str($this->getRequest()->get('source_options'), $source_options);
+    $redirect_options = array();
+    parse_str($this->getRequest()->get('redirect_options'), $redirect_options);
 
     // Merge default values.
     redirect_object_prepare($redirect, array(
       'source' => isset($_GET['source']) ? urldecode($_GET['source']) : '',
-      'source_options' => isset($_GET['source_options']) ? drupal_get_query_array($_GET['source_options']) : array(),
+      'source_options' => $source_options,
       'redirect' => isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '',
-      'redirect_options' => isset($_GET['redirect_options']) ? drupal_get_query_array($_GET['redirect_options']) : array(),
-      'language' => isset($_GET['language']) ? urldecode($_GET['language']) : LANGUAGE_NONE,
+      'redirect_options' => $redirect_options,
+      'language' => isset($_GET['language']) ? urldecode($_GET['language']) : Language::LANGCODE_NOT_SPECIFIED,
     ));
 
     $form['rid'] = array(

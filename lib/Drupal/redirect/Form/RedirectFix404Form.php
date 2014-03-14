@@ -2,6 +2,7 @@
 
 namespace Drupal\redirect\Form;
 
+use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Form\FormBase;
 
 class RedirectFix404Form extends FormBase {
@@ -19,11 +20,7 @@ class RedirectFix404Form extends FormBase {
   public function buildForm(array $form, array &$form_state) {
     $destination = drupal_get_destination();
 
-    // Get filter keys and add the filter form.
-    $keys = func_get_args();
-    //$keys = array_splice($keys, 2); // Offset the $form and $form_state parameters.
-    $keys = implode('/', $keys);
-
+    $search = $this->getRequest()->get('search');
     $form['#attributes'] = array('class' => array('search-form'));
     $form['basic'] = array(
       '#type' => 'fieldset',
@@ -33,7 +30,7 @@ class RedirectFix404Form extends FormBase {
     $form['basic']['filter'] = array(
       '#type' => 'textfield',
       '#title' => '',
-      '#default_value' => $keys,
+      '#default_value' => $search,
       '#maxlength' => 128,
       '#size' => 25,
     );
@@ -42,7 +39,7 @@ class RedirectFix404Form extends FormBase {
       '#value' => t('Filter'),
       '#action' => 'filter',
     );
-    if ($keys) {
+    if ($search) {
       $form['basic']['reset'] = array(
         '#type' => 'submit',
         '#value' => t('Reset'),
@@ -62,9 +59,11 @@ class RedirectFix404Form extends FormBase {
     $count_query->leftJoin('redirect', 'r', 'w.message = r.source');
     $count_query->condition('w.type', 'page not found');
     $count_query->isNull('r.rid');
-    redirect_build_filter_query($count_query, array('w.message'), $keys);
+    $this->filterQuery($count_query, array('w.message'), $search);
 
-    $query = db_select('watchdog', 'w')->extend('PagerDefault')->extend('TableSort');
+    $query = db_select('watchdog', 'w');
+    $query->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header);
+    $query->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
     $query->fields('w', array('message'));
     $query->addExpression('COUNT(wid)', 'count');
     $query->addExpression('MAX(timestamp)', 'timestamp');
@@ -72,10 +71,8 @@ class RedirectFix404Form extends FormBase {
     $query->isNull('r.rid');
     $query->condition('w.type', 'page not found');
     $query->groupBy('w.message');
-    $query->orderByHeader($header);
-    $query->limit(25);
-    redirect_build_filter_query($query, array('w.message'), $keys);
-    $query->setCountQuery($count_query);
+    $this->filterQuery($query, array('w.message'), $search);
+//    $query->setCountQuery($count_query);
     $results = $query->execute();
 
     $rows = array();
@@ -119,10 +116,33 @@ class RedirectFix404Form extends FormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     if ($form_state['triggering_element']['#action'] == 'filter') {
-      $form_state['redirect'] = 'admin/config/search/redirect/404/' . trim($form_state['values']['filter']);
+      $form_state['redirect'] = array(
+        'admin/config/search/redirect/404',
+        array('query' => array('search' => trim($form_state['values']['filter'])))
+      );
     }
     else {
       $form_state['redirect'] = 'admin/config/search/redirect/404';
+    }
+  }
+
+  /**
+   * Extends a query object for URL redirect filters.
+   *
+   * @param $query
+   *   Query object that should be filtered.
+   * @param $keys
+   *   The filter string to use.
+   */
+  protected function filterQuery(Select $query, array $fields, $keys = '') {
+    if ($keys && $fields) {
+      // Replace wildcards with PDO wildcards.
+      $conditions = db_or();
+      $wildcard = '%' . trim(preg_replace('!\*+!', '%', db_like($keys)), '%') . '%';
+      foreach ($fields as $field) {
+        $conditions->condition($field, $wildcard, 'LIKE');
+      }
+      $query->condition($conditions);
     }
   }
 

@@ -2,9 +2,9 @@
 
 namespace Drupal\redirect\Form;
 
-use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
-class RedirectSettingsForm extends FormBase {
+class RedirectSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
@@ -21,7 +21,7 @@ class RedirectSettingsForm extends FormBase {
       '#type' => 'checkbox',
       '#title' => t('Automatically create redirects when URL aliases are changed.'),
       '#default_value' => redirect_settings_get('auto_redirect'),
-      '#disabled' => !module_exists('path'),
+      '#disabled' => !\Drupal::moduleHandler()->moduleExists('path'),
     );
     $form['redirect_passthrough_querystring'] = array(
       '#type' => 'checkbox',
@@ -51,11 +51,12 @@ class RedirectSettingsForm extends FormBase {
       '#description' => t('This feature requires <a href="@performance">Cache pages for anonymous users</a> to be enabled and the %variable variable to be TRUE.', array('@performance' => url('admin/config/development/performance'), '%variable' => "\$conf['page_cache_invoke_hooks']")),
       '#disabled' => !$cache_enabled || !$invoke_hooks,
     );
+    $options = array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000);
     $form['redirect_purge_inactive'] = array(
       '#type' => 'select',
       '#title' => t('Delete redirects that have not been accessed for'),
       '#default_value' => redirect_settings_get('purge_inactive'),
-      '#options' => array(0 => t('Never (do not discard)')) + drupal_map_assoc(array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000), 'format_interval'),
+      '#options' => array(0 => t('Never (do not discard)')) + array_map('format_interval', array_combine($options, $options)),
       '#description' => t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.'),
       '#disabled' => redirect_settings_get('page_cache') && !$invoke_hooks,
     );
@@ -97,14 +98,21 @@ class RedirectSettingsForm extends FormBase {
       '#default_value' => redirect_settings_get('global_admin_paths'),
     );
 
-    $form['#submit'][] = 'redirect_settings_form_submit';
-    return system_settings_form($form);
+    return parent::buildForm($form, $form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
+    $config = $this->config('redirect.settings');
+    foreach ($form_state['values'] as $key => $value) {
+      if (strpos($key, 'redirect_') !== FALSE) {
+        $config->set(str_replace('redirect_', '', $key), $value);
+      }
+    }
+    $config->save();
     redirect_page_cache_clear();
+    drupal_set_message(t('Configuration was saved.'));
   }
 }

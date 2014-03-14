@@ -1,4 +1,5 @@
 <?php
+use Drupal\Component\Utility\Random;
 
 /**
  * @file
@@ -86,7 +87,8 @@ function redirect_generate_batch_generate($num, array &$context) {
 
   $limit = 20;
   $types = array_keys(redirect_status_code_options());
-  $languages = module_exists('locale') ? array_keys(locale_language_list('name')) : array();
+  $languages = \Drupal::moduleHandler()->moduleExists('locale') ? array_keys(\Drupal::languageManager()->getLanguages()) : array();
+  $random = new Random();
 
   for ($i = 0; $i < min($limit, $context['sandbox']['max'] - $context['sandbox']['progress']); $i++) {
     $rand = mt_rand(0, 100);
@@ -105,7 +107,7 @@ function redirect_generate_batch_generate($num, array &$context) {
         $redirect->redirect_options['query'] = _redirect_generate_querystring();
       }
       if ($rand <= 5) {
-        $redirect->redirect_options['fragment'] = devel_generate_word(mt_rand(4, 8));
+        $redirect->redirect_options['fragment'] = $random->name(mt_rand(4, 8));
       }
     }
 
@@ -149,7 +151,7 @@ function redirect_generate_batch_generate($num, array &$context) {
 
 function redirect_generate_batch_finished($success, $results, $operations) {
   if ($success) {
-    drupal_set_message(format_plural(count($results), 'One URL redirect created.', '@count URL redirects created.'));
+    drupal_set_message(\Drupal::translation()->formatPlural(count($results), 'One URL redirect created.', '@count URL redirects created.'));
   }
   else {
     // An error occurred.
@@ -160,7 +162,7 @@ function redirect_generate_batch_finished($success, $results, $operations) {
 }
 
 function _redirect_generate_url($external = FALSE, $max_levels = 2) {
-  module_load_include('inc', 'devel_generate');
+  $random = new Random();
 
   $url = array();
   if ($external) {
@@ -169,14 +171,14 @@ function _redirect_generate_url($external = FALSE, $max_levels = 2) {
   }
   $max_levels = mt_rand($external ? 0 : 1, $max_levels);
   for ($i = 1; $i <= $max_levels; $i++) {
-    $url[] = devel_generate_word(mt_rand(6 / $i, 8));
+    $url[] = $random->name(mt_rand(6 / $i, 8));
   }
   return implode('/', $url);
 }
 
 function _redirect_generate_querystring() {
-  module_load_include('inc', 'devel_generate');
+  $random = new Random();
 
-  $query = array(devel_generate_word(mt_rand(1, 3)) => devel_generate_word(mt_rand(2, 4)));
+  $query = array($random->name(mt_rand(1, 3)) => $random->name(mt_rand(2, 4)));
   return $query;
 }

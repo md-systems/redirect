@@ -7,6 +7,11 @@
  *
  * @} End of "defgroup redirect_api".
  */
+use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Language\Language;
+use Drupal\user\UserInterface;
 
 /**
  * Modules should return this value from hook_redirect_access() to allow access
@@ -26,43 +31,6 @@ define('REDIRECT_ACCESS_DENY', 'deny');
  */
 define('REDIRECT_ACCESS_IGNORE', NULL);
 
-/**
- * Implements hook_entity_info().
- */
-function redirect_entity_info() {
-  $info['redirect'] = array(
-    'label' => t('Redirect'),
-    'base table' => 'redirect',
-    'controller class' => 'RedirectController',
-    'entity keys' => array(
-      'id' => 'rid',
-      'bundle' => 'type',
-    ),
-    'fieldable' => FALSE,
-    'uuid' => FALSE,
-    'redirect' => FALSE,
-  );
-
-  return $info;
-}
-
-/**
- * Controller class for redirects.
- *
- * This extends the DrupalDefaultEntityController class, adding required
- * special handling for redirect objects.
- */
-class RedirectController extends DrupalDefaultEntityController {
-
-  protected function attachLoad(&$redirects, $revision_id = FALSE) {
-    // Unserialize the URL option fields.
-    foreach ($redirects as $key => $redirect) {
-      $redirects[$key]->source_options = unserialize($redirect->source_options);
-      $redirects[$key]->redirect_options = unserialize($redirect->redirect_options);
-    }
-    parent::attachLoad($redirects, $revision_id);
-  }
-}
 
 /**
  * Implements hook_hook_info().
@@ -112,90 +80,58 @@ function redirect_help($path, $arg) {
 /**
  * Implements hook_menu().
  */
-function redirect_menu() {
-  $items['admin/config/search/redirect'] = array(
-    'title' => 'URL redirects',
+function redirect_menu_link_defaults() {
+  $items['redirect.list'] = array(
+    'link_title' => 'URL redirects',
     'description' => 'Redirect users from one URL to another.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_list_form'),
-    'access arguments' => array('administer redirects'),
-    'file' => 'redirect.admin.inc',
+    'route_name' => 'redirect.list',
+    'parent' => 'system.admin_config_search',
+    'menu_name' => 'admin',
   );
-  $items['admin/config/search/redirect/list'] = array(
-    'title' => 'List',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -10,
+  $items['redirect.add'] = array(
+    'link_title' => 'Add redirect',
+    'route_name' => 'redirect.add',
+    'parent' => 'redirect.list',
+    'menu_name' => 'admin',
   );
-  $items['admin/config/search/redirect/add'] = array(
-    'title' => 'Add redirect',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_edit_form'),
-    'access callback' => 'redirect_access',
-    'access arguments' => array('create', 'redirect'),
-    'file' => 'redirect.admin.inc',
-    'type' => MENU_LOCAL_ACTION,
-  );
-  $items['admin/config/search/redirect/edit/%redirect'] = array(
-    'title' => 'Edit redirect',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_edit_form', 5),
-    'access callback' => 'redirect_access',
-    'access arguments' => array('update', 5),
-    'file' => 'redirect.admin.inc',
-  );
-  $items['admin/config/search/redirect/delete/%redirect'] = array(
-    'title' => 'Delete redirect',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_delete_form', 5),
-    'access callback' => 'redirect_access',
-    'access arguments' => array('delete', 5),
-    'file' => 'redirect.admin.inc',
-  );
-  $items['admin/config/search/redirect/settings'] = array(
-    'title' => 'Settings',
+  $items['redirect.settings'] = array(
+    'link_title' => 'Settings',
     'description' => 'Configure behavior for URL redirects.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('redirect_settings_form'),
-    'access arguments' => array('administer redirects'),
-    'file' => 'redirect.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 50,
+    'route_name' => 'redirect.settings',
+    'parent' => 'redirect.list',
+    'menu_name' => 'admin',
   );
 
   // If the database logging module is enabled, add special 404 listing pages.
-  if (module_exists('dblog')) {
-    $items['admin/config/search/redirect/404'] = array(
-      'title' => 'Fix 404 pages',
+  if (\Drupal::moduleHandler()->moduleExists('dblog')) {
+    $items['redirect.fix_404'] = array(
+      'link_title' => 'Fix 404 pages',
       'description' => 'Add redirects for 404 pages.',
-      'page callback' => 'redirect_404_list',
-      'access arguments' => array('administer redirects'),
-      'file' => 'redirect.admin.inc',
-      'type' => MENU_LOCAL_TASK,
-      'weight' => 20,
+      'route_name' => 'redirect.fix_404',
+      'parent' => 'redirect.list',
+      'menu_name' => 'admin',
     );
-    $items['admin/reports/page-not-found/redirect'] = array(
-      'title' => 'Fix 404 pages with URL redirects',
-      'page callback' => 'drupal_goto',
-      'page arguments' => array('admin/config/search/redirect/404'),
-      'access arguments' => array('administer redirects'),
-      'type' => MENU_LOCAL_ACTION,
+    $items['redirect.goto_fix_404'] = array(
+      'link_title' => 'Fix 404 pages with URL redirects',
+      'route_name' => 'redirect.fix_404',
+      'parent' => 'dblog.page_not_found',
+      'menu_name' => 'admin',
     );
   }
 
   // Devel generate integration.
-  if (module_exists('devel_generate')) {
-    $items['admin/config/development/generate/redirects'] = array(
-      'title' => 'Generate redirects',
+  // @todo - Enable/finish once devel is available for D8.
+  /*
+  if (\Drupal::moduleHandler()->moduleExists('devel_generate')) {
+    $items['redirect.devel_generate'] = array(
+      'link_title' => 'Generate redirects',
       'description' => 'Generate a given number of redirects. Optionally delete current redirects.',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('redirect_generate_form'),
-      'access arguments' => array('administer redirects'),
-      'file' => 'redirect.generate.inc',
+      'route_name' => 'redirect.devel_generate',
     );
     $items['admin/config/search/redirect/generate'] = $items['admin/config/development/generate/redirects'];
     $items['admin/config/search/redirect/generate']['type'] = MENU_LOCAL_ACTION;
   }
-
+  */
   return $items;
 }
 
@@ -238,7 +174,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   // would not find a match.
   if ($path != $original_path && $original_path == current_path()) {
     $current_langcode = !empty($path_language) ? $path_language : $GLOBALS['language']->language;
-    $current_query = drupal_get_query_parameters();
+    $current_query = UrlHelper::filterQueryParameters(\Drupal::request()->query->all());
     if ($redirect = redirect_load_by_source($original_path, $current_langcode, $current_query)) {
       redirect_set_current_redirect($redirect);
     }
@@ -246,7 +182,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
 
   // Redirect to canonical URLs.
   if ($path && redirect_settings_get('canonical')) {
-    $alias = drupal_get_path_alias($path, $path_language);
+    $alias = Drupal::service('path.alias_manager.cached')->getPathAlias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
       //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
     }
@@ -305,7 +241,7 @@ function redirect_entity_type_supports_redirects($entity_type) {
 
   if (!isset($types)) {
     $types = array();
-    foreach (entity_get_info() as $type => $entity_info) {
+    foreach (\Drupal::entityManager()->getDefinitions() as $type => $entity_info) {
       $types[$type] = !empty($entity_info['uri callback']) && (!isset($entity_info['redirect']) || !empty($entity_info['redirect']));
     }
   }
@@ -366,7 +302,7 @@ function redirect_exit($destination = NULL) {
   if (drupal_get_http_header('Location') && $rid = drupal_get_http_header('X-Redirect-ID')) {
     // Ensure the database is loaded. This is only the next bootstrap step
     // after DRUPAL_BOOTSTRAP_DATABASE
-    drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
+    drupal_bootstrap(DRUPAL_BOOTSTRAP_KERNEL);
     db_update('redirect')
       ->fields(array('access' => REQUEST_TIME))
       ->expression('count', 'count + 1')
@@ -452,7 +388,7 @@ function redirect_views_api() {
  * Adds an action on 404 pages to create a redirect.
  */
 function redirect_page_build(&$page) {
-  if (redirect_is_current_page_404() && user_access('administer redirects')) {
+  if (redirect_is_current_page_404() && \Drupal::currentUser()->hasPermission('administer redirects')) {
     if (!isset($page['content']['system_main']['actions'])) {
       $page['content']['system_main']['actions'] = array(
         '#theme' => 'links',
@@ -558,7 +494,7 @@ function redirect_load_by_hash($hash, $reset = FALSE) {
  *
  * @ingroup redirect_api
  */
-function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $query = array()) {
+function redirect_load_by_source($source, $language = Language::LANGCODE_NOT_SPECIFIED, array $query = array()) {
   // Run a case-insensitive query for matching RIDs first.
   $rid_query = db_select('redirect');
   $rid_query->addField('redirect', 'rid');
@@ -571,7 +507,7 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
     $source_condition->condition('source', '');
     $rid_query->condition($source_condition);
   }
-  $rid_query->condition('language', array($language, LANGUAGE_NONE));
+  $rid_query->condition('language', array($language, Language::LANGCODE_NOT_SPECIFIED));
   $rids = $rid_query->execute()->fetchCol();
 
   if ($rids && $redirects = redirect_load_multiple($rids)) {
@@ -596,7 +532,7 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
 
       // Allow other modules to alter the redirect candidates before selecting the top one.
       $context = array('language' => $language, 'query' => $query);
-      drupal_alter('redirect_load_by_source', $redirects, $source, $context);
+      \Drupal::moduleHandler()->alter('redirect_load_by_source', $redirects, $source, $context);
 
       return !empty($redirects) ? reset($redirects) : FALSE;
     }
@@ -622,14 +558,14 @@ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $quer
  * @ingroup redirect_api
  */
 function redirect_load_multiple($rids = array(), array $conditions = array(), $reset = FALSE) {
-  return entity_load('redirect', $rids, $conditions, $reset);
+  return entity_load_multiple('redirect', $rids, $conditions, $reset);
 }
 
 /**
  * Determine whether the current user may perform the given operation on the
  * specified redirect.
  *
- * @param $op
+ * @param string $op
  *   The operation to be performed on the redirect. Possible values are:
  *   - "create"
  *   - "update"
@@ -637,14 +573,14 @@ function redirect_load_multiple($rids = array(), array $conditions = array(), $r
  * @param $redirect
  *   The redirect object on which the operation is to be performed, or redirect
  *   type (e.g. 'feedburner') for the "create" operation.
- * @param $account
+ * @param \Drupal\user\UserInterface $account
  *   Optional, a user object representing the user for whom the operation is to
  *   be performed. Determines access for a user other than the current user.
  *
  * @return
  *   TRUE if the operation may be performed, FALSE otherwise.
  */
-function redirect_access($op, $redirect, $account = NULL) {
+function redirect_access($op, $redirect, UserInterface $account = NULL) {
   global $user;
 
   $rights = &drupal_static(__FUNCTION__, array());
@@ -662,26 +598,26 @@ function redirect_access($op, $redirect, $account = NULL) {
   $cid = isset($redirect->rid) ? $redirect->rid : $redirect;
 
   // Return cached value if access already checked for this redirect, user and op.
-  if (isset($rights[$account->uid][$cid][$op])) {
-    return $rights[$account->uid][$cid][$op];
+  if (isset($rights[$account->id()][$cid][$op])) {
+    return $rights[$account->id()][$cid][$op];
   }
 
   // Administrators can access all redirects.
-  if (user_access('administer redirects', $account)) {
-    $rights[$account->uid][$cid][$op] = TRUE;
+  if ($account->hasPermission('administer redirects')) {
+    $rights[$account->id()][$cid][$op] = TRUE;
     return TRUE;
   }
 
   // We grant access to the redirect if both of the following conditions are met:
   // - No modules say to deny access.
   // - At least one module says to grant access.
-  $access = module_invoke_all('redirect_access', $op, $redirect, $account);
+  $access = \Drupal::moduleHandler()->invokeAll('redirect_access', array('op' => $op, 'redirect' => $redirect, 'account' => $account));
   if (in_array(REDIRECT_ACCESS_DENY, $access, TRUE)) {
-    $rights[$account->uid][$cid][$op] = FALSE;
+    $rights[$account->id()][$cid][$op] = FALSE;
     return FALSE;
   }
   elseif (in_array(REDIRECT_ACCESS_ALLOW, $access, TRUE)) {
-    $rights[$account->uid][$cid][$op] = TRUE;
+    $rights[$account->id()][$cid][$op] = TRUE;
     return TRUE;
   }
 
@@ -696,18 +632,18 @@ function redirect_validate($redirect, $form, &$form_state) {
 
   // check that there there are no redirect loops
   if (url($redirect->source) == url($redirect->redirect)) {
-    form_set_error('redirect', t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
+    \Drupal::formBuilder()->setErrorByName('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
   }
 
   redirect_hash($redirect);
   if ($existing = redirect_load_by_hash($redirect->hash)) {
     if ($redirect->rid != $existing->rid) {
-      form_set_error('source', t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => redirect_url($redirect->source, $redirect->source_options), '@edit-page' => url('admin/config/search/redirect/edit/'. $existing->rid))));
+      \Drupal::formBuilder()->setErrorByName('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => redirect_url($redirect->source, $redirect->source_options), '@edit-page' => url('admin/config/search/redirect/edit/'. $existing->rid))));
     }
   }
 
   // Allow other modules to validate the SSH public key.
-  foreach (module_implements('redirect_validate') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('redirect_validate') as $module) {
     $function = $module . '_redirect_validate';
     $function($redirect, $form, $form_state);
   }
@@ -717,10 +653,10 @@ function redirect_object_prepare($redirect, $defaults = array()) {
   $defaults += array(
     'rid' => NULL,
     'type' => 'redirect',
-    'uid' => $GLOBALS['user']->uid,
+    'uid' => \Drupal::currentUser()->id(),
     'source_options' => array(),
     'redirect_options' => array(),
-    'language' => LANGUAGE_NONE,
+    'language' => Language::LANGCODE_NOT_SPECIFIED,
     'status_code' => 0,
     'count' => 0,
     'access' => 0,
@@ -733,7 +669,7 @@ function redirect_object_prepare($redirect, $defaults = array()) {
     }
   }
 
-  module_invoke_all('redirect_prepare', $redirect);
+  \Drupal::moduleHandler()->invokeAll('redirect_prepare', array('redirect' => $redirect));
 }
 
 /**
@@ -744,6 +680,8 @@ function redirect_object_prepare($redirect, $defaults = array()) {
  *   $redirect->is_new is TRUE), a new redirect will be added.
  *
  * @ingroup redirect_api
+ *
+ * @todo - this should be handled via entity related logic, not custom stuff
  */
 function redirect_save($redirect) {
   $transaction = db_transaction();
@@ -880,10 +818,10 @@ function redirect_delete_by_path($path) {
  *
  * @ingroup redirect_api
  */
-function redirect_delete_by_entity_path($entity_type, $entity) {
-  $uri = entity_uri($entity_type, $entity);
-  if (!empty($uri['path'])) {
-    redirect_delete_by_path($uri['path']);
+function redirect_delete_by_entity_path($entity_type, EntityInterface $entity) {
+
+  if ($url = $entity->url()) {
+    redirect_delete_by_path($url);
   }
 
   //$info = entity_get_info($entity_type);
@@ -903,6 +841,8 @@ function redirect_delete_by_entity_path($entity_type, $entity) {
  *   An array of redirect IDs to delete.
  *
  * @ingroup redirect_api
+ *
+ * @todo - handle via entity API
  */
 function redirect_delete_multiple(array $rids) {
   $transaction = db_transaction();
@@ -984,8 +924,8 @@ function redirect_purge_inactive_redirects(array $types = array('redirect'), $in
 function redirect_redirect($redirect = NULL) {
   // First check if we're in an infinite loop.
   $session_id = session_id();
-  if (flood_is_allowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
-    flood_register_event('redirection', 60, $session_id ? $session_id : NULL);
+  if (\Drupal::flood()->isAllowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
+    \Drupal::flood()->register('redirection', 60, $session_id ? $session_id : NULL);
   }
   else {
     // For now don't trigger an error if being run inside SimpleTest.
@@ -1007,7 +947,7 @@ function redirect_redirect($redirect = NULL) {
   if (redirect_settings_get('passthrough_querystring')) {
     // Preserve the current query parameters in the redirect.
     $redirect->redirect_options += array('query' => array());
-    $redirect->redirect_options['query'] += drupal_get_query_parameters();
+    $redirect->redirect_options['query'] += UrlHelper::filterQueryParameters(\Drupal::request()->query->all());
   }
 
   // Prevent the destination query parameter from overriding this redirect.
@@ -1018,7 +958,7 @@ function redirect_redirect($redirect = NULL) {
   //}
 
   // Allow other modules to alter the redirect before passing to drupal_goto().
-  drupal_alter('redirect', $redirect);
+  \Drupal::moduleHandler()->alter('redirect', $redirect);
 
   // Continue if the redirect has not been disabled by hook_redirect_alter().
   if (isset($redirect->redirect) && isset($redirect->callback) && $redirect->redirect !== FALSE && function_exists($redirect->callback)) {
@@ -1078,9 +1018,9 @@ function redirect_hash($redirect) {
   if (!empty($redirect->source_options['query'])) {
     $hash['source_query'] = $redirect->source_options['query'];
   }
-  drupal_alter('redirect_hash', $hash, $redirect);
+  \Drupal::moduleHandler()->alter('redirect_hash', $hash, $redirect);
   redirect_sort_recursive($hash, 'ksort');
-  $redirect->hash = drupal_hash_base64(serialize($hash));
+  $redirect->hash = Crypt::hashBase64(serialize($hash));
   return $redirect->hash;
 }
 
@@ -1095,11 +1035,11 @@ function redirect_page_cache_clear($redirect = NULL) {
   if (isset($redirect)) {
     $path = url($redirect->source, array('absolute' => TRUE));
     // Use a wildcard to catch paths with query strings.
-    cache_clear_all($path, 'cache_page', TRUE);
+    \Drupal::cache('cache_page')->delete($path);
   }
   else {
     // Clear the entire page cache.
-    cache_clear_all('*', 'cache_page', TRUE);
+    \Drupal::cache('cache_page')->deleteAll();
   }
 }
 
@@ -1116,7 +1056,7 @@ function redirect_load_entity_from_path($path) {
 
   if (!isset($entity_paths)) {
     $entity_paths = array();
-    foreach (entity_get_info() as $entity_type => $entity_info) {
+    foreach (\Drupal::entityManager()->getDefinitions() as $entity_type => $entity_info) {
       if (isset($entity_info['default path'])) {
         $default_path = $entity_info['default path'];
         $default_path = preg_quote($default_path, '/');
@@ -1246,12 +1186,12 @@ function redirect_sort_recursive(&$array, $callback = 'sort') {
  * @return
  *   A language object.
  */
-function redirect_language_load($language = LANGUAGE_NONE) {
+function redirect_language_load($language = Language::LANGCODE_NOT_SPECIFIED) {
   $languages = &drupal_static(__FUNCTION__);
 
   if (!isset($languages)) {
-    $languages = language_list();
-    $languages[LANGUAGE_NONE] = NULL;
+    $languages = \Drupal::languageManager()->getLanguages();
+    $languages[Language::LANGCODE_NOT_SPECIFIED] = NULL;
   }
 
   return isset($languages[$language]) ? $languages[$language] : NULL;
@@ -1272,7 +1212,7 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
   }
 
   if (!isset($options['alter']) || !empty($options['alter'])) {
-    drupal_alter('redirect_url', $path, $options);
+    \Drupal::moduleHandler()->alter('redirect_url', $path, $options);
   }
 
   // The base_url might be rewritten from the language rewrite in domain mode.
@@ -1302,7 +1242,7 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
 
   if (isset($options['query'])) {
     $url .= $clean_url ? '?' : '&';
-    $url .= drupal_http_build_query($options['query']);
+    $url .= UrlHelper::buildQuery($options['query']);
   }
   if (isset($options['fragment'])) {
     $url .= '#' . $options['fragment'];
@@ -1355,7 +1295,9 @@ function redirect_parse_url($url) {
   if (isset($parsed['query'])) {
     $url = substr($url, 0, -strlen($parsed['query']));
     $url = trim($url, '?&');
-    $parsed['query'] = drupal_get_query_array($parsed['query']);
+    $parsed_query = array();
+    parse_str($parsed['query'], $parsed_query);
+    $parsed['query'] = $parsed_query;
   }
 
   // Convert absolute to relative.
@@ -1424,7 +1366,7 @@ function _redirect_uasort($a, $b) {
   }
   elseif ($a->language != $b->language) {
     // Then sort by language specific over language neutral.
-    return $a->language == LANGUAGE_NONE;
+    return $a->language == Language::LANGCODE_NOT_SPECIFIED;
   }
   elseif (!empty($a->source_options['query']) != !empty($b->source_options['query'])) {
     // Then sort by redirects that do not have query strings over ones that do.
@@ -1443,7 +1385,7 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
   $form['language'] = array(
     '#type' => 'select',
     '#title' => t('Language'),
-    '#options' => array(LANGUAGE_NONE => t('All languages')) + locale_language_list('name'),
+    '#options' => array(Language::LANGCODE_NOT_SPECIFIED => t('All languages')) + \Drupal::languageManager()->getLanguages(),
     '#default_value' => $form['language']['#value'],
     '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
   );
@@ -1454,6 +1396,9 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
  *
  * @todo Investigate using hook_entity_load() to load all entity redirects.
  * @todo Figure out how to support entity URIs that contain query strings.
+ *
+ * @todo - get rid of deprecated / unused functions with the entity conversion
+ *    task.
  */
 function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
   list($id) = entity_extract_ids($entity_type, $entity);
@@ -1521,6 +1466,9 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
 
 /**
  * Implements hook_field_extra_fields().
+ *
+ * @todo - get rid of deprecated / unused functions with the entity conversion
+ *    task.
  */
 function redirect_field_extra_fields() {
   $entity_info = entity_get_info();
@@ -1556,8 +1504,8 @@ function redirect_get_redirect_operations() {
   $operations = &drupal_static(__FUNCTION__);
 
   if (!isset($operations)) {
-    $operations = module_invoke_all('redirect_operations');
-    drupal_alter('redirect_operations', $operations);
+    $operations = \Drupal::moduleHandler()->invokeAll('redirect_operations');
+    \Drupal::moduleHandler()->alter('redirect_operations', $operations);
   }
 
   return $operations;

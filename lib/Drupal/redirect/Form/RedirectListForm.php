@@ -73,11 +73,11 @@ class RedirectListForm extends FormBase {
     );
 
     // Building the SQL query and load the redirects.
-    $query = db_select('redirect', 'r')->extend('TableSort')->extend('PagerDefault');
+    $query = db_select('redirect', 'r');
+    $query->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header);
+    $query->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(50);
     $query->addField('r', 'rid');
     $query->condition('r.type', 'redirect');
-    $query->orderByHeader($header);
-    $query->limit(50);
     $query->addTag('redirect_list');
     $query->addTag('redirect_access');
     $this->buildFilterQuery($query, array('source', 'redirect'), $keys);
