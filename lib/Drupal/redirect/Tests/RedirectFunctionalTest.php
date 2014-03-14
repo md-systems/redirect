@@ -6,6 +6,13 @@ namespace Drupal\redirect\Tests;
 class RedirectFunctionalTest extends RedirectTestBase {
   private $admin_user;
 
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('redirect', 'node', 'path');
+
   public static function getInfo() {
     return array(
       'name' => 'Redirect functional tests',
@@ -14,10 +21,12 @@ class RedirectFunctionalTest extends RedirectTestBase {
     );
   }
 
-  function setUp(array $modules = array()) {
-    parent::setUp($modules);
+  function setUp() {
+    parent::setUp();
 
-    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create article content', 'edit any article content', 'create url aliases'));
+    $content_type = $this->drupalCreateContentType();
+
+    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create ' . $content_type->type . ' content', 'edit any ' . $content_type->type . ' content', 'create url aliases'));
     $this->drupalLogin($this->admin_user);
   }
 

@@ -1471,20 +1471,20 @@ function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state,
  *    task.
  */
 function redirect_field_extra_fields() {
-  $entity_info = entity_get_info();
-  foreach (array_keys($entity_info) as $entity_type) {
-    if ($entity_type == 'comment') {
+  $manager = \Drupal::entityManager();
+  foreach ($manager->getDefinitions() as $entity_name => $entity_type) {
+    if ($entity_name == 'comment') {
       // The comment entity type supports URIs, but they're not real.
       continue;
     }
-    foreach (array_keys($entity_info[$entity_type]['bundles']) as $bundle) {
-      if (!isset($entity_info[$entity_type]['bundles'][$bundle]['uri callback']) && !isset($entity_info[$entity_type]['uri callback'])) {
+    foreach ($manager->getBundleInfo($entity_name) as $bundle_name => $bundle) {
+      if (!isset($bundle['uri callback']) && !$entity_type->getUriCallback()) {
         // The bundle or base entity must have an URI callback defined otherwise
         // we cannot use the entity_uri() function to lookup the entity's source
         // path.
         continue;
       }
-      $info[$entity_type][$bundle]['form']['redirect'] = array(
+      $info[$entity_name][$bundle_name]['form']['redirect'] = array(
         'label' => t('URL redirects'),
         'description' => t('Redirect module form elements'),
         'weight' => 30,
