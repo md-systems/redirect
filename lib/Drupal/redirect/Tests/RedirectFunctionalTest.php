@@ -11,7 +11,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
    *
    * @var array
    */
-  public static $modules = array('redirect', 'node', 'path');
+  public static $modules = array('redirect', 'node', 'path', 'dblog');
 
   public static function getInfo() {
     return array(
@@ -56,35 +56,45 @@ class RedirectFunctionalTest extends RedirectTestBase {
       'redirect_page_cache' => TRUE,
       'redirect_purge_inactive' => 604800,
     );
-    $this->drupalPost('admin/config/search/redirect/settings', $edit, 'Save configuration');
+    $this->drupalPostForm('admin/config/search/redirect/settings', $edit, 'Save configuration');
     $this->assertText('The configuration options have been saved.');
     $this->drupalLogout();
 
     // Add a new redirect.
     $redirect = $this->addRedirect('redirect', 'node');
-    $this->assertEqual($redirect->access, 0);
-    $this->assertEqual($redirect->count, 0);
+    $this->assertEqual($redirect->getAccess(), 0);
+    $this->assertEqual($redirect->getCount(), 0);
     $this->assertPageNotCached('redirect');
 
     // Perform the redirect and check that last_used
-    $redirect = $this->assertRedirect($redirect);
-    $this->assertEqual($redirect->count, 1);
-    $this->assertTrue($redirect->access > 0);
+    $this->assertRedirect($redirect);
+
+    // Reload the redirect.
+    \Drupal::entityManager()->getStorageController('redirect')->resetCache();
+    $redirect = redirect_load($redirect->id());
+
+    $this->assertEqual($redirect->getCount(), 1);
+    $this->assertTrue($redirect->getAccess() > 0);
+
     $cache = $this->assertPageCached('redirect');
     $this->assertHeader('Location', url('node', array('absolute' => TRUE)), $cache->data['headers']);
-    $this->assertHeader('X-Redirect-ID', $redirect->rid, $cache->data['headers']);
+    $this->assertHeader('X-Redirect-ID', $redirect->id(), $cache->data['headers']);
 
     // Set a redirect to not used in a while and disable running bootstrap
     // hooks during cache page serve. Running cron to remove inactive redirects
     // should not remove since they cannot be tracked.
-    $redirect->access = 1;
-    redirect_save($redirect);
+    $redirect->setAccess(1);
+    $redirect->save();
     \Drupal::config('system.performance')->set('cache.page.invoke_hooks', FALSE)->save();
     $this->cronRun();
     $this->assertRedirect($redirect);
 
-    $redirect->access = 1;
-    redirect_save($redirect);
+    // Reload the redirect.
+    \Drupal::entityManager()->getStorageController('redirect')->resetCache();
+    $redirect = redirect_load($redirect->id());
+
+    $redirect->setAccess(1);
+    $redirect->save();
     \Drupal::config('system.performance')->set('cache.page.invoke_hooks', TRUE)->save();
     $this->cronRun();
     $this->assertNoRedirect($redirect);
@@ -95,15 +105,15 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $node = $this->drupalCreateNode(array('type' => 'article', 'path' => array('alias' => 'first-alias')));
 
     // Change the node's alias will create an automatic redirect from 'first-alias' to the node.
-    $this->drupalPost("node/{$node->id()}/edit", array('path[alias]' => 'second-alias'), 'Save');
+    $this->drupalPostForm("node/{$node->id()}/edit", array('path[alias]' => 'second-alias'), 'Save');
     //$redirect = redirect_load_by_source('first-alias');
     //$this->assertRedirect($redirect);
 
-    $this->drupalPost("node/{$node->id()}/edit", array('path[alias]' => 'first-alias'), 'Save');
+    $this->drupalPostForm("node/{$node->id()}/edit", array('path[alias]' => 'first-alias'), 'Save');
     //$redirect = redirect_load_by_source('second-alias');
     //$this->assertRedirect($redirect);
 
-    $this->drupalPost("node/{$node->id()}/edit", array('path[alias]' => 'second-alias'), 'Save');
+    $this->drupalPostForm("node/{$node->id()}/edit", array('path[alias]' => 'second-alias'), 'Save');
     //$redirect = redirect_load_by_source('first-alias');
     //$this->assertRedirect($redirect);
   }

@@ -29,7 +29,7 @@ class RedirectEditForm extends FormBase {
     parse_str($this->getRequest()->get('redirect_options'), $redirect_options);
 
     // Merge default values.
-    redirect_object_prepare($redirect, array(
+    $redirect = redirect_create(array(
       'source' => isset($_GET['source']) ? urldecode($_GET['source']) : '',
       'source_options' => $source_options,
       'redirect' => isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '',
@@ -39,15 +39,15 @@ class RedirectEditForm extends FormBase {
 
     $form['rid'] = array(
       '#type' => 'value',
-      '#value' => $redirect->rid,
+      '#value' => $redirect->id(),
     );
     $form['type'] = array(
       '#type' => 'value',
-      '#value' => $redirect->type,
+      '#value' => $redirect->getType(),
     );
     $form['hash'] = array(
       '#type' => 'value',
-      '#value' => $redirect->hash,
+      '#value' => $redirect->getHash(),
     );
 
     $form['source'] = array(
@@ -55,7 +55,7 @@ class RedirectEditForm extends FormBase {
       '#title' => t('From'),
       '#description' => t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')),
       '#maxlength' => 560,
-      '#default_value' => $redirect->rid || $redirect->source ? redirect_url($redirect->source, $redirect->source_options + array('alter' => FALSE)) : '',
+      '#default_value' => $redirect->id() || $redirect->getSource() ? redirect_url($redirect->getSourceOptions(), $redirect->getSourceOptions() + array('alter' => FALSE)) : '',
       '#required' => TRUE,
       // @todo - probably needs to be prefixed with index.php instead of ?q=
       //    See https://drupal.org/node/1659580.
@@ -64,28 +64,28 @@ class RedirectEditForm extends FormBase {
     );
     $form['source_options'] = array(
       '#type' => 'value',
-      '#value' => $redirect->source_options,
+      '#value' => $redirect->getSourceOptions(),
       '#tree' => TRUE,
     );
     $form['redirect'] = array(
       '#type' => 'textfield',
       '#title' => t('To'),
       '#maxlength' => 560,
-      '#default_value' => $redirect->rid || $redirect->redirect ? redirect_url($redirect->redirect, $redirect->redirect_options, TRUE) : '',
+      '#default_value' => $redirect->id() || $redirect->getRedirect() ? redirect_url($redirect->getRedirect(), $redirect->getRedirectOptions(), TRUE) : '',
       '#required' => TRUE,
       '#description' => t('Enter an internal Drupal path, path alias, or complete external URL (like http://example.com/) to redirect to. Use %front to redirect to the front page.', array('%front' => '<front>')),
       '#element_validate' => array('redirect_element_validate_redirect'),
     );
     $form['redirect_options'] = array(
       '#type' => 'value',
-      '#value' => $redirect->redirect_options,
+      '#value' => $redirect->getRedirectOptions(),
       '#tree' => TRUE,
     );
 
     // This will be a hidden value unless locale module is enabled.
     $form['language'] = array(
       '#type' => 'value',
-      '#value' => $redirect->language,
+      '#value' => $redirect->getLanguage(),
     );
 
     $form['advanced'] = array(
@@ -98,8 +98,8 @@ class RedirectEditForm extends FormBase {
       '#type' => 'select',
       '#title' => t('Redirect status'),
       '#description' => t('You can find more information about HTTP redirect status codes at <a href="@status-codes">@status-codes</a>.', array('@status-codes' => 'http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_Redirection')),
-      '#default_value' => $redirect->status_code,
-      '#options' => array(0 => t('Default (@default)', array('@default' => redirect_settings_get('default_status_code')))) + redirect_status_code_options(),
+      '#default_value' => $redirect->getStatusCode(),
+      '#options' => array(0 => t('Default (@default)', array('@default' => \Drupal::config('redirect.settings')->get('default_status_code')))) + redirect_status_code_options(),
     );
 
     $form['override'] = array(

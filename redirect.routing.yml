@@ -15,7 +15,7 @@ redirect.add:
     _permission: 'administer redirects'
 
 redirect.edit:
-  path: '/admin/config/search/redirect/edit/{rid}'
+  path: '/admin/config/search/redirect/edit/{redirect}'
   defaults:
     _form: '\Drupal\redirect\Form\RedirectEditForm'
     _title: 'Edit redirect'
@@ -23,7 +23,7 @@ redirect.edit:
     _permission: 'administer redirects'
 
 redirect.delete:
-  path: '/admin/config/search/redirect/delete/{rid}'
+  path: '/admin/config/search/redirect/delete/{redirect}'
   defaults:
     _form: '\Drupal\redirect\Form\RedirectDeleteForm'
     _title: 'Delete redirect'

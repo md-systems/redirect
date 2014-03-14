@@ -2,24 +2,16 @@
 
 namespace Drupal\redirect\Tests;
 
+use Drupal\redirect\Entity\RedirectEntity;
 use Drupal\simpletest\WebTestBase;
 
 class RedirectTestBase extends WebTestBase {
-  function setUp(array $modules = array()) {
-    array_unshift($modules, 'redirect');
-    parent::setUp($modules);
-  }
 
-  protected function assertRedirect($redirect) {
-    $source_url = url($redirect->source, array('absolute' => TRUE) + $redirect->source_options);
-    $redirect_url = url($redirect->redirect, array('absolute' => TRUE) + $redirect->redirect_options);
+  protected function assertRedirect(RedirectEntity $redirect) {
+    $source_url = url($redirect->getSource(), array('absolute' => TRUE) + $redirect->getSourceOptions());
+    $redirect_url = url($redirect->getRedirect(), array('absolute' => TRUE) + $redirect->getSourceOptions());
     $this->drupalGet($source_url);
     $this->assertEqual($this->getUrl(), $redirect_url, t('Page %source was redirected to %redirect.', array('%source' => $source_url, '%redirect' => $redirect_url)));
-
-    // Reload the redirect.
-    if (!empty($redirect->rid)) {
-      return redirect_load($redirect->rid);
-    }
   }
 
   protected function assertNoRedirect($redirect) {
@@ -31,37 +23,41 @@ class RedirectTestBase extends WebTestBase {
   /**
    * Add an URL redirection
    *
-   * @param $source
+   * @param string $source_path
    *   A source path.
-   * @param $redirect
+   * @param string $redirect_path
+   *   The path to redirect to.
+   * @param array $values
    *   A redirect path.
+   *
+   * @return \Drupal\redirect\Entity\RedirectEntity
+   *   The redirect entity.
    */
-  protected function addRedirect($source_path, $redirect_path, array $redirect = array()) {
+  protected function addRedirect($source_path, $redirect_path, array $values = array()) {
     $source_parsed = redirect_parse_url($source_path);
-    $redirect['source'] = $source_parsed['url'];
+    $values['source'] = $source_parsed['url'];
     if (isset($source_parsed['query'])) {
-      $redirect['source_options']['query'] = $source_parsed['query'];
+      $values['source_options']['query'] = $source_parsed['query'];
     }
 
     $redirect_parsed = redirect_parse_url($redirect_path);
-    $redirect['redirect'] = $redirect_parsed['url'];
+    $values['redirect'] = $redirect_parsed['url'];
     if (isset($redirect_parsed['query'])) {
-      $redirect['redirect_options']['query'] = $redirect_parsed['query'];
+      $values['redirect_options']['query'] = $redirect_parsed['query'];
     }
     if (isset($redirect_parsed['fragment'])) {
-      $redirect['redirect_options']['fragment'] = $redirect_parsed['fragment'];
+      $values['redirect_options']['fragment'] = $redirect_parsed['fragment'];
     }
 
-    $redirect_object = new stdClass();
-    redirect_object_prepare($redirect_object, $redirect);
-    redirect_save($redirect_object);
-    return $redirect_object;
+    $redirect = redirect_create($values);
+    $redirect->save();
+    return $redirect;
   }
 
   protected function assertPageCached($url, array $options = array()) {
     $options['absolute'] = TRUE;
     $url = url($url, $options);
-    $cache = cache_get($url, 'cache_page');
+    $cache = \Drupal::cache('cache_page')->get($url);
     $this->assertTrue($cache, t('Page %url was cached.', array('%url' => $url)));
     return $cache;
   }
@@ -69,7 +65,7 @@ class RedirectTestBase extends WebTestBase {
   protected function assertPageNotCached($url, array $options = array()) {
     $options['absolute'] = TRUE;
     $url = url($url, $options);
-    $cache = cache_get($url, 'cache_page');
+    $cache = \Drupal::cache('cache_page')->get($url);
     $this->assertFalse($cache, t('Page %url was not cached.', array('%url' => $url)));
   }
 

@@ -11,6 +11,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\Language;
+use Drupal\redirect\Entity\RedirectEntity;
 use Drupal\user\UserInterface;
 
 /**
@@ -181,7 +182,7 @@ function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
   }
 
   // Redirect to canonical URLs.
-  if ($path && redirect_settings_get('canonical')) {
+  if ($path && \Drupal::config('redirect.settings')->get('canonical')) {
     $alias = Drupal::service('path.alias_manager.cached')->getPathAlias($path, $path_language);
     if ($alias != $path && $alias != $original_path) {
       //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
@@ -268,7 +269,7 @@ function redirect_init() {
   // Redirect from non-clean URLs to clean URLs.
   // @todo - deal with clean_url configuration being removed. See
   //   https://drupal.org/node/1659580
-  if (redirect_settings_get('global_clean') && strpos($request_uri, '?q=') !== FALSE) {
+  if (\Drupal::config('redirect.settings')->get('global_clean') && strpos($request_uri, '?q=') !== FALSE) {
     //$redirect_global = TRUE;
     //$request_uri = str_replace('?q=', '', $request_uri);
   }
@@ -324,7 +325,7 @@ function redirect_entity_delete($entity, $entity_type) {
  * Implements hook_path_update().
  */
 function redirect_path_update(array $path) {
-  if (!redirect_settings_get('auto_redirect')) {
+  if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
   elseif (isset($path['redirect']) && !$path['redirect']) {
@@ -332,15 +333,14 @@ function redirect_path_update(array $path) {
   }
 
   if (!empty($path['original']['pid']) && $path['original']['pid'] == $path['pid'] && $path['original']['alias'] != $path['alias']) {
-    $redirect = new stdClass();
-    redirect_object_prepare($redirect);
-    $redirect->source = $path['original']['alias'];
-    $redirect->redirect = $path['source'];
-    $redirect->language = $path['original']['language'];
+    $redirect = redirect_create();
+    $redirect->setSource($path['original']['alias']);
+    $redirect->setRedirect($path['source']);
+    $redirect->setLanguage($path['original']['language']);
     // Check if the redirect exists before saving.
-    $hash = redirect_hash($redirect);
+    $hash = $redirect->getHash();
     if (!redirect_load_by_hash($hash)) {
-      redirect_save($redirect);
+      $redirect->save();
     }
   }
 }
@@ -349,7 +349,7 @@ function redirect_path_update(array $path) {
  * Implements hook_path_delete().
  */
 function redirect_path_delete($path) {
-  if (!redirect_settings_get('auto_redirect')) {
+  if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
   elseif (isset($path['redirect']) && !$path['redirect']) {
@@ -364,7 +364,7 @@ function redirect_path_delete($path) {
   // Redirect from a deleted alias to the system path.
   //if (!redirect_load_by_source($path['alias'], $path['language'])) {
   //  $redirect = new stdClass();
-  //  redirect_object_prepare($redirect);
+  //  redirect_create($redirect);
   //  $redirect->source = $path['alias'];
   //  $redirect->redirect = $path['source'];
   //  $redirect->language = $path['language'];
@@ -451,7 +451,7 @@ function redirect_form_path_admin_form_alter(&$form, $form_state) {
  * @param $reset
  *   Whether to reset the redirect_load_multiple cache.
  *
- * @return
+ * @return \Drupal\redirect\Entity\RedirectEntity
  *   An URL redirect object, or FALSE if loading failed.
  *
  * @ingroup redirect_api
@@ -466,16 +466,14 @@ function redirect_load($rid, $reset = FALSE) {
  *
  * @param $hash
  *   The hash of the URL redirect.
- * @param $reset
- *   Whether to reset the redirect_load_multiple cache.
  *
- * @return
+ * @return RedirectEntity
  *   An URL redirect object, or FALSE if loading failed.
  *
  * @ingroup redirect_api
  */
-function redirect_load_by_hash($hash, $reset = FALSE) {
-  $redirects = entity_load('redirect', FALSE, array('hash' => $hash), $reset);
+function redirect_load_by_hash($hash) {
+  $redirects = entity_load_multiple_by_properties('redirect', array('hash' => $hash));
   return !empty($redirects) ? reset($redirects) : FALSE;
 }
 
@@ -489,7 +487,7 @@ function redirect_load_by_hash($hash, $reset = FALSE) {
  *   An array of URL redirect objects indexed by redirect IDs.
  *
  * @see redirect_load_multiple()
- * @see _redirect_uasort()
+ * @see _redirect_uasort
  * @see redirect_compare_array_recursive()
  *
  * @ingroup redirect_api
@@ -627,17 +625,14 @@ function redirect_access($op, $redirect, UserInterface $account = NULL) {
 /**
  * Validate a redirect.
  */
-function redirect_validate($redirect, $form, &$form_state) {
-  $redirect = (object) $redirect;
-
+function redirect_validate(RedirectEntity $redirect, $form, &$form_state) {
   // check that there there are no redirect loops
-  if (url($redirect->source) == url($redirect->redirect)) {
+  if (url($redirect->getSource()) == url($redirect->getRedirect())) {
     \Drupal::formBuilder()->setErrorByName('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
   }
 
-  redirect_hash($redirect);
-  if ($existing = redirect_load_by_hash($redirect->hash)) {
-    if ($redirect->rid != $existing->rid) {
+  if ($existing = redirect_load_by_hash($redirect->getHash())) {
+    if ($redirect->id() != $existing->id()) {
       \Drupal::formBuilder()->setErrorByName('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => redirect_url($redirect->source, $redirect->source_options), '@edit-page' => url('admin/config/search/redirect/edit/'. $existing->rid))));
     }
   }
@@ -649,9 +644,17 @@ function redirect_validate($redirect, $form, &$form_state) {
   }
 }
 
-function redirect_object_prepare($redirect, $defaults = array()) {
-  $defaults += array(
-    'rid' => NULL,
+/**
+ * Creates a redirect entity object.
+ *
+ * @param array $values
+ *   Initial values to be set for the entity object.
+ *
+ * @return \Drupal\redirect\Entity\RedirectEntity
+ *   The created redirect entity object.
+ */
+function redirect_create($values = array()) {
+  $values += array(
     'type' => 'redirect',
     'uid' => \Drupal::currentUser()->id(),
     'source_options' => array(),
@@ -663,81 +666,7 @@ function redirect_object_prepare($redirect, $defaults = array()) {
     'hash' => '',
   );
 
-  foreach ($defaults as $key => $default) {
-    if (!isset($redirect->{$key})) {
-      $redirect->{$key} = $default;
-    }
-  }
-
-  \Drupal::moduleHandler()->invokeAll('redirect_prepare', array('redirect' => $redirect));
-}
-
-/**
- * Save an URL redirect.
- *
- * @param $redirect
- *   The URL redirect object to be saved. If $redirect->rid is omitted (or
- *   $redirect->is_new is TRUE), a new redirect will be added.
- *
- * @ingroup redirect_api
- *
- * @todo - this should be handled via entity related logic, not custom stuff
- */
-function redirect_save($redirect) {
-  $transaction = db_transaction();
-
-  try {
-    if (!empty($redirect->rid) && !isset($redirect->original)) {
-      $redirect->original = entity_load_unchanged('redirect', $redirect->rid);
-    }
-
-    // Determine if we will be inserting a new node.
-    if (!isset($redirect->is_new)) {
-      $redirect->is_new = empty($redirect->rid);
-    }
-
-    // The changed timestamp is always updated for bookkeeping purposes.
-    //$redirect->changed = time();
-
-    redirect_hash($redirect);
-    if ($redirect->is_new || $redirect->hash != $redirect->original->hash) {
-      // Only new or changed redirects reset the last used value.
-      $redirect->count = 0;
-      $redirect->access = 0;
-    }
-
-    // Allow other modules to alter the redirect before saving.
-    module_invoke_all('redirect_presave', $redirect);
-    module_invoke_all('entity_presave', $redirect, 'redirect');
-
-    // Save the redirect to the database and invoke the post-save hooks.
-    if ($redirect->is_new) {
-      drupal_write_record('redirect', $redirect);
-      module_invoke_all('redirect_insert', $redirect);
-      module_invoke_all('entity_insert', $redirect, 'redirect');
-    }
-    else {
-      drupal_write_record('redirect', $redirect, array('rid'));
-      module_invoke_all('redirect_update', $redirect);
-      module_invoke_all('entity_update', $redirect, 'redirect');
-    }
-
-    // Clear internal properties.
-    unset($redirect->is_new);
-    unset($redirect->original);
-
-    // Clear the static loading cache.
-    entity_get_controller('redirect')->resetCache(array($redirect->rid));
-
-    // Ignore slave server temporarily to give time for the
-    // saved node to be propagated to the slave.
-    db_ignore_slave();
-  }
-  catch (Exception $e) {
-    $transaction->rollback();
-    watchdog_exception('redirect', $e);
-    throw $e;
-  }
+  return entity_create('redirect', $values);
 }
 
 /**
@@ -887,10 +816,10 @@ function redirect_delete_multiple(array $rids) {
  */
 function redirect_purge_inactive_redirects(array $types = array('redirect'), $interval = NULL) {
   if (!isset($interval)) {
-    $interval = redirect_settings_get('purge_inactive');
+    $interval = \Drupal::config('redirect.settings')->get('purge_inactive');
   }
 
-  if (!$interval || !redirect_settings_get('page_cache') || !\Drupal::config('system.performance')->get('cache.page.invoke_hooks')) {
+  if (!$interval || !\Drupal::config('redirect.settings')->get('page_cache') || !\Drupal::config('system.performance')->get('cache.page.invoke_hooks')) {
     // If serving redirects from the page cache is enabled and hooks are not
     // executed during page caching, then we cannot track when a redirect is
     // used. Therefore, we cannot remove unused redirects.
@@ -938,13 +867,13 @@ function redirect_redirect($redirect = NULL) {
   if (!isset($redirect)) {
     $redirect = new stdClass();
   }
-  redirect_object_prepare($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto', 'cache' => TRUE));
+  redirect_create($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto', 'cache' => TRUE));
 
   if (empty($redirect->status_code)) {
-    $redirect->status_code = redirect_settings_get('default_status_code');
+    $redirect->status_code = \Drupal::config('redirect.settings')->get('default_status_code');
   }
 
-  if (redirect_settings_get('passthrough_querystring')) {
+  if (\Drupal::config('redirect.settings')->get('passthrough_querystring')) {
     // Preserve the current query parameters in the redirect.
     $redirect->redirect_options += array('query' => array());
     $redirect->redirect_options['query'] += UrlHelper::filterQueryParameters(\Drupal::request()->query->all());
@@ -985,7 +914,7 @@ function redirect_goto($redirect) {
 
   $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
 
-  if (!redirect_settings_get('page_cache') || !$cache_enabled || !drupal_page_is_cacheable() || empty($redirect->cache)) {
+  if (!\Drupal::config('redirect.settings')->get('page_cache') || !$cache_enabled || !drupal_page_is_cacheable() || empty($redirect->cache)) {
     drupal_exit($url);
   }
 
@@ -1010,14 +939,24 @@ function redirect_goto($redirect) {
   exit;
 }
 
-function redirect_hash($redirect) {
+/**
+ * Gets the redirect hash.
+ *
+ * @param \Drupal\redirect\Entity\RedirectEntity $redirect
+ *
+ * @return string
+ *   Redirect hash.
+ */
+function redirect_hash(RedirectEntity $redirect) {
   $hash = array(
-    'source' => $redirect->source,
-    'language' => $redirect->language,
+    'source' => $redirect->getSource(),
+    'language' => $redirect->getLanguage(),
   );
-  if (!empty($redirect->source_options['query'])) {
-    $hash['source_query'] = $redirect->source_options['query'];
+
+  if ($query = $redirect->getSourceOption('query')) {
+    $hash['source_query'] = $query;
   }
+
   \Drupal::moduleHandler()->alter('redirect_hash', $hash, $redirect);
   redirect_sort_recursive($hash, 'ksort');
   $redirect->hash = Crypt::hashBase64(serialize($hash));
@@ -1028,7 +967,7 @@ function redirect_hash($redirect) {
  * Clear a page from the page cache.
  */
 function redirect_page_cache_clear($redirect = NULL) {
-  if (!redirect_settings_get('page_cache')) {
+  if (!\Drupal::config('redirect.settings')->get('page_cache')) {
     return;
   }
 
@@ -1113,7 +1052,7 @@ function redirect_can_redirect() {
       // Do not redirect in offline or maintenance mode.
       $can_redirect = FALSE;
     }
-    elseif (!redirect_settings_get('global_admin_paths') && path_is_admin($path)) {
+    elseif (!\Drupal::config('redirect.settings')->get('global_admin_paths') && path_is_admin($path)) {
       // Do not redirect on admin paths.
       $can_redirect = FALSE;
     }
@@ -1524,6 +1463,3 @@ function redirect_redirect_operations() {
   return $operations;
 }
 
-function redirect_settings_get($key) {
-  return \Drupal::config('redirect.settings')->get($key);
-}
