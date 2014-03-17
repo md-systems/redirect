@@ -2,12 +2,12 @@
 
 namespace Drupal\redirect\Tests;
 
-use Drupal\redirect\Entity\RedirectEntity;
+use Drupal\redirect\Entity\Redirect;
 use Drupal\simpletest\WebTestBase;
 
 class RedirectTestBase extends WebTestBase {
 
-  protected function assertRedirect(RedirectEntity $redirect) {
+  protected function assertRedirect(Redirect $redirect) {
     $source_url = url($redirect->getSource(), array('absolute' => TRUE) + $redirect->getSourceOptions());
     $redirect_url = url($redirect->getRedirect(), array('absolute' => TRUE) + $redirect->getSourceOptions());
     $this->drupalGet($source_url);
@@ -30,7 +30,7 @@ class RedirectTestBase extends WebTestBase {
    * @param array $values
    *   A redirect path.
    *
-   * @return \Drupal\redirect\Entity\RedirectEntity
+   * @return \Drupal\redirect\Entity\Redirect
    *   The redirect entity.
    */
   protected function addRedirect($source_path, $redirect_path, array $values = array()) {

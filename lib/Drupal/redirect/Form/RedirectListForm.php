@@ -87,20 +87,18 @@ class RedirectListForm extends FormBase {
     $rows = array();
     foreach ($redirects as $rid => $redirect) {
       $row = array();
-      $redirect->source_options = array_merge($redirect->source_options, array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
-      $source_url = redirect_url($redirect->source, $redirect->source_options);
-      $redirect_url = redirect_url($redirect->redirect, array_merge($redirect->redirect_options, array('alias' => TRUE)));
-      drupal_alter('redirect_url', $redirect->source, $redirect->source_options);
-      drupal_alter('redirect_url', $redirect->redirect, $redirect->redirect_options);
-      $row['source'] = l($source_url, $redirect->source, $redirect->source_options);
-      $row['redirect'] = l($redirect_url, $redirect->redirect, $redirect->redirect_options);
-      $row['status_code'] = $redirect->status_code ? $redirect->status_code : t('Default (@default)', array('@default' => $default_status_code));
-      $row['language'] = module_invoke('locale', 'language_name', $redirect->language);
-      $row['count'] = $redirect->count;
-      if ($redirect->access) {
+      $source_options = array_merge($redirect->getSourceOptions(), array('alias' => TRUE, 'language' => redirect_language_load($redirect->language)));
+      $source_url = redirect_url($redirect->getSource(), $source_options);
+      $redirect_url = redirect_url($redirect->getRedirect(), array_merge($redirect->getRedirectOptions(), array('alias' => TRUE)));
+      $row['source'] = l($source_url, $redirect->getSource(),$source_options);
+      $row['redirect'] = l($redirect_url, $redirect->getRedirect(), $redirect->getRedirectOptions());
+      $row['status_code'] = $redirect->getStatusCode() ? $redirect->getStatusCode() : t('Default (@default)', array('@default' => $default_status_code));
+      $row['language'] = module_invoke('locale', 'language_name', $redirect->getLanguage());
+      $row['count'] = $redirect->getCount();
+      if ($redirect->getAccess()) {
         $row['access'] = array(
-          'data' => t('!interval ago', array('!interval' => format_interval(REQUEST_TIME - $redirect->access))),
-          'title' => t('Last accessed on @date', array('@date' => format_date($redirect->access))),
+          'data' => t('!interval ago', array('!interval' => format_interval(REQUEST_TIME - $redirect->getAccess()))),
+          'title' => t('Last accessed on @date', array('@date' => format_date($redirect->getAccess()))),
         );
       }
       else {
@@ -108,7 +106,7 @@ class RedirectListForm extends FormBase {
       }
 
       // Mark redirects that override existing paths with a warning in the table.
-      if (drupal_valid_path($redirect->source)) {
+      if (drupal_valid_path($redirect->getSource())) {
         $row['#attributes']['class'][] = 'warning';
         $row['#attributes']['title'] = t('This redirect overrides an existing internal path.');
       }

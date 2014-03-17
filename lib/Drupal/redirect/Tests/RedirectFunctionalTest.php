@@ -27,17 +27,17 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $content_type = $this->drupalCreateContentType();
 
     $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create ' . $content_type->type . ' content', 'edit any ' . $content_type->type . ' content', 'create url aliases'));
-    $this->drupalLogin($this->admin_user);
   }
 
   function test404Interface() {
+    $this->drupalLogin($this->admin_user);
     // Check that 404 pages do get add redirect links for admin users.
     $this->drupalGet('invalid-path1');
     $this->drupalGet('invalid-path2');
     $this->assertLink('Add URL redirect from this page to another location');
 
     // Check that 403 pages do not get the add redirect link at all.
-    $this->drupalGet('admin/config/system/actions');
+    $this->drupalGet('admin/config/system/site-information');
     $this->assertNoLink('Add URL redirect from this page to another location');
 
     $this->drupalGet('admin/reports/page-not-found');
@@ -50,11 +50,13 @@ class RedirectFunctionalTest extends RedirectTestBase {
   }
 
   function testPageCache() {
+    $this->drupalLogin($this->admin_user);
     // Set up cache variables.
     \Drupal::config('system.performance')->set('cache.page.use_internal', TRUE)->save();
+    \Drupal::config('system.performance')->set('cache.page.invoke_hooks', TRUE)->save();
     $edit = array(
-      'redirect_page_cache' => TRUE,
-      'redirect_purge_inactive' => 604800,
+      'page_cache' => TRUE,
+      'purge_inactive' => 604800,
     );
     $this->drupalPostForm('admin/config/search/redirect/settings', $edit, 'Save configuration');
     $this->assertText('The configuration options have been saved.');
@@ -101,6 +103,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
   }
 
   function testPathChangeRedirects() {
+    $this->drupalLogin($this->admin_user);
     // Create an initial article node with a path alias.
     $node = $this->drupalCreateNode(array('type' => 'article', 'path' => array('alias' => 'first-alias')));
 

@@ -44,7 +44,7 @@ class RedirectSettingsForm extends ConfigFormBase {
     );
     $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
     $invoke_hooks = \Drupal::config('system.performance')->get('cache.page.invoke_hooks');
-    $form['redirect_page_cache'] = array(
+    $form['page_cache'] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow redirects to be saved into the page cache.'),
       '#default_value' => \Drupal::config('redirect.settings')->get('page_cache'),
@@ -52,7 +52,7 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#disabled' => !$cache_enabled || !$invoke_hooks,
     );
     $options = array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000);
-    $form['redirect_purge_inactive'] = array(
+    $form['purge_inactive'] = array(
       '#type' => 'select',
       '#title' => t('Delete redirects that have not been accessed for'),
       '#default_value' => \Drupal::config('redirect.settings')->get('purge_inactive'),

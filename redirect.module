@@ -11,7 +11,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\Language;
-use Drupal\redirect\Entity\RedirectEntity;
+use Drupal\redirect\Entity\Redirect;
 use Drupal\user\UserInterface;
 
 /**
@@ -451,7 +451,7 @@ function redirect_form_path_admin_form_alter(&$form, $form_state) {
  * @param $reset
  *   Whether to reset the redirect_load_multiple cache.
  *
- * @return \Drupal\redirect\Entity\RedirectEntity
+ * @return \Drupal\redirect\Entity\Redirect
  *   An URL redirect object, or FALSE if loading failed.
  *
  * @ingroup redirect_api
@@ -467,7 +467,7 @@ function redirect_load($rid, $reset = FALSE) {
  * @param $hash
  *   The hash of the URL redirect.
  *
- * @return RedirectEntity
+ * @return Redirect
  *   An URL redirect object, or FALSE if loading failed.
  *
  * @ingroup redirect_api
@@ -483,8 +483,19 @@ function redirect_load_by_hash($hash) {
  * @param $source
  *   The source of the URL redirect.
  *
- * @return
+ *
+ * @return \Drupal\redirect\Entity\Redirect
  *   An array of URL redirect objects indexed by redirect IDs.
+ *   @todo - added the type above as that is actually what will fall out of this
+ *      function.
+ *
+ * @todo - this function is extremely confusing:
+ *   1) it says it will return an array of redirect which is not true as the
+ *      statement after the return will return either one or false.
+ *   2) we have the language param which is passed into the query with the
+ *      lang not specified value.
+ *   3) just a remark: the hook_redirect_load_by_source is used by anyone? has
+ *      it any sense to use that hook?
  *
  * @see redirect_load_multiple()
  * @see _redirect_uasort
@@ -511,8 +522,8 @@ function redirect_load_by_source($source, $language = Language::LANGCODE_NOT_SPE
   if ($rids && $redirects = redirect_load_multiple($rids)) {
     // Narrow down the list of candidates.
     foreach ($redirects as $rid => $redirect) {
-      if (!empty($redirect->source_options['query'])) {
-        if (empty($query) || !redirect_compare_array_recursive($redirect->source_options['query'], $query)) {
+      if ($redirect->getSourceOption('query')) {
+        if (empty($query) || !redirect_compare_array_recursive($redirect->getSourceOption('query'), $query)) {
           unset($redirects[$rid]);
           continue;
         }
@@ -550,7 +561,7 @@ function redirect_load_by_source($source, $language = Language::LANGCODE_NOT_SPE
  * @param $reset
  *   Whether to reset the redirect_load_multiple cache.
  *
- * @return
+ * @return \Drupal\redirect\Entity\Redirect[]
  *   An array of URL redirect objects indexed by redirect IDs.
  *
  * @ingroup redirect_api
@@ -625,7 +636,7 @@ function redirect_access($op, $redirect, UserInterface $account = NULL) {
 /**
  * Validate a redirect.
  */
-function redirect_validate(RedirectEntity $redirect, $form, &$form_state) {
+function redirect_validate(Redirect $redirect, $form, &$form_state) {
   // check that there there are no redirect loops
   if (url($redirect->getSource()) == url($redirect->getRedirect())) {
     \Drupal::formBuilder()->setErrorByName('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
@@ -650,22 +661,10 @@ function redirect_validate(RedirectEntity $redirect, $form, &$form_state) {
  * @param array $values
  *   Initial values to be set for the entity object.
  *
- * @return \Drupal\redirect\Entity\RedirectEntity
+ * @return \Drupal\redirect\Entity\Redirect
  *   The created redirect entity object.
  */
 function redirect_create($values = array()) {
-  $values += array(
-    'type' => 'redirect',
-    'uid' => \Drupal::currentUser()->id(),
-    'source_options' => array(),
-    'redirect_options' => array(),
-    'language' => Language::LANGCODE_NOT_SPECIFIED,
-    'status_code' => 0,
-    'count' => 0,
-    'access' => 0,
-    'hash' => '',
-  );
-
   return entity_create('redirect', $values);
 }
 
@@ -942,12 +941,12 @@ function redirect_goto($redirect) {
 /**
  * Gets the redirect hash.
  *
- * @param \Drupal\redirect\Entity\RedirectEntity $redirect
+ * @param \Drupal\redirect\Entity\Redirect $redirect
  *
  * @return string
  *   Redirect hash.
  */
-function redirect_hash(RedirectEntity $redirect) {
+function redirect_hash(Redirect $redirect) {
   $hash = array(
     'source' => $redirect->getSource(),
     'language' => $redirect->getLanguage(),

@@ -37,29 +37,69 @@ function redirect_schema() {
         'default' => 0,
         'description' => 'The {users}.uid of the user who created the redirect.',
       ),
-      'source' => array(
+      'source__url' => array(
+        'description' => 'The URL of the link.',
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ),
+      'source__title' => array(
+        'description' => 'The link text.',
         'type' => 'varchar',
         'length' => 255,
-        'not null' => TRUE,
-        'description' => 'The source path to redirect from.',
+        'not null' => FALSE,
       ),
-      'source_options' => array(
-        'type' => 'text',
-        'not null' => TRUE,
-        'serialize' => TRUE,
-        'description' => 'A serialized array of source options.',
-      ),
-      'redirect' => array(
+      'source__route_name' => array(
+        'description' => 'The machine name of a defined Route this link represents.',
         'type' => 'varchar',
         'length' => 255,
-        'not null' => TRUE,
-        'description' => 'The destination path to redirect to.',
+        'not null' => FALSE,
       ),
-      'redirect_options' => array(
-        'type' => 'text',
-        'not null' => TRUE,
+      'source__route_parameters' => array(
+        'description' => 'Serialized array of route parameters of the link.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
         'serialize' => TRUE,
-        'description' => 'A serialized array of redirect options.',
+      ),
+      'source__options' => array(
+        'description' => 'Serialized array of options for the link.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      ),
+      'redirect__url' => array(
+        'description' => 'The URL of the link.',
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ),
+      'redirect__title' => array(
+        'description' => 'The link text.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'redirect__route_name' => array(
+        'description' => 'The machine name of a defined Route this link represents.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'redirect__route_parameters' => array(
+        'description' => 'Serialized array of route parameters of the link.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      ),
+      'redirect__options' => array(
+        'description' => 'Serialized array of options for the link.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
       ),
       'language' => array(
         'description' => 'The language this redirect is for; if blank, the alias will be used for unknown languages.',
@@ -95,7 +135,7 @@ function redirect_schema() {
     ),
     'indexes' => array(
       'expires' => array('type', 'access'),
-      'source_language' => array('source', 'language'),
+      'source_language' => array('source__url', 'language'),
     ),
   );
 

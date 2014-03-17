@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\redirect\Entity\RedirectEntity.
+ * Contains \Drupal\redirect\Entity\Redirect.
  */
 
 namespace Drupal\redirect\Entity;
@@ -11,6 +11,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Language\Language;
 
 /**
  * The redirect entity class.
@@ -19,6 +20,13 @@ use Drupal\Core\Field\FieldDefinition;
  *   id = "redirect",
  *   label = @Translation("Redirect"),
  *   bundle_label = @Translation("Redirect type"),
+ *   controllers = {
+ *     "form" = {
+ *       "default" = "Drupal\redirect\Form\RedirectFormController",
+ *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",
+ *       "edit" = "Drupal\redirect\Form\RedirectFormController"
+ *     },
+ *   },
  *   base_table = "redirect",
  *   fieldable = FALSE,
  *   translatable = FALSE,
@@ -30,7 +38,7 @@ use Drupal\Core\Field\FieldDefinition;
  *   }
  * )
  */
-class RedirectEntity extends ContentEntityBase {
+class Redirect extends ContentEntityBase {
 
   /**
    * {@inheritdoc}
@@ -42,25 +50,26 @@ class RedirectEntity extends ContentEntityBase {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    // If we have new entity run the getHash method to initialise the hash
-    // value.
-    if ($this->isNew()) {
-      $this->getHash();
-    }
+  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+    $values += array(
+      'type' => 'redirect',
+      'uid' => \Drupal::currentUser()->id(),
+      'source_options' => array(),
+      'redirect_options' => array(),
+      'language' => Language::LANGCODE_NOT_SPECIFIED,
+      'status_code' => 0,
+      'count' => 0,
+      'access' => 0,
+      'hash' => '',
+    );
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function postLoad(EntityStorageControllerInterface $storage_controller, array &$entities) {
-    // Unserialize the URL option fields.
-    // @todo - this should not be necessary as the schema fields declare
-    //   "serialise".
-    foreach ($entities as $key => $redirect) {
-      $entities[$key]->source_options = unserialize($redirect->source_options);
-      $entities[$key]->redirect_options = unserialize($redirect->redirect_options);
-    }
+  public function postCreate(EntityStorageControllerInterface $storage_controller) {
+    // Run the getHash method to initialise the hash value.
+    $this->getHash();
   }
 
   public function setType($type) {
@@ -108,7 +117,14 @@ class RedirectEntity extends ContentEntityBase {
   }
 
   public function getSourceOptions() {
-    return $this->get('source_options')->value;
+    if (!is_string($this->get('source_options')->value) && unserialize($this->get('source_options')->value)) {
+      return unserialize($this->get('source_options')->value);
+    }
+    elseif (is_array($this->get('source_options')->value)) {
+      return $this->get('source_options')->value;
+    }
+
+    return array();
   }
 
   public function getSourceOption($key) {
@@ -199,19 +215,13 @@ class RedirectEntity extends ContentEntityBase {
         'default_value' => 0,
       ));
 
-    $fields['source'] = FieldDefinition::create('string')
+    $fields['source'] = FieldDefinition::create('link')
       ->setLabel(t('Source '))
-      ->setDescription(t('The source url.'));
-    $fields['source_options'] = FieldDefinition::create('string')
-      ->setLabel(t('Source options'))
-      ->setDescription(t('The source url options.'));
+      ->setDescription(t('The source url.'))->setTranslatable(FALSE);
 
-    $fields['redirect'] = FieldDefinition::create('string')
+    $fields['redirect'] = FieldDefinition::create('link')
       ->setLabel(t('Redirect'))
-      ->setDescription(t('The redirect url.'));
-    $fields['redirect_options'] = FieldDefinition::create('string')
-      ->setLabel(t('Redirect options'))
-      ->setDescription(t('The redirect url options.'));
+      ->setDescription(t('The redirect url.'))->setTranslatable(FALSE);
 
     $fields['language'] = FieldDefinition::create('language')
       ->setLabel(t('Language code'))

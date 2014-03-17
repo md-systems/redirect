@@ -9,17 +9,17 @@ redirect.list:
 redirect.add:
   path: '/admin/config/search/redirect/add'
   defaults:
-    _form: '\Drupal\redirect\Form\RedirectAddForm'
-    _title: 'Add redirect'
+    _entity_form: 'redirect.default'
   requirements:
+    #_entity_access: 'redirect.update'
     _permission: 'administer redirects'
 
 redirect.edit:
   path: '/admin/config/search/redirect/edit/{redirect}'
   defaults:
-    _form: '\Drupal\redirect\Form\RedirectEditForm'
-    _title: 'Edit redirect'
+    _entity_form: 'redirect.edit'
   requirements:
+    #_entity_access: 'redirect.update'
     _permission: 'administer redirects'
 
 redirect.delete:
