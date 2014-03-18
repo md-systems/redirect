@@ -1338,7 +1338,7 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
  * @todo - get rid of deprecated / unused functions with the entity conversion
  *    task.
  */
-function redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
+function _redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
   list($id) = entity_extract_ids($entity_type, $entity);
   if (!empty($form['redirect']) || empty($id)) {
     return;
@@ -1462,3 +1462,6 @@ function redirect_redirect_operations() {
   return $operations;
 }
 
+function redirect_source_link_get_status_messages($form, &$form_state) {
+  return $form['source']['widget'][0]['status_box'];
+}

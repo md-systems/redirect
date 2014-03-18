@@ -3,7 +3,11 @@
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Entity\ContentEntityFormController;
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Routing\MatchingRouteNotFoundException;
+use Drupal\Core\Url;
+use Drupal\redirect\Entity\Redirect;
 
 class RedirectFormController extends ContentEntityFormController {
 
@@ -14,8 +18,8 @@ class RedirectFormController extends ContentEntityFormController {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
     if ($redirect->isNew()) {
-      $redirect->setSource(isset($_GET['source']) ? urldecode($_GET['source']) : '');
-      $redirect->setRedirect(isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '');
+//      $redirect->setSource(isset($_GET['source']) ? urldecode($_GET['source']) : '');
+//      $redirect->setRedirect(isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '');
       $redirect->setLanguage(isset($_GET['language']) ? urldecode($_GET['language']) : Language::LANGCODE_NOT_SPECIFIED);
 
       $source_options = array();
@@ -23,8 +27,8 @@ class RedirectFormController extends ContentEntityFormController {
       $redirect_options = array();
       parse_str($this->getRequest()->get('redirect_options'), $redirect_options);
 
-      $redirect->setSourceOptions($source_options);
-      $redirect->setRedirectOptions($redirect_options);
+//      $redirect->setSourceOptions($source_options);
+//      $redirect->setRedirectOptions($redirect_options);
     }
   }
 
@@ -36,25 +40,22 @@ class RedirectFormController extends ContentEntityFormController {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
 
-    $form['source'] = array(
-      '#type' => 'textfield',
-      '#title' => t('From'),
-      '#description' => t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')),
-      '#maxlength' => 560,
-      '#default_value' => $redirect->id() || $redirect->getSource() ? redirect_url($redirect->getSource(), $redirect->getSourceOptions() + array('alter' => FALSE)) : '',
-      '#required' => TRUE,
-      //'#field_prefix' => $GLOBALS['base_url'] . '/' . (variable_get('clean_url', 0) ? '' : '?q='),
-      '#element_validate' => array('redirect_element_validate_source'),
-    );
-    $form['redirect'] = array(
-      '#type' => 'textfield',
-      '#title' => t('To'),
-      '#maxlength' => 560,
-      '#default_value' => $redirect->id() || $redirect->getRedirect() ? redirect_url($redirect->getRedirect(), $redirect->getRedirectOptions(), TRUE) : '',
-      '#required' => TRUE,
-      '#description' => t('Enter an internal Drupal path, path alias, or complete external URL (like http://example.com/) to redirect to. Use %front to redirect to the front page.', array('%front' => '<front>')),
-      '#element_validate' => array('redirect_element_validate_redirect'),
-    );
+    if (\Drupal::moduleHandler()->moduleExists('locale')) {
+      $form['language'] = array(
+        '#type' => 'select',
+        '#title' => t('Language'),
+        '#options' => array(Language::LANGCODE_NOT_SPECIFIED => t('All languages')) + \Drupal::languageManager()->getLanguages(),
+        '#default_value' => $form['language']['#value'],
+        '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
+      );
+    }
+    else {
+      $form['language'] = array(
+        '#type' => 'value',
+        '#value' => Language::LANGCODE_NOT_SPECIFIED,
+      );
+    }
+
     $form['status_code'] = array(
       '#type' => 'select',
       '#title' => t('Redirect status'),
@@ -70,9 +71,48 @@ class RedirectFormController extends ContentEntityFormController {
    * {@inheritdoc}
    */
   public function validate(array $form, array &$form_state) {
-    /** @var \Drupal\redirect\Entity\Redirect $redirect */
-    $redirect = $this->entity;
     parent::validate($form, $form_state);
+    $source = $form_state['values']['source'][0];
+    $redirect = $form_state['values']['redirect'][0];
+
+    if ($source['url'] == '<front>') {
+      $this->setFormError('source', t('It is not allowed to create a redirect from the front page.'));
+    }
+    if (strpos($source['url'], '#') !== FALSE) {
+      $this->setFormError('source', t('The anchor fragments are not allowed.'));
+    }
+
+    try {
+      $source_url = Url::createFromPath($source['url']);
+      $redirect_url = Url::createFromPath($redirect['url']);
+
+      // It is relevant to do this comparison only in case the source path has
+      // a valid route. Otherwise the validation will fail on the redirect path
+      // being an invalid route.
+      if ($source_url->toString() == $redirect_url->toString()) {
+        $this->setFormError('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
+      }
+    }
+    catch (MatchingRouteNotFoundException $e) {
+      // Do nothing, we want to only compare the resulting URLs.
+    }
+
+    $parsed_url = parse_url($source['url']);
+    $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
+    $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
+    $hash = Redirect::generateHash($path, $query, $form_state['values']['language']);
+    debug($path);
+    debug($query);
+debug($hash);
+    // Search for duplicate.
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('hash' => $hash));
+    if (!empty($redirects)) {
+      $redirect = array_shift($redirects);
+      $this->setFormError('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
+        array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+    }
   }
 
   /**
@@ -80,5 +120,7 @@ class RedirectFormController extends ContentEntityFormController {
    */
   public function submit(array $form, array &$form_state) {
     parent::submit($form, $form_state);
+
+    $this->entity->save();
   }
 }

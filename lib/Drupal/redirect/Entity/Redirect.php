@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
+use Drupal\link\LinkItemInterface;
 
 /**
  * The redirect entity class.
@@ -28,7 +29,7 @@ use Drupal\Core\Language\Language;
  *     },
  *   },
  *   base_table = "redirect",
- *   fieldable = FALSE,
+ *   fieldable = TRUE,
  *   translatable = FALSE,
  *   entity_keys = {
  *     "id" = "rid",
@@ -39,6 +40,19 @@ use Drupal\Core\Language\Language;
  * )
  */
 class Redirect extends ContentEntityBase {
+
+  public static function generateHash($path, $query, $language) {
+    $hash = array(
+      'source' => $path,
+      'language' => $language,
+    );
+
+    if (!empty($query)) {
+      $hash['source_query'] = $query;
+    }
+    redirect_sort_recursive($hash, 'ksort');
+    return Crypt::hashBase64(serialize($hash));
+  }
 
   /**
    * {@inheritdoc}
@@ -54,22 +68,23 @@ class Redirect extends ContentEntityBase {
     $values += array(
       'type' => 'redirect',
       'uid' => \Drupal::currentUser()->id(),
-      'source_options' => array(),
-      'redirect_options' => array(),
       'language' => Language::LANGCODE_NOT_SPECIFIED,
       'status_code' => 0,
       'count' => 0,
       'access' => 0,
       'hash' => '',
+      'source' => array(
+        'options' => array(),
+      ),
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function postCreate(EntityStorageControllerInterface $storage_controller) {
-    // Run the getHash method to initialise the hash value.
-    $this->getHash();
+  public function preSave(EntityStorageControllerInterface $storage_controller) {
+    debug($this->getSourceOption('query'));
+    $this->set('hash', self::generateHash($this->getSourceUrl(), $this->getSourceOption('query'), $this->getLanguage()));
   }
 
   public function setType($type) {
@@ -96,35 +111,27 @@ class Redirect extends ContentEntityBase {
     return $this->get('status_code')->value;
   }
 
-  public function setSource($source) {
-    $this->set('source', $source);
-  }
-
   public function getSource() {
-    return $this->get('source')->value;
+    return $this->get('source')->get(0)->getValue();
   }
 
-  public function setRedirect($redirect) {
-    $this->set('redirect', $redirect);
+  public function getSourceUrl() {
+    $source = $this->getSource();
+    return $source['url'];
   }
 
   public function getRedirect() {
-    return $this->get('redirect')->value;
+    return $this->get('redirect')->get(0)->getValue();
   }
 
-  public function setSourceOptions(array $options) {
-    $this->set('source_options', $options);
+  public function getRedirectUrl() {
+    $redirect = $this->getRedirect();
+    return $redirect['url'];
   }
 
   public function getSourceOptions() {
-    if (!is_string($this->get('source_options')->value) && unserialize($this->get('source_options')->value)) {
-      return unserialize($this->get('source_options')->value);
-    }
-    elseif (is_array($this->get('source_options')->value)) {
-      return $this->get('source_options')->value;
-    }
-
-    return array();
+    $redirect = $this->getSource();
+    return $redirect['options'];
   }
 
   public function getSourceOption($key) {
@@ -132,12 +139,9 @@ class Redirect extends ContentEntityBase {
     return isset($options[$key]) ? $options[$key] : FALSE;
   }
 
-  public function setRedirectOptions(array $options) {
-    $this->set('redirect_options', $options);
-  }
-
   public function getRedirectOptions() {
-    return $this->get('redirect_options')->value;
+    $redirect = $this->getRedirect();
+    return $redirect['options'];
   }
 
   public function getRedirectOption($key) {
@@ -148,9 +152,9 @@ class Redirect extends ContentEntityBase {
   public function getHash() {
 
     if ($hash = $this->get('hash')->value) {
-      return $hash;
+      //return $hash;
     }
-
+    /** @var \Drupal\Core\Field\FieldItemList $field */
     $hash = array(
       'source' => $this->getSource(),
       'language' => $this->getLanguage(),
@@ -216,12 +220,45 @@ class Redirect extends ContentEntityBase {
       ));
 
     $fields['source'] = FieldDefinition::create('link')
-      ->setLabel(t('Source '))
-      ->setDescription(t('The source url.'))->setTranslatable(FALSE);
+      ->setLabel(t('From'))
+      ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
+      ->setRequired(TRUE)
+      ->setTranslatable(FALSE)
+      ->setSettings(array(
+        'default_value' => '',
+        'max_length' => 560,
+        'url_type' => LinkItemInterface::LINK_INTERNAL,
+      ))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'link_redirect',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'link_redirect',
+        'weight' => -5,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['redirect'] = FieldDefinition::create('link')
-      ->setLabel(t('Redirect'))
-      ->setDescription(t('The redirect url.'))->setTranslatable(FALSE);
+      ->setLabel(t('To'))
+      ->setRequired(TRUE)
+      ->setTranslatable(FALSE)
+      ->setSettings(array(
+        'default_value' => '',
+        'max_length' => 560,
+        'url_type' => LinkItemInterface::LINK_GENERIC,
+      ))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'link',
+        'weight' => -4,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'link',
+        'weight' => -4,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['language'] = FieldDefinition::create('language')
       ->setLabel(t('Language code'))
