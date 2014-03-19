@@ -7,6 +7,7 @@
 namespace Drupal\redirect\Entity;
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -72,10 +73,6 @@ class Redirect extends ContentEntityBase {
       'status_code' => 0,
       'count' => 0,
       'access' => 0,
-      'hash' => '',
-      'source' => array(
-        'options' => array(),
-      ),
     );
   }
 
@@ -83,8 +80,8 @@ class Redirect extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
-    debug($this->getSourceOption('query'));
-    $this->set('hash', self::generateHash($this->getSourceUrl(), $this->getSourceOption('query'), $this->getLanguage()));
+    $source = $this->getSource();
+    $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query'), $this->getLanguage()));
   }
 
   public function setType($type) {
@@ -111,6 +108,13 @@ class Redirect extends ContentEntityBase {
     return $this->get('status_code')->value;
   }
 
+  public function setSource($url, array $options = array()) {
+    $this->source->set(0, array(
+      'url' => $url,
+      'options' => $options,
+    ));
+  }
+
   public function getSource() {
     return $this->get('source')->get(0)->getValue();
   }
@@ -131,6 +135,10 @@ class Redirect extends ContentEntityBase {
 
   public function getSourceOptions() {
     $redirect = $this->getSource();
+    // @todo - shouldn't this work out of the box?
+    if (!is_array($redirect['options'])) {
+      return unserialize($redirect['options']);
+    }
     return $redirect['options'];
   }
 
@@ -150,27 +158,7 @@ class Redirect extends ContentEntityBase {
   }
 
   public function getHash() {
-
-    if ($hash = $this->get('hash')->value) {
-      //return $hash;
-    }
-    /** @var \Drupal\Core\Field\FieldItemList $field */
-    $hash = array(
-      'source' => $this->getSource(),
-      'language' => $this->getLanguage(),
-    );
-
-    if ($query = $this->getSourceOption('query')) {
-      $hash['source_query'] = $query;
-    }
-
-    \Drupal::moduleHandler()->alter('redirect_hash', $hash, $this);
-
-    redirect_sort_recursive($hash, 'ksort');
-    $hash = Crypt::hashBase64(serialize($hash));
-    $this->set('hash', $hash);
-
-    return $hash;
+    return $this->get('hash')->value;
   }
 
   public function setAccess($access) {

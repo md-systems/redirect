@@ -682,9 +682,10 @@ function redirect_redirect_update($redirect) {
   redirect_page_cache_clear($redirect);
 
   // Clear the page cache for the original redirect as well.
-  if (!empty($redirect->original) && $redirect->original->source != $redirect->source) {
-    redirect_page_cache_clear($redirect->original);
-  }
+  // @todo - this is causing an infinite loop.
+//  if (!empty($redirect->original) && $redirect->original->source != $redirect->source) {
+//    redirect_page_cache_clear($redirect->original);
+//  }
 }
 
 /**

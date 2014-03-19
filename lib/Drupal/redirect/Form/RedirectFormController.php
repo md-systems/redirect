@@ -2,6 +2,7 @@
 
 namespace Drupal\redirect\Form;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityFormController;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
@@ -97,21 +98,22 @@ class RedirectFormController extends ContentEntityFormController {
       // Do nothing, we want to only compare the resulting URLs.
     }
 
-    $parsed_url = parse_url($source['url']);
+    $parsed_url = UrlHelper::parse(trim($source['url']));
     $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
     $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
     $hash = Redirect::generateHash($path, $query, $form_state['values']['language']);
-    debug($path);
-    debug($query);
-debug($hash);
+
     // Search for duplicate.
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
       ->loadByProperties(array('hash' => $hash));
+
     if (!empty($redirects)) {
       $redirect = array_shift($redirects);
-      $this->setFormError('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-        array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      if ($this->entity->isNew() || $redirect->id() != $this->entity->id()) {
+        $this->setFormError('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
+          array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      }
     }
   }
 
@@ -120,7 +122,8 @@ debug($hash);
    */
   public function submit(array $form, array &$form_state) {
     parent::submit($form, $form_state);
-
     $this->entity->save();
+
+    drupal_set_message(t('The redirect has been saved.'));
   }
 }

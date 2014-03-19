@@ -2,15 +2,87 @@
 
 namespace Drupal\redirect\Tests;
 
-use Drupal\simpletest\UnitTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\redirect\Entity\Redirect;
+use Drupal\Core\Language\Language;
 
-class RedirectAPITest extends UnitTestBase {
+class RedirectAPITest extends DrupalUnitTestBase {
+
+  /**
+   * @var \Drupal\Core\Entity\FieldableDatabaseStorageController
+   */
+  protected $controller;
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('redirect', 'link', 'field', 'system', 'user');
+
   public static function getInfo() {
     return array(
-      'name' => 'Redirect unit tests',
+      'name' => 'Redirect API tests',
       'description' => 'Test basic functions and functionality.',
       'group' => 'Redirect',
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function setUp() {
+    parent::setUp();
+
+    $this->installSchema('redirect', array('redirect'));
+    $this->installSchema('user', array('users'));
+    $this->installConfig(array('redirect'));
+
+    $this->controller = $this->container->get('entity.manager')->getStorageController('redirect');
+  }
+
+  /**
+   * Test redirect entity logic.
+   */
+  function testRedirectEntity() {
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
+    $redirect = $this->controller->create();
+    $redirect->setSource('some-url', array('query' => array('key' => 'val')));
+    $redirect->save();
+    $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
+
+    $redirect->setSource('some-url', array('query' => array('key1' => 'val1')));
+    $redirect->save();
+    $this->assertEqual(Redirect::generateHash('some-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
+
+    $redirect->setSource('another-url', array('query' => array('key1' => 'val1')));
+    $redirect->save();
+    $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
+
+    $redirect->setLanguage(Language::LANGCODE_DEFAULT);
+    $redirect->save();
+    $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT), $redirect->getHash());
+
+    // Create a few more redirects.
+    for ($i = 0; $i < 5; $i++) {
+      $redirect = $this->controller->create();
+      $redirect->setSource($this->randomName());
+      $redirect->save();
+    }
+
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('hash' => Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT)));
+    $redirect = array_shift($redirects);
+    $this->assertEqual($redirect->getSourceUrl(), 'another-url');
+    $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('source__url' => 'another-url'));
+    $redirect = array_shift($redirects);
+    $this->assertEqual($redirect->getSourceUrl(), 'another-url');
+    $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
   }
 
   /**
