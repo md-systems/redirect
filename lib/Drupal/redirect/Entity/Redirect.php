@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
 /**
@@ -42,14 +43,27 @@ use Drupal\link\LinkItemInterface;
  */
 class Redirect extends ContentEntityBase {
 
-  public static function generateHash($path, $query, $language) {
+  /**
+   * Generates a unique hash for identification purposes.
+   *
+   * @param string $source_path
+   *   Source path of the redirect.
+   * @param array $source_query
+   *   Source query as an array.
+   * @param string $language
+   *   Redirect language.
+   *
+   * @return string
+   *   Base 64 hash.
+   */
+  public static function generateHash($source_path, array $source_query, $language) {
     $hash = array(
-      'source' => $path,
+      'source' => $source_path,
       'language' => $language,
     );
 
-    if (!empty($query)) {
-      $hash['source_query'] = $query;
+    if (!empty($source_query)) {
+      $hash['source_query'] = $source_query;
     }
     redirect_sort_recursive($hash, 'ksort');
     return Crypt::hashBase64(serialize($hash));
@@ -81,33 +95,77 @@ class Redirect extends ContentEntityBase {
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
     $source = $this->getSource();
-    $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query'), $this->getLanguage()));
+    $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query', array()), $this->getLanguage()));
   }
 
+  /**
+   * Sets the redirect entity bundle.
+   *
+   * @param string $type
+   *   Redirect entity bundle.
+   */
   public function setType($type) {
     $this->set('type', $type);
   }
 
+  /**
+   * Gets the redirect entity bundle.
+   *
+   * @return string
+   *   The redirect entity budnle.
+   */
   public function getType() {
     return $this->get('type')->value;
   }
 
+  /**
+   * Sets the redirect language.
+   *
+   * @param string $language
+   *   Language code.
+   */
   public function setLanguage($language) {
     $this->set('language', $language);
   }
 
+  /**
+   * Gets the redirect language.
+   *
+   * @return string
+   *   The redirect language.
+   */
   public function getLanguage() {
     return $this->get('language')->value;
   }
 
+  /**
+   * Sets the redirect status code.
+   *
+   * @param int $status_code
+   *   The redirect status code.
+   */
   public function setStatusCode($status_code) {
     $this->set('status_code', $status_code);
   }
 
+  /**
+   * Gets the redirect status code.
+   *
+   * @return int
+   *   The redirect status code.
+   */
   public function getStatusCode() {
     return $this->get('status_code')->value;
   }
 
+  /**
+   * Sets the source URL data.
+   *
+   * @param string $url
+   *   The base url of the source.
+   * @param array $options
+   *   The source url options.
+   */
   public function setSource($url, array $options = array()) {
     $this->source->set(0, array(
       'url' => $url,
@@ -115,64 +173,152 @@ class Redirect extends ContentEntityBase {
     ));
   }
 
+  /**
+   * Gets the source URL data.
+   *
+   * @return array
+   */
   public function getSource() {
     return $this->get('source')->get(0)->getValue();
   }
 
+  /**
+   * Gets the source base URL.
+   *
+   * @return string
+   */
   public function getSourceUrl() {
-    $source = $this->getSource();
-    return $source['url'];
+    return $this->get('source')->url;
   }
 
+  /**
+   * Gets the redirect URL data.
+   *
+   * @return array
+   *   The redirect URL data.
+   */
   public function getRedirect() {
     return $this->get('redirect')->get(0)->getValue();
   }
 
+  /**
+   * Gets the redirect URL.
+   *
+   * @return string
+   *   The redirect URL.
+   */
   public function getRedirectUrl() {
-    $redirect = $this->getRedirect();
-    return $redirect['url'];
+    return $this->get('redirect')->url;
   }
 
+  /**
+   * Gets the source URL options.
+   *
+   * @return array
+   *   The source URL options.
+   */
   public function getSourceOptions() {
-    $redirect = $this->getSource();
+    $options = $this->get('source')->options;
     // @todo - shouldn't this work out of the box?
-    if (!is_array($redirect['options'])) {
-      return unserialize($redirect['options']);
+    if (!is_array($options)) {
+      return unserialize($options);
     }
-    return $redirect['options'];
+    return $options;
   }
 
-  public function getSourceOption($key) {
+  /**
+   * Gets a specific source URL option.
+   *
+   * @param string $key
+   *   Option key.
+   * @param mixed $default
+   *   Default value used in case option does not exist.
+   *
+   * @return mixed
+   *   The option value.
+   */
+  public function getSourceOption($key, $default = NULL) {
     $options = $this->getSourceOptions();
-    return isset($options[$key]) ? $options[$key] : FALSE;
+    return isset($options[$key]) ? $options[$key] : $default;
   }
 
+  /**
+   * Gets the redirect URL options.
+   *
+   * @return array
+   *   The redirect URL options.
+   */
   public function getRedirectOptions() {
-    $redirect = $this->getRedirect();
-    return $redirect['options'];
+    $options = $this->get('redirect')->options;
+    // @todo - shouldn't this work out of the box?
+    if (!is_array($options)) {
+      return unserialize($options);
+    }
+    return $options;
   }
 
-  public function getRedirectOption($key) {
+  /**
+   * Gets a specific redirect URL option.
+   *
+   * @param string $key
+   *   Option key.
+   * @param mixed $default
+   *   Default value used in case option does not exist.
+   *
+   * @return mixed
+   *   The option value.
+   */
+  public function getRedirectOption($key, $default = NULL) {
     $options = $this->getRedirectOptions();
-    return isset($options[$key]) ? $options[$key] : FALSE;
+    return isset($options[$key]) ? $options[$key] : $default;
   }
 
+  /**
+   * Gets the current redirect entity hash.
+   *
+   * @return string
+   *   The hash.
+   */
   public function getHash() {
     return $this->get('hash')->value;
   }
 
+  /**
+   * Sets the last access timestamp.
+   *
+   * @param int $access
+   *   The last access timestamp.
+   */
   public function setAccess($access) {
     $this->set('access', $access);
   }
 
+  /**
+   * Gets the last access timestamp.
+   *
+   * @return int
+   *   The last accessed timestamp.
+   */
   public function getAccess() {
     return $this->get('access')->value;
   }
 
+  /**
+   * Sets the count.
+   *
+   * @param int $count
+   *   The count.
+   */
   public function setCount($count) {
     $this->set('count', $count);
   }
 
+  /**
+   * Gets the count.
+   *
+   * @return int
+   *   The count.
+   */
   public function getCount() {
     return $this->get('count')->value;
   }

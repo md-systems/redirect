@@ -43,9 +43,9 @@ class RedirectFormController extends ContentEntityFormController {
 
     if (\Drupal::moduleHandler()->moduleExists('locale')) {
       $form['language'] = array(
-        '#type' => 'select',
+        '#type' => 'language_select',
         '#title' => t('Language'),
-        '#options' => array(Language::LANGCODE_NOT_SPECIFIED => t('All languages')) + \Drupal::languageManager()->getLanguages(),
+        '#languages' => Language::STATE_ALL,
         '#default_value' => $form['language']['#value'],
         '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
       );
