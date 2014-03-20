@@ -1,2 +1,9 @@
 # Schema for the views plugins of the Redirect module.
 
+views.field.redirect_type:
+  type: views.field.redirect
+  label: 'Redirect type'
+  mapping:
+    machine_name:
+      type: string
+      label: 'Output machine name'

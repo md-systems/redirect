@@ -57,12 +57,14 @@ class RedirectFormController extends ContentEntityFormController {
       );
     }
 
+    $default_code = $redirect->getStatusCode() ? $redirect->getStatusCode() : \Drupal::config('redirect.settings')->get('default_status_code');
+
     $form['status_code'] = array(
       '#type' => 'select',
       '#title' => t('Redirect status'),
       '#description' => t('You can find more information about HTTP redirect status codes at <a href="@status-codes">@status-codes</a>.', array('@status-codes' => 'http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_Redirection')),
-      '#default_value' => $redirect->getStatusCode(),
-      '#options' => array(0 => t('Default (@default)', array('@default' => \Drupal::config('redirect.settings')->get('default_status_code')))) + redirect_status_code_options(),
+      '#default_value' => $default_code,
+      '#options' => redirect_status_code_options(),
     );
 
     return $form;
@@ -73,14 +75,14 @@ class RedirectFormController extends ContentEntityFormController {
    */
   public function validate(array $form, array &$form_state) {
     parent::validate($form, $form_state);
-    $source = $form_state['values']['source'][0];
-    $redirect = $form_state['values']['redirect'][0];
+    $source = $form_state['values']['redirect_source'][0];
+    $redirect = $form_state['values']['redirect_redirect'][0];
 
     if ($source['url'] == '<front>') {
-      $this->setFormError('source', t('It is not allowed to create a redirect from the front page.'));
+      $this->setFormError('redirect_source', t('It is not allowed to create a redirect from the front page.'));
     }
     if (strpos($source['url'], '#') !== FALSE) {
-      $this->setFormError('source', t('The anchor fragments are not allowed.'));
+      $this->setFormError('redirect_source', t('The anchor fragments are not allowed.'));
     }
 
     try {
@@ -91,7 +93,7 @@ class RedirectFormController extends ContentEntityFormController {
       // a valid route. Otherwise the validation will fail on the redirect path
       // being an invalid route.
       if ($source_url->toString() == $redirect_url->toString()) {
-        $this->setFormError('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
+        $this->setFormError('redirect_redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
       }
     }
     catch (MatchingRouteNotFoundException $e) {
@@ -111,7 +113,7 @@ class RedirectFormController extends ContentEntityFormController {
     if (!empty($redirects)) {
       $redirect = array_shift($redirects);
       if ($this->entity->isNew() || $redirect->id() != $this->entity->id()) {
-        $this->setFormError('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
+        $this->setFormError('redirect_source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
           array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
       }
     }
@@ -120,10 +122,9 @@ class RedirectFormController extends ContentEntityFormController {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
-    parent::submit($form, $form_state);
+  public function save(array $form, array &$form_state) {
     $this->entity->save();
-
     drupal_set_message(t('The redirect has been saved.'));
+    $form_state['redirect_route']['route_name'] = 'redirect.list';
   }
 }

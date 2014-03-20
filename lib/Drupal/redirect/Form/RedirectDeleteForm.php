@@ -9,56 +9,26 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class RedirectDeleteForm extends ContentEntityConfirmFormBase {
 
   /**
-   * Constructs a NodeDeleteForm object.
-   *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
-   */
-  public function __construct(EntityManagerInterface $entity_manager) {
-    parent::__construct($entity_manager);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('entity.manager')
-    );
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return t('Are you sure you want to delete %redirect?', array('%redirect' => $this->entity->label()));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function actions(array $form, array &$form_state) {
-    $actions = parent::actions($form, $form_state);
-
-    // @todo Convert to getCancelRoute() after http://drupal.org/node/1987778.
-    $uri = $this->entity->urlInfo();
-    $actions['cancel']['#route_name'] = $uri['route_name'];
-    $actions['cancel']['#route_parameters'] = $uri['route_parameters'];
-
-    return $actions;
+    return $this->t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => $this->entity->getSourceUrl(), '%redirect' => $this->entity->getRedirectUrl()));
   }
 
   /**
    * {@inheritdoc}
    */
   public function getCancelRoute() {
+    return array(
+      'route_name' => 'redirect.list',
+    );
   }
 
   /**
    * {@inheritdoc}
    */
   public function getConfirmText() {
-    return t('Delete');
+    return $this->t('Delete');
   }
 
   /**
@@ -66,8 +36,8 @@ class RedirectDeleteForm extends ContentEntityConfirmFormBase {
    */
   public function submit(array $form, array &$form_state) {
     $this->entity->delete();
-    drupal_set_message(t('The redirect %redirect has been deleted.', array('%redirect' => $this->entity->label())));
-    //$form_state['redirect_route']['route_name'] = '<front>';
+    drupal_set_message(t('The redirect %redirect has been deleted.', array('%redirect' => $this->entity->getRedirectUrl())));
+    $form_state['redirect_route']['route_name'] = 'redirect.list';
   }
 
 }

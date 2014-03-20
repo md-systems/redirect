@@ -38,11 +38,6 @@ class RedirectSourceLinkWidget extends LinkWidget {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
     $url_type = $this->getFieldSetting('url_type');
 
-    // @todo - shouldn't this work out of the box?
-    if (!is_array($items[$delta]->options)) {
-      $items[$delta]->options = unserialize($items[$delta]->options);
-    }
-
     $default_url_value = NULL;
     if (isset($items[$delta]->url)) {
       try {

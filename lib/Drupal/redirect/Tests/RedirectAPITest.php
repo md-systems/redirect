@@ -79,7 +79,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
 
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
-      ->loadByProperties(array('source__url' => 'another-url'));
+      ->loadByProperties(array('redirect_source__url' => 'another-url'));
     $redirect = array_shift($redirects);
     $this->assertEqual($redirect->getSourceUrl(), 'another-url');
     $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));

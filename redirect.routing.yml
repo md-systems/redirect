@@ -1,7 +1,7 @@
 redirect.list:
   path: '/admin/config/search/redirect'
   defaults:
-    _form: '\Drupal\redirect\Form\RedirectListForm'
+    _entity_list: 'redirect'
     _title: 'URL redirects'
   requirements:
     _permission: 'administer redirects'
@@ -25,9 +25,9 @@ redirect.edit:
 redirect.delete:
   path: '/admin/config/search/redirect/delete/{redirect}'
   defaults:
-    _form: '\Drupal\redirect\Form\RedirectDeleteForm'
-    _title: 'Delete redirect'
+    _entity_form: 'redirect.delete'
   requirements:
+    #_entity_access: 'redirect.delete'
     _permission: 'administer redirects'
 
 redirect.settings:

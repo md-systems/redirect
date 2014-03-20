@@ -86,7 +86,7 @@ function redirect_menu_link_defaults() {
     'link_title' => 'URL redirects',
     'description' => 'Redirect users from one URL to another.',
     'route_name' => 'redirect.list',
-    'parent' => 'system.admin_config_search',
+    'parent' => 'system.admin.config.search',
     'menu_name' => 'admin',
   );
   $items['redirect.add'] = array(
@@ -121,8 +121,7 @@ function redirect_menu_link_defaults() {
   }
 
   // Devel generate integration.
-  // @todo - Enable/finish once devel is available for D8.
-  /*
+  /* @todo
   if (\Drupal::moduleHandler()->moduleExists('devel_generate')) {
     $items['redirect.devel_generate'] = array(
       'link_title' => 'Generate redirects',
@@ -243,7 +242,8 @@ function redirect_entity_type_supports_redirects($entity_type) {
   if (!isset($types)) {
     $types = array();
     foreach (\Drupal::entityManager()->getDefinitions() as $type => $entity_info) {
-      $types[$type] = !empty($entity_info['uri callback']) && (!isset($entity_info['redirect']) || !empty($entity_info['redirect']));
+      // @todo - what is the redirect offset here for?
+//      $types[$type] = $entity_info->getUriCallback() && (!isset($entity_info['redirect']) || !empty($entity_info['redirect']));
     }
   }
 
