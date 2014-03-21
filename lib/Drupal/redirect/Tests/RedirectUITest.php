@@ -35,7 +35,6 @@ class RedirectUITest extends WebTestBase {
     parent::setUp();
 
     $content_type = $this->drupalCreateContentType();
-
     $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create ' . $content_type->type . ' content', 'edit any ' . $content_type->type . ' content', 'create url aliases'));
   }
 
@@ -45,57 +44,53 @@ class RedirectUITest extends WebTestBase {
   function testRedirectUI() {
     $this->drupalLogin($this->admin_user);
 
-    $source_url = 'non-existing';
-    $redirect_url = 'node';
-
     // Test populating the redirect form with predefined values.
     $this->drupalGet('admin/config/search/redirect/add', array('query' => array(
-      'source' => $source_url,
+      'source' => 'non-existing',
       'source_options' => array('query' => array('key' => 'val', 'key1' => 'val1')),
-      'redirect' => $redirect_url,
+      'redirect' => 'node',
       'redirect_options' => array('query' => array('key' => 'val', 'key1' => 'val1')),
     )));
-    $this->assertFieldByName('redirect_source[0][url]', $source_url . '?key=val&key1=val1');
-    $this->assertFieldByName('redirect_redirect[0][url]', $redirect_url . '?key=val&key1=val1');
+    $this->assertFieldByName('redirect_source[0][url]', 'non-existing?key=val&key1=val1');
+    $this->assertFieldByName('redirect_redirect[0][url]', 'node?key=val&key1=val1');
 
     // Test creating a new redirect via UI.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url,
-      'redirect_redirect[0][url]' => $redirect_url,
+      'redirect_source[0][url]' => 'non-existing',
+      'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
 
     // Try to load the new redirect by hash. That will also test if the hash
     // has been generated correctly via UI.
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash($source_url, array(), Language::LANGCODE_NOT_SPECIFIED)));
+      ->loadByProperties(array('hash' => Redirect::generateHash('non-existing', array(), Language::LANGCODE_NOT_SPECIFIED)));
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), $source_url);
-    $this->assertEqual($redirect->getRedirectUrl(), $redirect_url);
+    $this->assertEqual($redirect->getSourceUrl(), 'non-existing');
+    $this->assertEqual($redirect->getRedirectUrl(), 'node');
 
     // After adding the redirect we should end up in the list. Check if the
     // redirect is listed.
     $this->assertUrl('admin/config/search/redirect');
-    $this->assertText($source_url);
-    $this->assertLink($redirect_url);
+    $this->assertText('non-existing');
+    $this->assertLink('node');
     $this->assertText(Language::LANGCODE_NOT_SPECIFIED);
 
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
-    $this->assertFieldByName('redirect_source[0][url]', $source_url);
-    $this->assertFieldByName('redirect_redirect[0][url]', $redirect_url);
+    $this->assertFieldByName('redirect_source[0][url]', 'non-existing');
+    $this->assertFieldByName('redirect_redirect[0][url]', 'node');
     $this->assertFieldByName('status_code', $redirect->getStatusCode());
 
     // Append a query string to see if we handle query data properly.
-    $source_query = '?key=value';
     $this->drupalPostForm(NULL, array(
-      'redirect_source[0][url]' => $source_url . $source_query,
+      'redirect_source[0][url]' => 'non-existing?key=value',
     ), t('Save'));
 
     // Check the location after update and check if the value has been updated
     // in the list.
     $this->assertUrl('admin/config/search/redirect');
-    $this->assertText($source_url . $source_query);
+    $this->assertText('non-existing?key=value');
 
     // The url field should not contain the query string and therefore we
     // should be able to load the redirect using only the url part without
@@ -103,18 +98,18 @@ class RedirectUITest extends WebTestBase {
     \Drupal::entityManager()->getStorageController('redirect')->resetCache();
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
-      ->loadByProperties(array('redirect_source__url' => $source_url));
+      ->loadByProperties(array('redirect_source__url' => 'non-existing'));
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), $source_url . $source_query);
+    $this->assertEqual($redirect->getSourceUrl(), 'non-existing?key=value');
     $this->assertEqual($redirect->getSourceOption('query'), array('key' => 'value'));
 
     // Test the source url hints.
     // The hint about an existing base path.
     $this->drupalPostAjaxForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url . $source_query,
+      'redirect_source[0][url]' => 'non-existing?key=value',
     ), 'redirect_source[0][url]');
     $this->assertRaw(t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-      array('%source' => $source_url . $source_query, '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      array('%source' => 'non-existing?key=value', '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
 
     // The hint about a valid path.
     $this->drupalPostAjaxForm('admin/config/search/redirect/add', array(
@@ -125,41 +120,41 @@ class RedirectUITest extends WebTestBase {
 
     // Test validation.
     // Duplicate redirect.
-    $source_url = 'non-existing';
-    $redirect_url = 'node';
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url . $source_query,
-      'redirect_redirect[0][url]' => $redirect_url,
+      'redirect_source[0][url]' => 'non-existing?key=value',
+      'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-      array('%source' => $source_url . $source_query, '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      array('%source' => 'non-existing?key=value', '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
 
     // Redirecting to itself.
-    $source_url = 'node';
-    $redirect_url = 'node';
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url,
-      'redirect_redirect[0][url]' => $redirect_url,
+      'redirect_source[0][url]' => 'node',
+      'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
 
     // Redirecting the front page.
-    $source_url = '<front>';
-    $redirect_url = 'node';
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url,
-      'redirect_redirect[0][url]' => $redirect_url,
+      'redirect_source[0][url]' => '<front>',
+      'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('It is not allowed to create a redirect from the front page.'));
 
     // Redirecting a url with fragment.
-    $source_url = 'page-to-redirect#content';
-    $redirect_url = 'node';
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => $source_url,
-      'redirect_redirect[0][url]' => $redirect_url,
+      'redirect_source[0][url]' => 'page-to-redirect#content',
+      'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('The anchor fragments are not allowed.'));
+
+    // Finally test the delete action.
+    $this->drupalGet('admin/config/search/redirect');
+    $this->clickLink(t('Delete'));
+    $this->assertRaw(t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => 'non-existing?key=value', '%redirect' => 'node')));
+    $this->drupalPostForm(NULL, array(), t('Delete'));
+    $this->assertUrl('admin/config/search/redirect');
+    $this->assertText(t('There is no @label yet.', array('@label' => 'Redirect')));
   }
 
   /**
