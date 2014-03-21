@@ -240,6 +240,21 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
+   * Sets the source URL data.
+   *
+   * @param string $url
+   *   The base url of the source.
+   * @param array $options
+   *   The source url options.
+   */
+  public function setRedirect($url, array $options = array()) {
+    $this->redirect_redirect->set(0, array(
+      'url' => $url,
+      'options' => $options,
+    ));
+  }
+
+  /**
    * Gets the redirect URL.
    *
    * @return string
@@ -308,6 +323,14 @@ class Redirect extends ContentEntityBase {
   public function getRedirectOption($key, $default = NULL) {
     $options = $this->getRedirectOptions();
     return isset($options[$key]) ? $options[$key] : $default;
+  }
+
+  public function getRedirectRouteName() {
+    return $this->get('redirect_redirect')->route_name;
+  }
+
+  public function getRedirectRouteParameters() {
+    return $this->get('redirect_redirect')->route_parameters;
   }
 
   /**

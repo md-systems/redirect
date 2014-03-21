@@ -48,7 +48,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
       // If the path has no matching route reconstruct it manually.
       catch (MatchingRouteNotFoundException $e) {
         $default_url_value = $items[$delta]->url;
-        if (isset($items[$delta]->options['query'])) {
+        if (isset($items[$delta]->options['query']) && is_array($items[$delta]->options['query'])) {
           $default_url_value .= '?';
           $i = 0;
           foreach ($items[$delta]->options['query'] as $key => $value) {

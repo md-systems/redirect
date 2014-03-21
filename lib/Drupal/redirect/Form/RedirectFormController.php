@@ -18,18 +18,25 @@ class RedirectFormController extends ContentEntityFormController {
   protected function prepareEntity() {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
+
     if ($redirect->isNew()) {
-//      $redirect->setSource(isset($_GET['source']) ? urldecode($_GET['source']) : '');
-//      $redirect->setRedirect(isset($_GET['redirect']) ? urldecode($_GET['redirect']) : '');
-      $redirect->setLanguage(isset($_GET['language']) ? urldecode($_GET['language']) : Language::LANGCODE_NOT_SPECIFIED);
 
+      // To pass in the query set parameters into GET as follows:
+      // source_options[query][key1]=value1&source_options[query][key2]=value2
       $source_options = array();
-      parse_str($this->getRequest()->get('source_options'), $source_options);
-      $redirect_options = array();
-      parse_str($this->getRequest()->get('redirect_options'), $redirect_options);
+      if ($this->getRequest()->get('source_options')) {
+        $source_options = $this->getRequest()->get('source_options');
+      }
 
-//      $redirect->setSourceOptions($source_options);
-//      $redirect->setRedirectOptions($redirect_options);
+      $redirect_options = array();
+      if ($this->getRequest()->get('redirect_options')) {
+        $redirect_options = $this->getRequest()->get('redirect_options');
+      }
+
+      $redirect->setSource(urldecode($this->getRequest()->get('source')), $source_options);
+      $redirect->setRedirect(urldecode($this->getRequest()->get('redirect')), $redirect_options);
+
+      $redirect->setLanguage($this->getRequest()->get('language') ? $this->getRequest()->get('language') : Language::LANGCODE_NOT_SPECIFIED);
     }
   }
 
@@ -79,10 +86,10 @@ class RedirectFormController extends ContentEntityFormController {
     $redirect = $form_state['values']['redirect_redirect'][0];
 
     if ($source['url'] == '<front>') {
-      $this->setFormError('redirect_source', t('It is not allowed to create a redirect from the front page.'));
+      $this->setFormError('redirect_source', $form_state, t('It is not allowed to create a redirect from the front page.'));
     }
     if (strpos($source['url'], '#') !== FALSE) {
-      $this->setFormError('redirect_source', t('The anchor fragments are not allowed.'));
+      $this->setFormError('redirect_source', $form_state, t('The anchor fragments are not allowed.'));
     }
 
     try {

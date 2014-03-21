@@ -20,6 +20,9 @@ class RedirectAPITest extends DrupalUnitTestBase {
    */
   public static $modules = array('redirect', 'link', 'field', 'system', 'user');
 
+  /**
+   * {@inheritdoc}
+   */
   public static function getInfo() {
     return array(
       'name' => 'Redirect API tests',
@@ -41,35 +44,47 @@ class RedirectAPITest extends DrupalUnitTestBase {
     $this->controller = $this->container->get('entity.manager')->getStorageController('redirect');
   }
 
+  function testRedirect() {
+
+  }
+
   /**
    * Test redirect entity logic.
    */
   function testRedirectEntity() {
+    // Create a redirect and test if hash has been generated correctly.
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
     $redirect->setSource('some-url', array('query' => array('key' => 'val')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
 
+    // Update the redirect source query and check if hash has been updated as
+    // expected.
     $redirect->setSource('some-url', array('query' => array('key1' => 'val1')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
 
+    // Update the redirect source path and check if hash has been updated as
+    // expected.
     $redirect->setSource('another-url', array('query' => array('key1' => 'val1')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
 
+    // Update the redirect language and check if hash has been updated as
+    // expected.
     $redirect->setLanguage(Language::LANGCODE_DEFAULT);
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT), $redirect->getHash());
 
-    // Create a few more redirects.
+    // Create a few more redirects to test the select.
     for ($i = 0; $i < 5; $i++) {
       $redirect = $this->controller->create();
       $redirect->setSource($this->randomName());
       $redirect->save();
     }
 
+    // Load the redirect based on hash.
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
       ->loadByProperties(array('hash' => Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT)));
@@ -77,6 +92,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
     $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
     $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
 
+    // Load the redirect based on url.
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
       ->loadByProperties(array('redirect_source__url' => 'another-url'));

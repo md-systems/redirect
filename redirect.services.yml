@@ -1,0 +1,6 @@
+services:
+  maintenance_mode_subscriber:
+    class: Drupal\redirect\EventSubscriber\RedirectSubscriber
+    arguments: ['@url_generator', '@entity.manager']
+    tags:
+      - { name: event_subscriber }

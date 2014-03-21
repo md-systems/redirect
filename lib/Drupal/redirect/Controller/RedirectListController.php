@@ -5,8 +5,6 @@ namespace Drupal\redirect\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListController;
-use Drupal\Core\Language\Language;
-use Drupal\Core\Url;
 
 class RedirectListController extends EntityListController {
 
