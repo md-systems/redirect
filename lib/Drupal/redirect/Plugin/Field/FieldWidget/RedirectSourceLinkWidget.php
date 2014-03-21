@@ -128,27 +128,27 @@ class RedirectSourceLinkWidget extends LinkWidget {
         '#suffix' => '</div>',
       );
 
-      if (isset($form_state['values']['source'][0]['url'])) {
+      if (isset($form_state['values']['redirect_source'][0]['url'])) {
 
         // Warning about creating a redirect from a valid path.
         // @todo - Hmm... exception driven logic. Find a better way how to
         //   determine if we have a valid path.
         try {
-          \Drupal::service('router')->match('/' . $form_state['values']['source'][0]['url']);
+          \Drupal::service('router')->match('/' . $form_state['values']['redirect_source'][0]['url']);
           $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
-              array('%path' => $form_state['values']['source'][0]['url'], '@url-alias' => url('admin/config/search/path/add'))) . '</div>';
+              array('%path' => $form_state['values']['redirect_source'][0]['url'], '@url-alias' => url('admin/config/search/path/add'))) . '</div>';
         }
         catch (ResourceNotFoundException $e) {
           // Do nothing, expected behaviour.
         }
 
         // Warning about the path being already redirected.
-        $parsed_url = UrlHelper::parse(trim($form_state['values']['source'][0]['url']));
+        $parsed_url = UrlHelper::parse(trim($form_state['values']['redirect_source'][0]['url']));
         $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
         if (!empty($path)) {
           $redirects = \Drupal::entityManager()
             ->getStorageController('redirect')
-            ->loadByProperties(array('source__url' => $path));
+            ->loadByProperties(array('redirect_source__url' => $path));
           if (!empty($redirects)) {
             $redirect = array_shift($redirects);
             $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))) . '</div>';
@@ -212,6 +212,12 @@ class RedirectSourceLinkWidget extends LinkWidget {
     // through all url values and add defaults.
     foreach ($values as &$value) {
       if (!empty($value['url'])) {
+        // In case we have query process the url.
+        if (strpos($value['url'], '?') !== FALSE) {
+          $url = UrlHelper::parse($value['url']);
+          $value['url'] = $url['path'];
+          $value['options']['query'] = $url['query'];
+        }
         $value += array(
           'route_name' => NULL,
           'route_parameters' => array(),

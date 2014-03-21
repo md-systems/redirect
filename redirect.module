@@ -1464,5 +1464,5 @@ function redirect_redirect_operations() {
 }
 
 function redirect_source_link_get_status_messages($form, &$form_state) {
-  return $form['source']['widget'][0]['status_box'];
+  return $form['redirect_source']['widget'][0]['status_box'];
 }

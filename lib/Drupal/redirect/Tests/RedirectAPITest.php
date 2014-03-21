@@ -74,14 +74,14 @@ class RedirectAPITest extends DrupalUnitTestBase {
       ->getStorageController('redirect')
       ->loadByProperties(array('hash' => Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT)));
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), 'another-url');
+    $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
     $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
 
     $redirects = \Drupal::entityManager()
       ->getStorageController('redirect')
       ->loadByProperties(array('redirect_source__url' => 'another-url'));
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), 'another-url');
+    $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
     $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
   }
 

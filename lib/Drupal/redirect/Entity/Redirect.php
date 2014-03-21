@@ -75,18 +75,6 @@ class Redirect extends ContentEntityBase {
     return Crypt::hashBase64(serialize($hash));
   }
 
-  public static function urlToString(array $query) {
-    $string_query = '';
-    $i = 0;
-    foreach ($query as $key => $value) {
-      if ($i > 0) {
-        $string_query .= '&';
-      }
-      $string_query .= "$key=$value";
-      $i++;
-    }
-  }
-
   /**
    * {@inheritdoc}
    */
@@ -229,7 +217,16 @@ class Redirect extends ContentEntityBase {
    * @return string
    */
   public function getSourceUrl() {
-    return $this->get('redirect_source')->url;
+    $query_string = '';
+    $i = 0;
+    foreach ($this->getSourceOption('query', array()) as $key => $value) {
+      if ($i > 0) {
+        $query_string .= '&';
+      }
+      $query_string .= "$key=$value";
+      $i++;
+    }
+    return $this->get('redirect_source')->url . (!empty($query_string) ? '?' . $query_string : '');
   }
 
   /**
@@ -249,7 +246,16 @@ class Redirect extends ContentEntityBase {
    *   The redirect URL.
    */
   public function getRedirectUrl() {
-    return $this->get('redirect_redirect')->url;
+    $query_string = '';
+    $i = 0;
+    foreach ($this->getRedirectOption('query', array()) as $key => $value) {
+      if ($i > 0) {
+        $query_string .= '&';
+      }
+      $query_string .= "$key=$value";
+      $i++;
+    }
+    return $this->get('redirect_redirect')->url . (!empty($query_string) ? '?' . $query_string : '');
   }
 
   /**

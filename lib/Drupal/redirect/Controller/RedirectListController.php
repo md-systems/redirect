@@ -23,12 +23,8 @@ class RedirectListController extends EntityListController {
   }
 
   public function buildRow(EntityInterface $redirect) {
-    $row['redirect_source']['data'] = '<span title="' . $redirect->getSourceOption('query') . '">' . $redirect->getSourceUrl();
-
-    $redirect_url = Url::createFromPath($redirect->getRedirectUrl());
-    $redirect_url->setOption('query', $redirect->getRedirectOption('query'));
-
-    $row['redirect_redirect']['data'] = l($redirect->getRedirectUrl(), $redirect_url->toString());
+    $row['redirect_source']['data'] = $redirect->getSourceUrl();
+    $row['redirect_redirect']['data'] = l($redirect->getRedirectUrl(), $redirect->getRedirectUrl());
     $row['status_code']['data'] = $redirect->getStatusCode();
     $row['language']['data'] = $redirect->getLanguage();
     $row['count']['data'] = $redirect->getCount();
