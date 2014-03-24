@@ -4,9 +4,9 @@ namespace Drupal\redirect\Controller;
 
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityListController;
+use Drupal\Core\Entity\EntityListBuilder;
 
-class RedirectListController extends EntityListController {
+class RedirectListController extends EntityListBuilder {
 
 
   public function buildHeader() {
