@@ -1,6 +1,9 @@
 services:
+  redirect.repository:
+      class: Drupal\redirect\RedirectRepository
+      arguments: ['@entity.manager']
   redirect_subscriber:
     class: Drupal\redirect\EventSubscriber\RedirectSubscriber
-    arguments: ['@url_generator', '@entity.manager', '@language_manager']
+    arguments: ['@url_generator', '@redirect.repository', '@language_manager']
     tags:
       - { name: event_subscriber }

@@ -8,7 +8,16 @@ use Drupal\redirect\Entity\Redirect;
 use Drupal\simpletest\WebTestBase;
 
 class RedirectUITest extends WebTestBase {
-  private $admin_user;
+
+  /**
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $adminUser;
+
+  /**
+   * @var \Drupal\redirect\RedirectRepository
+   */
+  protected $repository;
 
   /**
    * Modules to enable.
@@ -35,7 +44,7 @@ class RedirectUITest extends WebTestBase {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
-    $this->admin_user = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser(array(
       'administer redirects',
       'access site reports',
       'access content',
@@ -45,13 +54,15 @@ class RedirectUITest extends WebTestBase {
       'administer taxonomy',
       'administer url aliases',
     ));
+
+    $this->repository = \Drupal::service('redirect.repository');
   }
 
   /**
    * Test the redirect UI.
    */
   function testRedirectUI() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Test populating the redirect form with predefined values.
     $this->drupalGet('admin/config/search/redirect/add', array('query' => array(
@@ -69,12 +80,8 @@ class RedirectUITest extends WebTestBase {
       'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
 
-    // Try to load the new redirect by hash. That will also test if the hash
-    // has been generated correctly via UI.
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash('non-existing', array(), Language::LANGCODE_NOT_SPECIFIED)));
-    $redirect = array_shift($redirects);
+    // Try to find the redirect we just created.
+    $redirect = $this->repository->findMatchingRedirect('non-existing');
     $this->assertEqual($redirect->getSourceUrl(), 'non-existing');
     $this->assertEqual($redirect->getRedirectUrl(), 'node');
 
@@ -105,9 +112,7 @@ class RedirectUITest extends WebTestBase {
     // should be able to load the redirect using only the url part without
     // query.
     \Drupal::entityManager()->getStorageController('redirect')->resetCache();
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('redirect_source__url' => 'non-existing'));
+    $redirects = $this->repository->findBySourcePath('non-existing');
     $redirect = array_shift($redirects);
     $this->assertEqual($redirect->getSourceUrl(), 'non-existing?key=value');
     $this->assertEqual($redirect->getSourceOption('query'), array('key' => 'value'));
@@ -170,7 +175,7 @@ class RedirectUITest extends WebTestBase {
    * Tests the fix 404 pages workflow.
    */
   function testFix404Pages() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Visit a non existing page to have the 404 watchdog entry.
     $this->drupalGet('non-existing');
@@ -198,29 +203,21 @@ class RedirectUITest extends WebTestBase {
    * Tests redirects being automatically created upon path alias change.
    */
   function testAutomaticRedirects() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Create a node and update its path alias which should result in a redirect
     // being automatically created from the old alias to the new one.
     $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => 'en', 'path' => array('alias' => 'node_test_alias')));
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[alias]' => 'node_test_alias_updated'), t('Save'));
 
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash('node_test_alias', array(), 'en')));
-    /** @var \Drupal\redirect\Entity\Redirect $redirect */
-    $redirect = reset($redirects);
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), 'en');
     $this->assertEqual($redirect->getRedirectUrl(), 'node_test_alias_updated');
 
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.
     $term = $this->createTerm($this->createVocabulary());
     $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[alias]' => 'term_test_alias_updated'), t('Save'));
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash('term_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED)));
-    /** @var \Drupal\redirect\Entity\Redirect $redirect */
-    $redirect = reset($redirects);
+    $redirect = $this->repository->findMatchingRedirect('term_test_alias');
     $this->assertEqual($redirect->getRedirectUrl(), 'term_test_alias_updated');
 
     // Test the path alias update via the admin path form.
@@ -233,11 +230,7 @@ class RedirectUITest extends WebTestBase {
     // link leads to the edit page of the aaa_path_alias.
     $this->clickLink(t('edit'));
     $this->drupalPostForm(NULL, array('alias' => 'aaa_path_alias_updated'), t('Save'));
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash('aaa_path_alias', array(), Language::LANGCODE_NOT_SPECIFIED)));
-    /** @var \Drupal\redirect\Entity\Redirect $redirect */
-    $redirect = reset($redirects);
+    $redirect = $this->repository->findMatchingRedirect('aaa_path_alias', array(), 'en');
     $this->assertEqual($redirect->getRedirectUrl(), 'aaa_path_alias_updated');
   }
 

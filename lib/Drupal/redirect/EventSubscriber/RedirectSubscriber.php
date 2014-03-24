@@ -12,6 +12,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
 use Drupal\redirect\Entity\Redirect;
+use Drupal\redirect\RedirectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
@@ -22,15 +23,13 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 class RedirectSubscriber implements EventSubscriberInterface {
 
+  /** @var  \Drupal\redirect\RedirectRepository */
+  protected $redirectRepository;
+
   /**
    * @var \Drupal\Core\Routing\UrlGenerator
    */
   protected $urlGenerator;
-
-  /**
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $manager;
 
   /**
    * @var \Drupal\Core\Language\LanguageManagerInterface
@@ -42,14 +41,14 @@ class RedirectSubscriber implements EventSubscriberInterface {
    *
    * @param \Drupal\Core\Routing\UrlGenerator $url_generator
    *   The URL generator service.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $manager
-   *   The entity manager service.
+   * @param \Drupal\redirect\RedirectRepository $redirect_repository
+   *   The redirect entity repository.
    * @param \Drupal\Core\Language\LanguageManagerInterface
    *   The language manager service.
    */
-  public function __construct(UrlGenerator $url_generator, EntityManagerInterface $manager, LanguageManagerInterface $language_manager) {
+  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager) {
     $this->urlGenerator = $url_generator;
-    $this->manager = $manager;
+    $this->redirectRepository = $redirect_repository;
     $this->languageManager = $language_manager;
   }
 
@@ -65,16 +64,10 @@ class RedirectSubscriber implements EventSubscriberInterface {
     // Get URL info and process it to be used for hash generation.
     parse_str($request->getQueryString(), $query);
     $path = ltrim($request->getPathInfo(), '/');
-    $hash_lang_not_specified = Redirect::generateHash($path, $query, Language::LANGCODE_NOT_SPECIFIED);
-    $hash_lang_current = Redirect::generateHash($path, $query, $this->languageManager->getCurrentLanguage());
 
-    // Load redirects by hash.
-    $redirects = $this->manager->getStorageController('redirect')->loadByProperties(array('hash' => array($hash_lang_not_specified, $hash_lang_current)));
+    $redirect = $this->redirectRepository->findMatchingRedirect($path, $query, $this->languageManager->getCurrentLanguage());
 
-    // If any redirects found do the redirect response.
-    if (!empty($redirects)) {
-      /** @var \Drupal\redirect\Entity\Redirect $redirect */
-      $redirect = reset($redirects);
+    if (!empty($redirect)) {
       // Handle internal path.
       if ($route_name = $redirect->getRedirectRouteName()) {
         $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(

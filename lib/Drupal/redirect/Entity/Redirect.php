@@ -24,7 +24,7 @@ use Drupal\link\LinkItemInterface;
  *   label = @Translation("Redirect"),
  *   bundle_label = @Translation("Redirect type"),
  *   controllers = {
- *     "list" = "Drupal\redirect\Controller\RedirectListController",
+ *     "list_builder" = "Drupal\redirect\Controller\RedirectListController",
  *     "form" = {
  *       "default" = "Drupal\redirect\Form\RedirectFormController",
  *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",

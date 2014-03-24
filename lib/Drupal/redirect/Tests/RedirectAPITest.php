@@ -2,6 +2,7 @@
 
 namespace Drupal\redirect\Tests;
 
+use Drupal\redirect\RedirectRepository;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
@@ -26,7 +27,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   public static function getInfo() {
     return array(
       'name' => 'Redirect API tests',
-      'description' => 'Test basic functions and functionality.',
+      'description' => 'Redirect entity and redirect API test coverage.',
       'group' => 'Redirect',
     );
   }
@@ -42,10 +43,6 @@ class RedirectAPITest extends DrupalUnitTestBase {
     $this->installConfig(array('redirect'));
 
     $this->controller = $this->container->get('entity.manager')->getStorageController('redirect');
-  }
-
-  function testRedirect() {
-
   }
 
   /**
@@ -84,21 +81,28 @@ class RedirectAPITest extends DrupalUnitTestBase {
       $redirect->save();
     }
 
-    // Load the redirect based on hash.
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('hash' => Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT)));
-    $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
-    $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+    /** @var \Drupal\redirect\RedirectRepository $repository */
+    $repository = \Drupal::service('redirect.repository');
+    $redirect = $repository->findMatchingRedirect('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT);
+
+    if (!empty($redirect)) {
+      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
+      $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+    }
+    else {
+      $this->fail(t('Failed to find matching redirect.'));
+    }
 
     // Load the redirect based on url.
-    $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
-      ->loadByProperties(array('redirect_source__url' => 'another-url'));
+    $redirects = $repository->findBySourcePath('another-url');
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
-    $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+    if (!empty($redirect)) {
+      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
+      $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+    }
+    else {
+      $this->fail(t('Failed to find redirect by source path.'));
+    }
   }
 
   /**

@@ -146,9 +146,9 @@ class RedirectSourceLinkWidget extends LinkWidget {
         $parsed_url = UrlHelper::parse(trim($form_state['values']['redirect_source'][0]['url']));
         $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
         if (!empty($path)) {
-          $redirects = \Drupal::entityManager()
-            ->getStorageController('redirect')
-            ->loadByProperties(array('redirect_source__url' => $path));
+          /** @var \Drupal\redirect\RedirectRepository $repository */
+          $repository = \Drupal::service('redirect.repository');
+          $redirects = $repository->findBySourcePath($path);
           if (!empty($redirects)) {
             $redirect = array_shift($redirects);
             $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))) . '</div>';
