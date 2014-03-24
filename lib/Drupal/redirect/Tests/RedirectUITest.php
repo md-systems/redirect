@@ -15,7 +15,7 @@ class RedirectUITest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('redirect', 'node', 'path', 'dblog', 'views');
+  public static $modules = array('redirect', 'node', 'path', 'dblog', 'views', 'taxonomy');
 
   /**
    * {@inheritdoc}
@@ -34,8 +34,17 @@ class RedirectUITest extends WebTestBase {
   function setUp() {
     parent::setUp();
 
-    $content_type = $this->drupalCreateContentType();
-    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create ' . $content_type->type . ' content', 'edit any ' . $content_type->type . ' content', 'create url aliases'));
+    $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer redirects',
+      'access site reports',
+      'access content',
+      'create article content',
+      'edit any article content',
+      'create url aliases',
+      'administer taxonomy',
+      'administer url aliases',
+    ));
   }
 
   /**
@@ -183,6 +192,90 @@ class RedirectUITest extends WebTestBase {
     // Check if the redirect works as expected.
     $this->drupalGet('non-existing');
     $this->assertUrl('node');
+  }
+
+  /**
+   * Tests redirects being automatically created upon path alias change.
+   */
+  function testAutomaticRedirects() {
+    $this->drupalLogin($this->admin_user);
+
+    // Create a node and update its path alias which should result in a redirect
+    // being automatically created from the old alias to the new one.
+    $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => 'en', 'path' => array('alias' => 'node_test_alias')));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[alias]' => 'node_test_alias_updated'), t('Save'));
+
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('hash' => Redirect::generateHash('node_test_alias', array(), 'en')));
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
+    $redirect = reset($redirects);
+    $this->assertEqual($redirect->getRedirectUrl(), 'node_test_alias_updated');
+
+    // Create a term and update its path alias and check if we have a redirect
+    // from the previous path alias to the new one.
+    $term = $this->createTerm($this->createVocabulary());
+    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[alias]' => 'term_test_alias_updated'), t('Save'));
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('hash' => Redirect::generateHash('term_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED)));
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
+    $redirect = reset($redirects);
+    $this->assertEqual($redirect->getRedirectUrl(), 'term_test_alias_updated');
+
+    // Test the path alias update via the admin path form.
+    $this->drupalPostForm('admin/config/search/path/add', array(
+      'source' => 'node',
+      'alias' => 'aaa_path_alias',
+    ), t('Save'));
+    // Note that here we rely on fact that we land on the path alias list page
+    // and the default sort is by the alias, which implies that the first edit
+    // link leads to the edit page of the aaa_path_alias.
+    $this->clickLink(t('edit'));
+    $this->drupalPostForm(NULL, array('alias' => 'aaa_path_alias_updated'), t('Save'));
+    $redirects = \Drupal::entityManager()
+      ->getStorageController('redirect')
+      ->loadByProperties(array('hash' => Redirect::generateHash('aaa_path_alias', array(), Language::LANGCODE_NOT_SPECIFIED)));
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
+    $redirect = reset($redirects);
+    $this->assertEqual($redirect->getRedirectUrl(), 'aaa_path_alias_updated');
+  }
+
+  /**
+   * Returns a new vocabulary with random properties.
+   */
+  function createVocabulary() {
+    // Create a vocabulary.
+    $vocabulary = entity_create('taxonomy_vocabulary', array(
+      'name' => $this->randomName(),
+      'description' => $this->randomName(),
+      'vid' => drupal_strtolower($this->randomName()),
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'weight' => mt_rand(0, 10),
+    ));
+    $vocabulary->save();
+    return $vocabulary;
+  }
+
+  /**
+   * Returns a new term with random properties in vocabulary $vid.
+   */
+  function createTerm($vocabulary) {
+    $filter_formats = filter_formats();
+    $format = array_pop($filter_formats);
+    $term = entity_create('taxonomy_term', array(
+      'name' => $this->randomName(),
+      'description' => array(
+        'value' => $this->randomName(),
+        // Use the first available text format.
+        'format' => $format->format,
+      ),
+      'vid' => $vocabulary->id(),
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'path' => array('alias' => 'term_test_alias'),
+    ));
+    $term->save();
+    return $term;
   }
 
 }

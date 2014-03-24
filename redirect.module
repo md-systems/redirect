@@ -316,7 +316,10 @@ function redirect_exit($destination = NULL) {
  * Implements hook_entity_delete().
  */
 function redirect_entity_delete($entity, $entity_type) {
-  if (redirect_entity_type_supports_redirects($entity_type)) {
+  // @todo - hardcode for now. There might be other entity types that would
+  //   want to support automatic redirects on path change - we need to define
+  //   how to enable this.
+  if (in_array($entity_type, array('node', 'taxonomy'))) {
     redirect_delete_by_entity_path($entity_type, $entity);
   }
 }
@@ -328,18 +331,21 @@ function redirect_path_update(array $path) {
   if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
+  // @todo - what exactly is the code below for? If that relates to the
+  //   entity_type support for redirects this will not work as such data will
+  //   never be part of the path data array.
   elseif (isset($path['redirect']) && !$path['redirect']) {
     return;
   }
 
-  if (!empty($path['original']['pid']) && $path['original']['pid'] == $path['pid'] && $path['original']['alias'] != $path['alias']) {
-    $redirect = redirect_create();
-    $redirect->setSource($path['original']['alias']);
-    $redirect->setRedirect($path['source']);
-    $redirect->setLanguage($path['original']['language']);
-    // Check if the redirect exists before saving.
-    $hash = $redirect->getHash();
+  $unchanged_path = redirect_path_get_unchanged();
+  if (!empty($unchanged_path) && $unchanged_path['pid'] == $path['pid'] && $unchanged_path['alias'] != $path['alias']) {
+    $hash = Redirect::generateHash($unchanged_path['alias'], array(), $unchanged_path['langcode']);
     if (!redirect_load_by_hash($hash)) {
+      $redirect = redirect_create();
+      $redirect->setSource($unchanged_path['alias']);
+      $redirect->setRedirect($path['alias']);
+      $redirect->setLanguage($unchanged_path['langcode']);
       $redirect->save();
     }
   }
@@ -373,16 +379,6 @@ function redirect_path_delete($path) {
 }
 
 /**
- * Implements hook_views_api().
- */
-function redirect_views_api() {
-  return array(
-    'api' => 2,
-    'path' => drupal_get_path('module', 'redirect') . '/views',
-  );
-}
-
-/**
  * Implements hook_page_build().
  *
  * Adds an action on 404 pages to create a redirect.
@@ -411,24 +407,24 @@ function redirect_page_build(&$page) {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_BASE_FORM_ID_alter().
  *
  * Adds support for creating redirects if a node URL alias is changed.
  */
-function redirect_form_node_form_alter(&$form, $form_state) {
-  if (!empty($form['path']['pid']['#value']) && !isset($form['path']['original'])) {
-    $form['path']['original'] = array('#type' => 'value', '#value' => path_load($form['path']['pid']['#value']));
+function redirect_form_node_form_alter(&$form, &$form_state) {
+  if (!empty($form['path']['pid']['#value'])) {
+    redirect_path_set_unchanged(path_load($form['path']['pid']['#value']));
   }
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_BASE_FORM_ID_alter().
  *
  * Adds support for creating redirects if a taxonomy term URL alias is changed.
  */
-function redirect_form_taxonomy_form_term_alter(&$form, $form_state) {
-  if (!empty($form['path']['pid']['#value']) && !isset($form['path']['original'])) {
-    $form['path']['original'] = array('#type' => 'value', '#value' => path_load($form['path']['pid']['#value']));
+function redirect_form_taxonomy_term_form_alter(&$form, &$form_state) {
+  if (!empty($form['path']['pid']['#value'])) {
+    redirect_path_set_unchanged(path_load($form['path']['pid']['#value']));
   }
 }
 
@@ -437,10 +433,38 @@ function redirect_form_taxonomy_form_term_alter(&$form, $form_state) {
  *
  * Adds support for creating redirects if an URL alias is changed.
  */
-function redirect_form_path_admin_form_alter(&$form, $form_state) {
-  if (!empty($form['pid']['#value']) && !isset($form['original'])) {
-    $form['original'] = array('#type' => 'value', '#value' => path_load($form['pid']['#value']));
+function redirect_form_path_admin_form_alter(&$form, &$form_state) {
+  if (!empty($form['pid']['#value'])) {
+    redirect_path_set_unchanged(path_load($form['pid']['#value']));
   }
+}
+
+/**
+ * Stores the unchanged path.
+ *
+ * @param $unchanged_path
+ *   The unchanged path.
+ */
+function redirect_path_set_unchanged($unchanged_path) {
+  // Using a static cache seems more appropriate than states. However it did not
+  // work for the node form, where the form alter hook is not invoked during the
+  // submit action.
+  //$path = &drupal_static('redirect_unchanged_path');
+  //$path = $unchanged_path;
+  \Drupal::state()->set('redirect_unchanged_path', $unchanged_path);
+}
+
+/**
+ * Gets the original path data if any set.
+ *
+ * @return array
+ *   The path data.
+ */
+function redirect_path_get_unchanged() {
+  //return drupal_static('redirect_unchanged_path');
+  $unchanged_path = \Drupal::state()->get('redirect_unchanged_path');
+  \Drupal::state()->set('redirect_unchanged_path', NULL);
+  return $unchanged_path;
 }
 
 /**
@@ -457,8 +481,7 @@ function redirect_form_path_admin_form_alter(&$form, $form_state) {
  * @ingroup redirect_api
  */
 function redirect_load($rid, $reset = FALSE) {
-  $redirects = entity_load('redirect', array($rid), array(), $reset);
-  return !empty($redirects) ? reset($redirects) : FALSE;
+  return entity_load('redirect', $rid, $reset);
 }
 
 /**
