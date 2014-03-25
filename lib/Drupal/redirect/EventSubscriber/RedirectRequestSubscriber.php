@@ -68,6 +68,12 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   public function onKernelRequestCheckRedirect(GetResponseEvent $event) {
     $request = $event->getRequest();
 
+    // @todo - this needs to become part of the subscriber class, otherwise
+    //   unit tests wont work.
+//    if (!redirect_can_redirect()) {
+//      return;
+//    }
+
     // Get URL info and process it to be used for hash generation.
     parse_str($request->getQueryString(), $request_query);
     $path = ltrim($request->getPathInfo(), '/');
