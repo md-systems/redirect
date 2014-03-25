@@ -39,7 +39,7 @@ class RedirectTerminateSubscriber implements EventSubscriberInterface {
   public function onKernelTerminateLogRedirect(PostResponseEvent $event) {
     $redirect_id = $event->getResponse()->headers->get('X-Redirect-ID');
     if (!empty($redirect_id) && $redirect = $this->redirectRepository->load($redirect_id)) {
-      $redirect->setAccess(REQUEST_TIME);
+      $redirect->setLastAccessed(REQUEST_TIME);
       $redirect->setCount($redirect->getCount() + 1);
       $redirect->save();
     }

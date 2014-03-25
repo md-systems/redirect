@@ -197,6 +197,13 @@ class RedirectUITest extends WebTestBase {
     // Check if the redirect works as expected.
     $this->drupalGet('non-existing');
     $this->assertUrl('node');
+
+    // Also test if the redirect has been properly logged.
+    /** @var \Drupal\redirect\RedirectRepository $repository */
+    $repository = \Drupal::service('redirect.repository');
+    $redirect = $repository->findMatchingRedirect('non-existing');
+    $this->assertEqual($redirect->getCount(), 1);
+    $this->assertTrue($redirect->getLastAccessed() > 0);
   }
 
   /**

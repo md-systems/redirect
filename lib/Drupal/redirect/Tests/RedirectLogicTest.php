@@ -38,7 +38,7 @@ class RedirectLogicTest extends UnitTestCase {
     // the url generator.
     $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('redirect_url'),
-      $this->getRedirectRepository('dummy_route_name'),
+      $this->getRedirectRepositoryForPath('dummy_route_name'),
       $this->getLanguageManager()
     );
     $event = $this->getGetResponseEvent();
@@ -51,7 +51,7 @@ class RedirectLogicTest extends UnitTestCase {
     // means no redirect will be found.
     $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('does_not_matter'),
-      $this->getRedirectRepository(),
+      $this->getRedirectRepositoryForPath(),
       $this->getLanguageManager()
     );
     $event = $this->getGetResponseEvent();
@@ -63,7 +63,7 @@ class RedirectLogicTest extends UnitTestCase {
     // by the url generator, but directly used the one from redirect repository.
     $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('dummy_value'),
-      $this->getRedirectRepository(NULL, 'absolute_url', 302),
+      $this->getRedirectRepositoryForPath(NULL, 'absolute_url', 302),
       $this->getLanguageManager()
     );
     $event = $this->getGetResponseEvent();
@@ -73,13 +73,76 @@ class RedirectLogicTest extends UnitTestCase {
     $this->assertEquals(302, $event->getResponse()->getStatusCode());
   }
 
+  /**
+   * Will test the redirect logging.
+   */
   public function testRedirectLogging() {
-    $repository = $this->getRedirectRepository();
-    $subscriber = new RedirectTerminateSubscriber($repository);
+    // By providing the X-Redirect-ID we expect to trigger the logic that calls
+    // setting the access and count on the redirect logic.
+    $subscriber = new RedirectTerminateSubscriber($this->getRedirectRepositoryAssertingAccessAndCount(REQUEST_TIME, 1));
     $post_response_event = $this->getPostResponseEvent(array('X-Redirect-ID' => 1));
+    $subscriber->onKernelTerminateLogRedirect($post_response_event);
+
+    // By not providing the the X-Redirect-ID the logging logic must not
+    // trigger.
+    $subscriber = new RedirectTerminateSubscriber($this->getRedirectRepositoryAssertingAccessAndCount(NULL, NULL));
+    $post_response_event = $this->getPostResponseEvent();
     $subscriber->onKernelTerminateLogRedirect($post_response_event);
   }
 
+  /**
+   * Gets the redirect repository mock asserting the provided arguments.
+   *
+   * @param int $access_time
+   *   Access time to assert.
+   * @param int $count
+   *   Count value to assert.
+   *
+   * @return PHPUnit_Framework_MockObject_MockObject
+   */
+  protected function getRedirectRepositoryAssertingAccessAndCount($access_time, $count) {
+    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
+      ->disableOriginalConstructor()
+      ->getMock();
+
+    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
+      ->disableOriginalConstructor()
+      ->getMock();
+    if (!empty($access_time) && !empty($count)) {
+      $redirect->expects($this->once())
+        ->method('setLastAccessed')
+        ->with($access_time);
+      $redirect->expects($this->once())
+        ->method('setCount')
+        ->with($count);
+      $redirect->expects($this->once())
+        ->method('save');
+    }
+    else {
+      $redirect->expects($this->never())
+        ->method('setLastAccessed');
+      $redirect->expects($this->never())
+        ->method('setCount');
+      $redirect->expects($this->never())
+        ->method('save');
+    }
+
+    $repository->expects($this->any())
+      ->method('load')
+      ->will($this->returnValue($redirect));
+
+    return $repository;
+  }
+
+  /**
+   * Gets post response event.
+   *
+   * @param array $headers
+   *   Headers to be set into the response.
+   *
+   * @return \Symfony\Component\HttpKernel\Event\PostResponseEvent
+   *   The post response event object.
+   */
   protected function getPostResponseEvent($headers = array()) {
     $http_kernel = $this->getMockBuilder('\Symfony\Component\HttpKernel\HttpKernelInterface')
       ->getMock();
@@ -130,7 +193,7 @@ class RedirectLogicTest extends UnitTestCase {
   }
 
   /**
-   * Gets the redirect repository mock object.
+   * Gets the redirect repository mock object based on the provided arguments.
    *
    * @param string $redirect_route_name
    *   Set to simulate having the route name - the redirect url will be what is
@@ -145,7 +208,7 @@ class RedirectLogicTest extends UnitTestCase {
    *
    * @see self::getUrlGenerator()
    */
-  protected function getRedirectRepository($redirect_route_name = NULL, $redirect_url = NULL, $status_code = 301) {
+  protected function getRedirectRepositoryForPath($redirect_route_name = NULL, $redirect_url = NULL, $status_code = 301) {
     $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
       ->disableOriginalConstructor()
       ->getMock();
@@ -174,11 +237,6 @@ class RedirectLogicTest extends UnitTestCase {
       $redirect->expects($this->any())
         ->method('getStatusCode')
         ->will($this->returnValue($status_code));
-      // @todo - here we need to read the value that has been set via the
-      //   setAccess() method in onKernelTerminateLogRedirect()
-//      $redirect->expects($this->any())
-//        ->method('setAccess')
-//        ->will($this->readAttribute());
     }
 
     $repository->expects($this->any())

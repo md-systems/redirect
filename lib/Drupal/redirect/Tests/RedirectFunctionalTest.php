@@ -85,7 +85,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
     // Set a redirect to not used in a while and disable running bootstrap
     // hooks during cache page serve. Running cron to remove inactive redirects
     // should not remove since they cannot be tracked.
-    $redirect->setAccess(1);
+    $redirect->setLastAccessed(1);
     $redirect->save();
     \Drupal::config('system.performance')->set('cache.page.invoke_hooks', FALSE)->save();
     $this->cronRun();
@@ -95,7 +95,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
     \Drupal::entityManager()->getStorageController('redirect')->resetCache();
     $redirect = redirect_load($redirect->id());
 
-    $redirect->setAccess(1);
+    $redirect->setLastAccessed(1);
     $redirect->save();
     \Drupal::config('system.performance')->set('cache.page.invoke_hooks', TRUE)->save();
     $this->cronRun();

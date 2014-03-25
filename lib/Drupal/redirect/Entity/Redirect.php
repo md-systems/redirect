@@ -349,7 +349,7 @@ class Redirect extends ContentEntityBase {
    * @param int $access
    *   The last access timestamp.
    */
-  public function setAccess($access) {
+  public function setLastAccessed($access) {
     $this->set('access', $access);
   }
 
