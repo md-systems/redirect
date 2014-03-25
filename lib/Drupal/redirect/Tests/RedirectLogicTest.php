@@ -34,43 +34,112 @@ class RedirectLogicTest extends UnitTestCase {
    */
   public function testRedirectLogic() {
 
-    // We have the route name based on which we should get the url matched by
-    // the url generator.
-    $subscriber = new RedirectRequestSubscriber(
-      $this->getUrlGenerator('redirect_url'),
-      $this->getRedirectRepositoryForPath('dummy_route_name'),
-      $this->getLanguageManager()
-    );
-    $event = $this->getGetResponseEvent();
-    $subscriber->onKernelRequestCheckRedirect($event);
+    // USE CASE 1.1.
+    // Route name is provided, the url is generated from the route, request
+    // query string should be retained.
 
-    $this->assertEquals('redirect_url', $event->getResponse()->getTargetUrl());
-    $this->assertEquals(301, $event->getResponse()->getStatusCode());
+    // Set the matching route name.
+    $route_name = 'test.route';
+    // The request query.
+    $request_query = array('key' => 'val');
+    // The query defined by the redirect entity.
+    $redirect_query = array('dummy' => 'value');
+    // The expected final query. This query must contain values defined
+    // by the redirect entity and values from the accessed url.
+    $final_query = $redirect_query + $request_query;
 
-    // Neither url nor route name provide for the redirect repository which
-    // means no redirect will be found.
-    $subscriber = new RedirectRequestSubscriber(
-      $this->getUrlGenerator('does_not_matter'),
-      $this->getRedirectRepositoryForPath(),
-      $this->getLanguageManager()
-    );
-    $event = $this->getGetResponseEvent();
-    $subscriber->onKernelRequestCheckRedirect($event);
+    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $url_generator->expects($this->once())
+      ->method('generateFromRoute')
+      ->with($route_name, array(), array('absolute' => TRUE, 'query' => $final_query))
+      ->will($this->returnValue('dummy_value'));
+    $url_generator->expects($this->never())
+      ->method('generateFromPath');
 
-    $this->assertEquals(NULL, $event->getResponse());
+    $redirect = $this->getRedirectStub('getRedirectRouteName', $route_name, $redirect_query);
+    $this->assertOnKernelRequestCheckRedirect($url_generator, $redirect, $request_query, TRUE);
 
-    // We provide the redirect url which means the redirect url is not processed
-    // by the url generator, but directly used the one from redirect repository.
-    $subscriber = new RedirectRequestSubscriber(
-      $this->getUrlGenerator('dummy_value'),
-      $this->getRedirectRepositoryForPath(NULL, 'absolute_url', 302),
-      $this->getLanguageManager()
-    );
-    $event = $this->getGetResponseEvent();
-    $subscriber->onKernelRequestCheckRedirect($event);
+    // USE CASE 1.2.
+    // Route name is provided, query string should NOT be retained.
 
-    $this->assertEquals('absolute_url', $event->getResponse()->getTargetUrl());
-    $this->assertEquals(302, $event->getResponse()->getStatusCode());
+    // Final query must not contain the request query.
+    $final_query = $redirect_query;
+
+    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $url_generator->expects($this->once())
+      ->method('generateFromRoute')
+      ->with($route_name, array(), array('absolute' => TRUE, 'query' => $final_query))
+      ->will($this->returnValue('dummy_value'));
+    $url_generator->expects($this->never())
+      ->method('generateFromPath');
+
+    $redirect = $this->getRedirectStub('getRedirectRouteName', $route_name, $redirect_query);
+    $this->assertOnKernelRequestCheckRedirect($url_generator, $redirect, $request_query, FALSE);
+
+    // USE CASE 2.
+    // No redirect found - none of the UrlGenerator generate functions will
+    // trigger.
+
+    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $url_generator->expects($this->never())
+      ->method('generateFromRoute');
+    $url_generator->expects($this->never())
+      ->method('generateFromPath');
+
+    $this->assertOnKernelRequestCheckRedirect($url_generator, NULL, $request_query, TRUE);
+
+    // USE CASE 3.1
+    // Absolute redirect url is provided, the url is generated from the path,
+    // request query string should be retained.
+
+    // Set the matching route name.
+    $route_url = 'route_url';
+    // The request query.
+    $request_query = array('key' => 'val');
+    // The query defined by the redirect entity.
+    $redirect_query = array('dummy' => 'value');
+    // The expected final query. This query must contain values defined
+    // by the redirect entity and values from the accessed url.
+    $final_query = $redirect_query + $request_query;
+
+    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $url_generator->expects($this->once())
+      ->method('generateFromPath')
+      ->with($route_url, array('external' => TRUE, 'query' => $final_query))
+      ->will($this->returnValue('dummy_value'));
+    $url_generator->expects($this->never())
+      ->method('generateFromRoute');
+
+    $redirect = $this->getRedirectStub('getRedirectUrl', $route_url . '?' . http_build_query($redirect_query));
+    $this->assertOnKernelRequestCheckRedirect($url_generator, $redirect, $request_query, TRUE);
+
+    // USE CASE 3.2.
+    // Absolute redirect url is provided, request query string should NOT be
+    // retained.
+
+    // The final query must not contain the request query.
+    $final_query = $redirect_query;
+
+    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $url_generator->expects($this->once())
+      ->method('generateFromPath')
+      ->with($route_url, array('external' => TRUE, 'query' => $final_query))
+      ->will($this->returnValue('dummy_value'));
+    $url_generator->expects($this->never())
+      ->method('generateFromRoute');
+
+    $redirect = $this->getRedirectStub('getRedirectUrl', $route_url . '?' . http_build_query($redirect_query));
+    $this->assertOnKernelRequestCheckRedirect($url_generator, $redirect, $request_query, FALSE);
   }
 
   /**
@@ -79,59 +148,139 @@ class RedirectLogicTest extends UnitTestCase {
   public function testRedirectLogging() {
     // By providing the X-Redirect-ID we expect to trigger the logic that calls
     // setting the access and count on the redirect logic.
-    $subscriber = new RedirectTerminateSubscriber($this->getRedirectRepositoryAssertingAccessAndCount(REQUEST_TIME, 1));
+
+    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $redirect->expects($this->once())
+      ->method('setLastAccessed')
+      ->with(REQUEST_TIME);
+    $redirect->expects($this->once())
+      ->method('setCount')
+      ->with(1);
+    $redirect->expects($this->once())
+      ->method('save');
+
+    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $repository->expects($this->any())
+      ->method('load')
+      ->will($this->returnValue($redirect));
+
+    $subscriber = new RedirectTerminateSubscriber($repository);
     $post_response_event = $this->getPostResponseEvent(array('X-Redirect-ID' => 1));
     $subscriber->onKernelTerminateLogRedirect($post_response_event);
 
     // By not providing the the X-Redirect-ID the logging logic must not
     // trigger.
-    $subscriber = new RedirectTerminateSubscriber($this->getRedirectRepositoryAssertingAccessAndCount(NULL, NULL));
+
+    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $redirect->expects($this->never())
+      ->method('setLastAccessed');
+    $redirect->expects($this->never())
+      ->method('setCount');
+    $redirect->expects($this->never())
+      ->method('save');
+
+    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $repository->expects($this->any())
+      ->method('load')
+      ->will($this->returnValue($redirect));
+
+    $subscriber = new RedirectTerminateSubscriber($repository);
     $post_response_event = $this->getPostResponseEvent();
     $subscriber->onKernelTerminateLogRedirect($post_response_event);
   }
 
   /**
-   * Gets the redirect repository mock asserting the provided arguments.
+   * Instantiates the subscriber and runs onKernelRequestCheckRedirect()
    *
-   * @param int $access_time
-   *   Access time to assert.
-   * @param int $count
-   *   Count value to assert.
+   * @param $url_generator
+   *   Url generator object.
+   * @param $redirect
+   *   The redirect entity.
+   * @param array $request_query
+   *   The query that is supposed to come via request.
+   * @param bool $retain_query
+   *   Flag if to retain the query through the redirect.
+   */
+  protected function assertOnKernelRequestCheckRedirect($url_generator, $redirect, $request_query, $retain_query) {
+    $subscriber = new RedirectRequestSubscriber(
+      $url_generator,
+      $this->getRedirectRepositoryStub('findMatchingRedirect', $redirect),
+      $this->getLanguageManagerStub(),
+      $this->getConfigFactoryStub(array('redirect.settings' => array('passthrough_querystring' => $retain_query)))
+    );
+
+    // Run the main redirect method.
+    $subscriber->onKernelRequestCheckRedirect($this->getGetResponseEventStub('non-existing', http_build_query($request_query)));
+  }
+
+  /**
+   * Gets the redirect repository mock object.
+   *
+   * @param $method
+   *   Method to mock - either load() or findMatchingRedirect().
+   * @param $redirect
+   *   The redirect object to be returned.
    *
    * @return PHPUnit_Framework_MockObject_MockObject
+   *   The redirect repository.
    */
-  protected function getRedirectRepositoryAssertingAccessAndCount($access_time, $count) {
+  protected function getRedirectRepositoryStub($method, $redirect) {
     $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
       ->disableOriginalConstructor()
       ->getMock();
 
-    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
-      ->disableOriginalConstructor()
-      ->getMock();
-    if (!empty($access_time) && !empty($count)) {
-      $redirect->expects($this->once())
-        ->method('setLastAccessed')
-        ->with($access_time);
-      $redirect->expects($this->once())
-        ->method('setCount')
-        ->with($count);
-      $redirect->expects($this->once())
-        ->method('save');
-    }
-    else {
-      $redirect->expects($this->never())
-        ->method('setLastAccessed');
-      $redirect->expects($this->never())
-        ->method('setCount');
-      $redirect->expects($this->never())
-        ->method('save');
-    }
-
     $repository->expects($this->any())
-      ->method('load')
+      ->method($method)
       ->will($this->returnValue($redirect));
 
     return $repository;
+  }
+
+  /**
+   * Gets the redirect mock object.
+   *
+   * @param $method
+   *   Method to mock - either getRedirectRouteName() or getRedirectUrl().
+   * @param $value
+   *   Value to be returned by the mocked method.
+   * @param array $query
+   *   In case the redirect has a valid route name the query that will be
+   *   appended to to the resulting url.
+   * @param int $status_code
+   *   The redirect status code.
+   *
+   * @return PHPUnit_Framework_MockObject_MockObject
+   *   The mocked redirect object.
+   */
+  protected function getRedirectStub($method, $value, $query = array(), $status_code = 301) {
+    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $redirect->expects($this->once())
+      ->method($method)
+      ->will($this->returnValue($value));
+    $redirect->expects($this->any())
+      ->method('getRedirectRouteParameters')
+      ->will($this->returnValue(array()));
+    $redirect->expects($this->any())
+      ->method('getStatusCode')
+      ->will($this->returnValue($status_code));
+
+    if (!empty($query)) {
+      $redirect->expects($this->once())
+        ->method('getRedirectOption')
+        ->will($this->returnValue($query));
+    }
+
+    return $redirect;
   }
 
   /**
@@ -158,19 +307,22 @@ class RedirectLogicTest extends UnitTestCase {
   /**
    * Gets response event object.
    *
+   * @param $path_info
+   * @param $query_string
+   *
    * @return GetResponseEvent
    */
-  protected function getGetResponseEvent() {
+  protected function getGetResponseEventStub($path_info, $query_string) {
 
     $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
       ->disableOriginalConstructor()
       ->getMock();
     $request->expects($this->any())
       ->method('getQueryString')
-      ->will($this->returnValue('does_not_matter'));
+      ->will($this->returnValue($query_string));
     $request->expects($this->any())
       ->method('getPathInfo')
-      ->will($this->returnValue('does_not_matter'));
+      ->will($this->returnValue($path_info));
 
     $http_kernel = $this->getMockBuilder('\Symfony\Component\HttpKernel\HttpKernelInterface')
       ->getMock();
@@ -182,87 +334,14 @@ class RedirectLogicTest extends UnitTestCase {
    *
    * @return \Drupal\language\ConfigurableLanguageManagerInterface|PHPUnit_Framework_MockObject_MockObject
    */
-  protected function getLanguageManager() {
+  protected function getLanguageManagerStub() {
     $language_manager = $this->getMockBuilder('Drupal\language\ConfigurableLanguageManagerInterface')
       ->getMock();
     $language_manager->expects($this->any())
       ->method('getCurrentLanguage')
-      ->will($this->returnValue(new Language(array('id' => 'does_not_matter'))));
+      ->will($this->returnValue(new Language(array('id' => 'en'))));
 
     return $language_manager;
-  }
-
-  /**
-   * Gets the redirect repository mock object based on the provided arguments.
-   *
-   * @param string $redirect_route_name
-   *   Set to simulate having the route name - the redirect url will be what is
-   *   returned by the UrlGenerator
-   * @param string $redirect_url
-   *   To simulate having the absolute redirect url - the redirect url will be
-   *   the this value if $redirect_route_name is null.
-   * @param int $status_code
-   *   Status code of the redirect.
-   *
-   * @return \Drupal\redirect\RedirectRepository|PHPUnit_Framework_MockObject_MockObject
-   *
-   * @see self::getUrlGenerator()
-   */
-  protected function getRedirectRepositoryForPath($redirect_route_name = NULL, $redirect_url = NULL, $status_code = 301) {
-    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
-      ->disableOriginalConstructor()
-      ->getMock();
-
-    // If none of them provided it means we simulate not having matched any
-    // redirect.
-    if (empty($redirect_route_name) && empty($redirect_url)) {
-      $redirect = NULL;
-    }
-    else {
-      $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
-        ->disableOriginalConstructor()
-        ->getMock();
-      $redirect->expects($this->any())
-        ->method('getRedirectRouteName')
-        ->will($this->returnValue($redirect_route_name));
-      $redirect->expects($this->any())
-        ->method('getRedirectRouteParameters')
-        ->will($this->returnValue('does_not_matter'));
-      $redirect->expects($this->any())
-        ->method('getRedirectOption')
-        ->will($this->returnValue('does_not_matter'));
-      $redirect->expects($this->any())
-        ->method('getRedirectUrl')
-        ->will($this->returnValue($redirect_url));
-      $redirect->expects($this->any())
-        ->method('getStatusCode')
-        ->will($this->returnValue($status_code));
-    }
-
-    $repository->expects($this->any())
-      ->method('findMatchingRedirect')
-      ->will($this->returnValue($redirect));
-
-    return $repository;
-  }
-
-  /**
-   * Gets the url generator mock object.
-   *
-   * @param string $url
-   *   The URL returned by the url generator.
-   *
-   * @return \Drupal\Core\Routing\UrlGenerator|PHPUnit_Framework_MockObject_MockObject
-   */
-  protected function getUrlGenerator($url) {
-    $url_generator = $this->getMockBuilder('Drupal\Core\Routing\UrlGenerator')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $url_generator->expects($this->any())
-      ->method('generateFromRoute')
-      ->will($this->returnValue($url));
-
-    return $url_generator;
   }
 
 }

@@ -7,6 +7,8 @@
 
 namespace Drupal\redirect\EventSubscriber;
 
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
 use Drupal\redirect\RedirectRepository;
@@ -34,6 +36,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   protected $languageManager;
 
   /**
+   * @var \Drupal\Core\Config\Config
+   */
+  protected $config;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Routing\UrlGenerator $url_generator
@@ -42,11 +49,14 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    *   The redirect entity repository.
    * @param \Drupal\Core\Language\LanguageManagerInterface
    *   The language manager service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface
+   *   The config.
    */
-  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager) {
+  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config) {
     $this->urlGenerator = $url_generator;
     $this->redirectRepository = $redirect_repository;
     $this->languageManager = $language_manager;
+    $this->config = $config->get('redirect.settings');
   }
 
   /**
@@ -59,22 +69,39 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     $request = $event->getRequest();
 
     // Get URL info and process it to be used for hash generation.
-    parse_str($request->getQueryString(), $query);
+    parse_str($request->getQueryString(), $request_query);
     $path = ltrim($request->getPathInfo(), '/');
 
-    $redirect = $this->redirectRepository->findMatchingRedirect($path, $query, $this->languageManager->getCurrentLanguage());
+    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage());
 
     if (!empty($redirect)) {
       // Handle internal path.
       if ($route_name = $redirect->getRedirectRouteName()) {
+
+        $redirect_query = $redirect->getRedirectOption('query', array());
+        if ($this->config->get('passthrough_querystring')) {
+          $redirect_query += $request_query;
+        }
+
         $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(
           'absolute' => TRUE,
-          'query' => $redirect->getRedirectOption('query'),
+          'query' => $redirect_query,
         ));
       }
       // Handle external path.
       else {
         $url = $redirect->getRedirectUrl();
+        $parsed_url = UrlHelper::parse($url);
+
+        $redirect_query = $parsed_url['query'];
+        if ($this->config->get('passthrough_querystring')) {
+          $redirect_query += $request_query;
+        }
+
+        $url = $this->urlGenerator->generateFromPath($parsed_url['path'], array(
+          'external' => TRUE,
+          'query' => $redirect_query,
+        ));
       }
       $response = new RedirectResponse($url, $redirect->getStatusCode(), array('X-Redirect-ID' => $redirect->id()));
       $event->setResponse($response);
