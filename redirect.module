@@ -86,7 +86,7 @@ function redirect_menu_link_defaults() {
     'link_title' => 'URL redirects',
     'description' => 'Redirect users from one URL to another.',
     'route_name' => 'redirect.list',
-    'parent' => 'system.admin.config.search',
+    'parent' => 'system.admin_config_search',
     'menu_name' => 'admin',
   );
   $items['redirect.add'] = array(
@@ -293,23 +293,6 @@ function redirect_init() {
 function redirect_cron() {
   // Purge inactive self-managed redirects from the database.
   redirect_purge_inactive_redirects();
-}
-
-/**
- * Implements hook_exit().
- */
-function redirect_exit($destination = NULL) {
-  // If the current page is being cached, track it.
-  if (drupal_get_http_header('Location') && $rid = drupal_get_http_header('X-Redirect-ID')) {
-    // Ensure the database is loaded. This is only the next bootstrap step
-    // after DRUPAL_BOOTSTRAP_DATABASE
-    drupal_bootstrap(DRUPAL_BOOTSTRAP_KERNEL);
-    db_update('redirect')
-      ->fields(array('access' => REQUEST_TIME))
-      ->expression('count', 'count + 1')
-      ->condition('rid', $rid)
-      ->execute();
-  }
 }
 
 /**

@@ -14,7 +14,7 @@ class RedirectRepository {
   protected $manager;
 
   /**
-   * Constructs a \Drupal\redirect\EventSubscriber\RedirectSubscriber object.
+   * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   The entity manager service.
@@ -63,5 +63,17 @@ class RedirectRepository {
    */
   public function findBySourcePath($source_path) {
     return $this->manager->getStorageController('redirect')->loadByProperties(array('redirect_source__url' => $source_path));
+  }
+
+  /**
+   * Load redirect entity by id.
+   *
+   * @param int $redirect_id
+   *   The redirect id.
+   *
+   * @return \Drupal\redirect\Entity\Redirect
+   */
+  public function load($redirect_id) {
+    return $this->manager->getStorageController('redirect')->load($redirect_id);
   }
 }

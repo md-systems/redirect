@@ -8,10 +8,13 @@
 namespace Drupal\redirect\Tests;
 
 use Drupal\Core\Language\Language;
-use Drupal\redirect\EventSubscriber\RedirectSubscriber;
+use Drupal\redirect\EventSubscriber\RedirectRequestSubscriber;
+use Drupal\redirect\EventSubscriber\RedirectTerminateSubscriber;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit_Framework_MockObject_MockObject;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 
 /**
  * Tests the redirect logic.
@@ -27,18 +30,18 @@ class RedirectLogicTest extends UnitTestCase {
   }
 
   /**
-   * Unit test of the RedirectSubscriber::onKernelRequestCheckRedirect().
+   * Unit test of the RedirectRequestSubscriber::onKernelRequestCheckRedirect().
    */
   public function testRedirectLogic() {
 
     // We have the route name based on which we should get the url matched by
     // the url generator.
-    $subscriber = new RedirectSubscriber(
+    $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('redirect_url'),
       $this->getRedirectRepository('dummy_route_name'),
       $this->getLanguageManager()
     );
-    $event = $this->getResponseEvent();
+    $event = $this->getGetResponseEvent();
     $subscriber->onKernelRequestCheckRedirect($event);
 
     $this->assertEquals('redirect_url', $event->getResponse()->getTargetUrl());
@@ -46,28 +49,47 @@ class RedirectLogicTest extends UnitTestCase {
 
     // Neither url nor route name provide for the redirect repository which
     // means no redirect will be found.
-    $subscriber = new RedirectSubscriber(
+    $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('does_not_matter'),
       $this->getRedirectRepository(),
       $this->getLanguageManager()
     );
-    $event = $this->getResponseEvent();
+    $event = $this->getGetResponseEvent();
     $subscriber->onKernelRequestCheckRedirect($event);
 
     $this->assertEquals(NULL, $event->getResponse());
 
     // We provide the redirect url which means the redirect url is not processed
     // by the url generator, but directly used the one from redirect repository.
-    $subscriber = new RedirectSubscriber(
+    $subscriber = new RedirectRequestSubscriber(
       $this->getUrlGenerator('dummy_value'),
       $this->getRedirectRepository(NULL, 'absolute_url', 302),
       $this->getLanguageManager()
     );
-    $event = $this->getResponseEvent();
+    $event = $this->getGetResponseEvent();
     $subscriber->onKernelRequestCheckRedirect($event);
 
     $this->assertEquals('absolute_url', $event->getResponse()->getTargetUrl());
     $this->assertEquals(302, $event->getResponse()->getStatusCode());
+  }
+
+  public function testRedirectLogging() {
+    $repository = $this->getRedirectRepository();
+    $subscriber = new RedirectTerminateSubscriber($repository);
+    $post_response_event = $this->getPostResponseEvent(array('X-Redirect-ID' => 1));
+    $subscriber->onKernelTerminateLogRedirect($post_response_event);
+  }
+
+  protected function getPostResponseEvent($headers = array()) {
+    $http_kernel = $this->getMockBuilder('\Symfony\Component\HttpKernel\HttpKernelInterface')
+      ->getMock();
+    $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
+      ->disableOriginalConstructor()
+      ->getMock();
+
+    $response = new Response('', 301, $headers);
+
+    return new PostResponseEvent($http_kernel, $request, $response);
   }
 
   /**
@@ -75,7 +97,7 @@ class RedirectLogicTest extends UnitTestCase {
    *
    * @return GetResponseEvent
    */
-  protected function getResponseEvent() {
+  protected function getGetResponseEvent() {
 
     $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
       ->disableOriginalConstructor()
@@ -152,6 +174,11 @@ class RedirectLogicTest extends UnitTestCase {
       $redirect->expects($this->any())
         ->method('getStatusCode')
         ->will($this->returnValue($status_code));
+      // @todo - here we need to read the value that has been set via the
+      //   setAccess() method in onKernelTerminateLogRedirect()
+//      $redirect->expects($this->any())
+//        ->method('setAccess')
+//        ->will($this->readAttribute());
     }
 
     $repository->expects($this->any())

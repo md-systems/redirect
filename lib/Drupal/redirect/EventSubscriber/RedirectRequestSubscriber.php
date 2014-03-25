@@ -2,16 +2,13 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\EventSubscriber\RedirectSubscriber.
+ * Contains \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber.
  */
 
 namespace Drupal\redirect\EventSubscriber;
 
-use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
-use Drupal\redirect\Entity\Redirect;
 use Drupal\redirect\RedirectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -21,7 +18,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Redirect subscriber for controller requests.
  */
-class RedirectSubscriber implements EventSubscriberInterface {
+class RedirectRequestSubscriber implements EventSubscriberInterface {
 
   /** @var  \Drupal\redirect\RedirectRepository */
   protected $redirectRepository;
@@ -37,7 +34,7 @@ class RedirectSubscriber implements EventSubscriberInterface {
   protected $languageManager;
 
   /**
-   * Constructs a \Drupal\redirect\EventSubscriber\RedirectSubscriber object.
+   * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Routing\UrlGenerator $url_generator
    *   The URL generator service.
@@ -79,7 +76,7 @@ class RedirectSubscriber implements EventSubscriberInterface {
       else {
         $url = $redirect->getRedirectUrl();
       }
-      $response = new RedirectResponse($url, $redirect->getStatusCode());
+      $response = new RedirectResponse($url, $redirect->getStatusCode(), array('X-Redirect-ID' => $redirect->id()));
       $event->setResponse($response);
     }
   }
