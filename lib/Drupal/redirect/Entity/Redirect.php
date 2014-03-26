@@ -196,10 +196,45 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setSource($url, array $options = array()) {
-    $this->redirect_source->set(0, array(
-      'url' => $url,
-      'options' => $options,
-    ));
+    $value = array();
+    try {
+      $parsed_url = UrlHelper::parse($url);
+
+      $url = Url::createFromPath($parsed_url['path']);
+      if (!empty($parsed_url['query'])) {
+        $url->setOption('query', $parsed_url['query']);
+      }
+      if (!empty($parsed_url['fragment'])) {
+        $url->setOption('fragment', $parsed_url['fragment']);
+      }
+
+      $value += $url->toArray();
+      // Reset the URL value to contain only the path.
+      $value['url'] = $parsed_url['path'];
+    }
+    // We have invalid URL - for the source process anyway.
+    catch (\Exception $e) {
+      // In case we have query process the url.
+      if (strpos($url, '?') !== FALSE) {
+        $url = UrlHelper::parse($value['url']);
+        $value['url'] = $url['path'];
+        $value['options']['query'] = $url['query'];
+      }
+      else {
+        $value['url'] = $url;
+      }
+      $value += array(
+        'route_name' => NULL,
+        'route_parameters' => array(),
+        'options' => array(
+          'attributes' => array(),
+        ),
+      );
+    }
+
+    $value['options'] += $options;
+
+    $this->redirect_source->set(0, $value);
   }
 
   /**
@@ -248,10 +283,31 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setRedirect($url, array $options = array()) {
-    $this->redirect_redirect->set(0, array(
-      'url' => $url,
-      'options' => $options,
-    ));
+    $value = array();
+
+    try {
+      $parsed_url = UrlHelper::parse($url);
+
+      $url = Url::createFromPath($parsed_url['path']);
+      if (!empty($parsed_url['query'])) {
+        $url->setOption('query', $parsed_url['query']);
+      }
+      if (!empty($parsed_url['fragment'])) {
+        $url->setOption('fragment', $parsed_url['fragment']);
+      }
+
+      $value += $url->toArray();
+      // Reset the URL value to contain only the path.
+      $value['url'] = $parsed_url['path'];
+
+      $value['options'] += $options;
+    }
+    catch (\Exception $e) {
+      $value['url'] = $url;
+      $value['options'] = $options;
+    }
+
+    $this->redirect_redirect->set(0, $value);
   }
 
   /**

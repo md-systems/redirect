@@ -1,10 +1,13 @@
 services:
   redirect.repository:
-      class: Drupal\redirect\RedirectRepository
-      arguments: ['@entity.manager']
+    class: Drupal\redirect\RedirectRepository
+    arguments: ['@entity.manager']
+  redirect.checker:
+    class: Drupal\redirect\RedirectChecker
+    arguments: ['@config.factory', '@state', '@flood']
   redirect.request_subscriber:
     class: Drupal\redirect\EventSubscriber\RedirectRequestSubscriber
-    arguments: ['@url_generator', '@redirect.repository', '@language_manager', '@config.factory', '@state']
+    arguments: ['@url_generator', '@redirect.repository', '@language_manager', '@config.factory', '@redirect.checker']
     tags:
       - { name: event_subscriber }
   redirect.terminate_subscriber:
