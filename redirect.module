@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * The redirect module.
+ */
+
+/**
  * @defgroup redirect_api Redirection API
  * @{
  * Functions related to URL redirects.
@@ -232,7 +237,7 @@ function redirect_entity_info_alter(&$info) {
  * @param $entity_type
  *   An entity type.
  *
- * @return
+ * @return bool
  *   TRUE if the entity type has an uri callback and supports redirects, or
  *   FALSE otherwise.
  */
@@ -425,7 +430,7 @@ function redirect_form_path_admin_form_alter(&$form, &$form_state) {
 /**
  * Stores the unchanged path.
  *
- * @param $unchanged_path
+ * @param string $unchanged_path
  *   The unchanged path.
  */
 function redirect_path_set_unchanged($unchanged_path) {
@@ -585,14 +590,14 @@ function redirect_load_multiple($rids = array(), array $conditions = array(), $r
  *   - "create"
  *   - "update"
  *   - "delete"
- * @param $redirect
+ * @param object $redirect
  *   The redirect object on which the operation is to be performed, or redirect
  *   type (e.g. 'feedburner') for the "create" operation.
- * @param \Drupal\user\UserInterface $account
+ * @param UserInterface $account
  *   Optional, a user object representing the user for whom the operation is to
  *   be performed. Determines access for a user other than the current user.
  *
- * @return
+ * @return bool
  *   TRUE if the operation may be performed, FALSE otherwise.
  */
 function redirect_access($op, $redirect, UserInterface $account = NULL) {
@@ -643,7 +648,7 @@ function redirect_access($op, $redirect, UserInterface $account = NULL) {
  * Validate a redirect.
  */
 function redirect_validate(Redirect $redirect, $form, &$form_state) {
-  // check that there there are no redirect loops
+  // Check that there there are no redirect loops.
   if (url($redirect->getSource()) == url($redirect->getRedirect())) {
     \Drupal::formBuilder()->setErrorByName('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
   }
@@ -710,7 +715,7 @@ function redirect_redirect_delete($redirect) {
  * @ingroup redirect_api
  */
 function redirect_delete($rid) {
-  return redirect_delete_multiple(array($rid));
+  redirect_delete_multiple(array($rid));
 }
 
 /**
@@ -736,7 +741,7 @@ function redirect_delete_by_path($path) {
   $rids = $query->execute()->fetchCol();
 
   if ($rids) {
-    return redirect_delete_multiple($rids);
+    redirect_delete_multiple($rids);
   }
 }
 

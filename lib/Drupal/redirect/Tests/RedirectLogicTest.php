@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\RedirectLogicTest.
+ * Contains \Drupal\redirect\Tests\RedirectLogicTest
  */
 
 namespace Drupal\redirect\Tests;
@@ -14,7 +14,6 @@ use Drupal\Tests\UnitTestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\Event\PostResponseEvent;
@@ -146,7 +145,7 @@ class RedirectLogicTest extends UnitTestCase {
   }
 
   /**
-   * Will test the redirect logging.
+   * Test the redirect logging.
    */
   public function testRedirectLogging() {
     // By providing the X-Redirect-ID we expect to trigger the logic that calls
@@ -299,7 +298,7 @@ class RedirectLogicTest extends UnitTestCase {
   /**
    * Gets request mock object.
    *
-   * @param $script_name
+   * @param string $script_name
    *   The result of the getScriptName() method.
    * @param $method
    *   The request method.
@@ -325,7 +324,7 @@ class RedirectLogicTest extends UnitTestCase {
   }
 
   /**
-   * Instantiates the subscriber and runs onKernelRequestCheckRedirect()
+   * Instantiates the subscriber and runs onKernelRequestCheckRedirect().
    *
    * @param $url_generator
    *   Url generator object.

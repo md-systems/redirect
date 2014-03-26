@@ -1,10 +1,13 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\redirect\Tests\RedirectUITest
+ */
+
 namespace Drupal\redirect\Tests;
 
-
 use Drupal\Core\Language\Language;
-use Drupal\redirect\Entity\Redirect;
 use Drupal\simpletest\WebTestBase;
 
 class RedirectUITest extends WebTestBase {

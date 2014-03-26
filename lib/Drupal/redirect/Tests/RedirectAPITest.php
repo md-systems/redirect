@@ -1,8 +1,12 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\redirect\Test\RedirectAPITest
+ */
+
 namespace Drupal\redirect\Tests;
 
-use Drupal\redirect\RedirectRepository;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
@@ -35,7 +39,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  function setUp() {
+  public function setUp() {
     parent::setUp();
 
     $this->installSchema('redirect', array('redirect'));
@@ -48,7 +52,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   /**
    * Test redirect entity logic.
    */
-  function testRedirectEntity() {
+  public function testRedirectEntity() {
     // Create a redirect and test if hash has been generated correctly.
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
@@ -108,7 +112,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   /**
    * Test the redirect_compare_array_recursive() function.
    */
-  function testCompareArrayRecursive() {
+  public function testCompareArrayRecursive() {
     $haystack = array('a' => 'aa', 'b' => 'bb', 'c' => array('c1' => 'cc1', 'c2' => 'cc2'));
     $cases = array(
       array('query' => array('a' => 'aa', 'b' => 'invalid'), 'result' => FALSE),
@@ -127,7 +131,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   /**
    * Test redirect_sort_recursive().
    */
-  function testSortRecursive() {
+  public function testSortRecursive() {
     $test_cases = array(
       array(
         'input' => array('b' => 'aa', 'c' => array('c2' => 'aa', 'c1' => 'aa'), 'a' => 'aa'),
@@ -145,7 +149,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
   /**
    * Test redirect_parse_url().
    */
-  function testParseURL() {
+  public function testParseURL() {
     //$test_cases = array(
     //  array(
     //    'input' => array('b' => 'aa', 'c' => array('c2' => 'aa', 'c1' => 'aa'), 'a' => 'aa'),
@@ -158,4 +162,3 @@ class RedirectAPITest extends DrupalUnitTestBase {
     //}
   }
 }
-

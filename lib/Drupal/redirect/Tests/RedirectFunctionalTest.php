@@ -1,7 +1,11 @@
 <?php
 
-namespace Drupal\redirect\Tests;
+/**
+ * @file
+ * Contains \Drupal\redirect\Tests\RedirectFunctionalTest
+ */
 
+namespace Drupal\redirect\Tests;
 
 class RedirectFunctionalTest extends RedirectTestBase {
   private $admin_user;
@@ -26,10 +30,19 @@ class RedirectFunctionalTest extends RedirectTestBase {
 
     $content_type = $this->drupalCreateContentType();
 
-    $this->admin_user = $this->drupalCreateUser(array('administer redirects', 'access site reports', 'access content', 'create ' . $content_type->type . ' content', 'edit any ' . $content_type->type . ' content', 'create url aliases'));
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer redirects',
+      'access site reports',
+      'access content',
+      'create ' . $content_type->type . ' content',
+      'edit any ' . $content_type->type . ' content',
+      'create url aliases'));
   }
 
-  function test404Interface() {
+  /**
+   * @todo Add comment.
+   */
+  public function test404Interface() {
     $this->drupalLogin($this->admin_user);
     // Check that 404 pages do get add redirect links for admin users.
     $this->drupalGet('invalid-path1');
@@ -49,7 +62,10 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $this->assertNoLink('Add an URL redirect from this page to another location');
   }
 
-  function testPageCache() {
+  /**
+   * @todo Add comment.
+   */
+  public function testPageCache() {
     $this->drupalLogin($this->admin_user);
     // Set up cache variables.
     \Drupal::config('system.performance')->set('cache.page.use_internal', TRUE)->save();
@@ -102,7 +118,10 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $this->assertNoRedirect($redirect);
   }
 
-  function testPathChangeRedirects() {
+  /**
+   * @todo Add comment.
+   */
+  public function testPathChangeRedirects() {
     $this->drupalLogin($this->admin_user);
     // Create an initial article node with a path alias.
     $node = $this->drupalCreateNode(array('type' => 'article', 'path' => array('alias' => 'first-alias')));

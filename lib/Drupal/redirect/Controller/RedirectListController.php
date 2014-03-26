@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Contains Drupal\redirect\Controller\RedirectListController.
+ */
+
 namespace Drupal\redirect\Controller;
 
 
@@ -7,7 +12,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
 
 class RedirectListController extends EntityListBuilder {
-
 
   public function buildHeader() {
     $row['redirect_source'] = $this->t('From');

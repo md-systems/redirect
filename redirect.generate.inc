@@ -1,4 +1,10 @@
 <?php
+
+/**
+ * @file
+ * Generate callbacks for the redirect module.
+ */
+
 use Drupal\Component\Utility\Random;
 use Drupal\devel_generate\DevelGenerateBase;
 
@@ -100,7 +106,7 @@ function redirect_generate_batch_generate($num, array &$context) {
     $redirect_options = array();
 
     if ($context['sandbox']['nids'] && $rand >= 40) {
-      $redirect_target =  'node/'. array_rand($context['sandbox']['nids']);
+      $redirect_target = 'node/' . array_rand($context['sandbox']['nids']);
     }
     else {
       $redirect_target = _redirect_generate_url(TRUE);
