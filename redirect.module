@@ -1022,52 +1022,6 @@ function redirect_load_entity_from_path($path) {
 }
 
 /**
- * Check the ability to perform redirects with the current request context.
- *
- * This function checks the following conditions:
- * - If the PHP entry point is the root index.php file.
- * - If PHP is not running as CLI.
- * - If the site is not offline or in install/update mode.
- * - If the curerent page is not an admin page (check can be disabled).
- * - If the current request does not have any POST data since a redirect
- *   may interrupt form submission.
- *
- * @return
- *   TRUE if redirections can be performed, or FALSE otherwise.
- */
-function redirect_can_redirect() {
-  $can_redirect = &drupal_static(__FUNCTION__);
-
-  if (!isset($can_redirect)) {
-    $path = current_path();
-    $can_redirect = TRUE;
-
-    if ($_SERVER['SCRIPT_NAME'] != $GLOBALS['base_path'] . 'index.php') {
-      // Do not redirect if the root script is not /index.php.
-      $can_redirect = FALSE;
-    }
-    elseif (!empty($_POST)) {
-      // Do not redirect if this is a post request with data.
-      $can_redirect = FALSE;
-    }
-    elseif (drupal_is_cli()) {
-      // If this is a command line request (Drush, etc), skip processing.
-      $can_redirect = FALSE;
-    }
-    elseif (\Drupal::state()->get('system.maintenance_mode') || defined('MAINTENANCE_MODE')) {
-      // Do not redirect in offline or maintenance mode.
-      $can_redirect = FALSE;
-    }
-    elseif (!\Drupal::config('redirect.settings')->get('global_admin_paths') && path_is_admin($path)) {
-      // Do not redirect on admin paths.
-      $can_redirect = FALSE;
-    }
-  }
-
-  return $can_redirect;
-}
-
-/**
  * Compare tha all values and associations in one array match another array.
  *
  * We cannot use array_diff_assoc() here because we need to be recursive.
@@ -1195,38 +1149,6 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
 
   return $url;
 }
-
-function redirect_variables() {
-  return array(
-    'redirect_default_status_code' => 301,
-    'redirect_auto_redirect' => TRUE,
-    'redirect_warning' => FALSE,
-    'redirect_passthrough_querystring' => 1,
-    'redirect_page_cache' => 0,
-    'redirect_purge_inactive' => 0,
-    'redirect_global_home' => 1,
-    'redirect_global_clean' => 1,
-    'redirect_global_canonical' => 1,
-    'redirect_global_admin_paths' => 0,
-  );
-}
-
-//function redirect_get_redirect_info() {
-//  $info = &drupal_static(__FUNCTION__);
-//
-//  if (!isset($info)) {
-//    if ($cache = cache_get('redirect:info')) {
-//      $info = $cache->data;
-//    }
-//    else {
-//      $info = module_invoke_all('redirect_info');
-//      drupal_alter('redirect_info', $info);
-//      cache_set('redirect:info', $info);
-//    }
-//  }
-//
-//  return $info;
-//}
 
 function redirect_parse_url($url) {
   $original_url = $url;
@@ -1469,6 +1391,11 @@ function redirect_redirect_operations() {
   return $operations;
 }
 
+/**
+ * @param $form
+ * @param $form_state
+ * @return mixed
+ */
 function redirect_source_link_get_status_messages($form, &$form_state) {
   return $form['redirect_source']['widget'][0]['status_box'];
 }

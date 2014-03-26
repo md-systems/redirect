@@ -4,7 +4,7 @@ services:
       arguments: ['@entity.manager']
   redirect.request_subscriber:
     class: Drupal\redirect\EventSubscriber\RedirectRequestSubscriber
-    arguments: ['@url_generator', '@redirect.repository', '@language_manager', '@config.factory']
+    arguments: ['@url_generator', '@redirect.repository', '@language_manager', '@config.factory', '@state']
     tags:
       - { name: event_subscriber }
   redirect.terminate_subscriber:
