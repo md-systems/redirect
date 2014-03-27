@@ -12,7 +12,7 @@ function redirect_views_data() {
   // Basic table information.
   $data['redirect']['table']['group'] = t('Redirect');
 
-  // Advertise this table as a possible base table
+  // Advertise this table as a possible base table.
   $data['redirect']['table']['base'] = array(
     'field' => 'rid',
     'title' => t('URL redirects'),
@@ -153,7 +153,7 @@ function redirect_views_data() {
       'id' => 'date',
     ),
     'sort' => array(
-      'id' => 'date'
+      'id' => 'date',
     ),
     'filter' => array(
       'id' => 'date',

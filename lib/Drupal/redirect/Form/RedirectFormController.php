@@ -1,10 +1,14 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\redirect\Form\RedirectFormController
+ */
+
 namespace Drupal\redirect\Form;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityFormController;
-use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
@@ -121,7 +125,9 @@ class RedirectFormController extends ContentEntityFormController {
       $redirect = array_shift($redirects);
       if ($this->entity->isNew() || $redirect->id() != $this->entity->id()) {
         $this->setFormError('redirect_source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-          array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+          array(
+            '%source' => $redirect->getSourceUrl(),
+            '@edit-page' => url('admin/config/search/redirect/edit/' . $redirect->id()))));
       }
     }
   }

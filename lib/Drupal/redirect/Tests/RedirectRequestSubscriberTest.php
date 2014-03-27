@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\RedirectRequestSubscriberTest.
+ * Contains \Drupal\redirect\Tests\RedirectRequestSubscriberTest
  */
 
 namespace Drupal\redirect\Tests;
@@ -144,7 +144,7 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
   }
 
   /**
-   * Will test the redirect logging.
+   * Test the redirect logging.
    */
   public function testRedirectLogging() {
     // By providing the X-Redirect-ID we expect to trigger the logic that calls

@@ -7,13 +7,11 @@
 namespace Drupal\redirect\Entity;
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
-use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
 /**

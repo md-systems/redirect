@@ -114,6 +114,8 @@ function redirect_schema() {
         'not null' => TRUE,
         'description' => 'The HTTP status code to use for the redirect.',
       ),
+      // @todo I guess stats data should go into a separate access table.
+      // @todo Accessing a redirect should not result in a write on the redirect table.
       'count' => array(
         'type' => 'int',
         'unsigned' => TRUE,

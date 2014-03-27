@@ -54,11 +54,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    *   The URL generator service.
    * @param \Drupal\redirect\RedirectRepository $redirect_repository
    *   The redirect entity repository.
-   * @param \Drupal\Core\Language\LanguageManagerInterface
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager service.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
    *   The config.
-   * @param \Drupal\redirect\RedirectChecker
+   * @param \Drupal\redirect\RedirectChecker $checker
    *   The redirect checker service.
    */
   public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, RedirectChecker $checker) {

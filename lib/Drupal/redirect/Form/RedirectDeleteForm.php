@@ -1,10 +1,13 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\Core\Entity\ContentEntityConfirmFormBase\RedirectDeleteForm
+ */
+
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
-use Drupal\Core\Entity\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class RedirectDeleteForm extends ContentEntityConfirmFormBase {
 

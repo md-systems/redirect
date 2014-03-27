@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_drush_command().
+ * Implements hook_drush_command().
  */
 function redirect_drush_command() {
   $items['generate-redirects'] = array(

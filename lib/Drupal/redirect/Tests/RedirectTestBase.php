@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\redirect\Tests\RedirectTestBase
+ */
+
 namespace Drupal\redirect\Tests;
 
 use Drupal\redirect\Entity\Redirect;
@@ -21,7 +26,7 @@ class RedirectTestBase extends WebTestBase {
   }
 
   /**
-   * Add an URL redirection
+   * Add an URL redirection.
    *
    * @param string $source_path
    *   A source path.

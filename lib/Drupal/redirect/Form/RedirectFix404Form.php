@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\redirect\Form\RedirectFix404Form
+ */
+
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Database\Query\Select;
@@ -72,7 +77,7 @@ class RedirectFix404Form extends FormBase {
     $query->condition('w.type', 'page not found');
     $query->groupBy('w.message');
     $this->filterQuery($query, array('w.message'), $search);
-//    $query->setCountQuery($count_query);
+    // $query->setCountQuery($count_query);
     $results = $query->execute();
 
     $rows = array();

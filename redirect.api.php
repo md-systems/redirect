@@ -123,15 +123,15 @@ function hook_redirect_load_by_source_alter(array &$redirects, $source, array $c
  * block access, return REDIRECT_ACCESS_IGNORE or simply return nothing.
  * Blindly returning FALSE will break other redirect access modules.
  *
- * @param $redirect
- *   The redirect object on which the operation is to be performed, or, if it
- *   does not yet exist, the type of redirect to be created.
- * @param $op
+ * @param string $op
  *   The operation to be performed. Possible values:
  *   - "create"
  *   - "delete"
  *   - "update"
- * @param $account
+ * @param string $redirect
+ *   The redirect object on which the operation is to be performed, or, if it
+ *   does not yet exist, the type of redirect to be created.
+ * @param object $account
  *   A user object representing the user for whom the operation is to be
  *   performed.
  *
