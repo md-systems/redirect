@@ -8,7 +8,7 @@ namespace Drupal\redirect\Entity;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
@@ -83,7 +83,7 @@ class Redirect extends ContentEntityBase {
   /**
    * {@inheritdoc}
    */
-  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+  public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
     $values += array(
       'type' => 'redirect',
       'uid' => \Drupal::currentUser()->id(),
@@ -97,7 +97,7 @@ class Redirect extends ContentEntityBase {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
+  public function preSave(EntityStorageInterface $storage_controller) {
     $source = $this->getSource();
     $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query', array()), $this->getLanguage()));
   }
@@ -108,7 +108,7 @@ class Redirect extends ContentEntityBase {
    * @todo - here we unserialize the options fields for source and redirect.
    *   Shouldn't this be done automatically?
    */
-  public static function postLoad(EntityStorageControllerInterface $storage_controller, array &$entities) {
+  public static function postLoad(EntityStorageInterface $storage_controller, array &$entities) {
     foreach ($entities as &$entity) {
       $i = 0;
       foreach ($entity->get('redirect_source') as $source) {
