@@ -46,7 +46,7 @@ class RedirectAPITest extends DrupalUnitTestBase {
     $this->installSchema('user', array('users'));
     $this->installConfig(array('redirect'));
 
-    $this->controller = $this->container->get('entity.manager')->getStorageController('redirect');
+    $this->controller = $this->container->get('entity.manager')->getStorage('redirect');
   }
 
   /**

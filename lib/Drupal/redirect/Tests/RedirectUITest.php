@@ -65,7 +65,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * Test the redirect UI.
    */
-  function NOtestRedirectUI() {
+  function testRedirectUI() {
     $this->drupalLogin($this->adminUser);
 
     // Test populating the redirect form with predefined values.
@@ -115,7 +115,7 @@ class RedirectUITest extends WebTestBase {
     // The url field should not contain the query string and therefore we
     // should be able to load the redirect using only the url part without
     // query.
-    \Drupal::entityManager()->getStorageController('redirect')->resetCache();
+    \Drupal::entityManager()->getStorage('redirect')->resetCache();
     $redirects = $this->repository->findBySourcePath('non-existing');
     $redirect = array_shift($redirects);
     $this->assertEqual($redirect->getSourceUrl(), 'non-existing?key=value');
@@ -178,7 +178,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * Tests the fix 404 pages workflow.
    */
-  function NOtestFix404Pages() {
+  function testFix404Pages() {
     $this->drupalLogin($this->adminUser);
 
     // Visit a non existing page to have the 404 watchdog entry.
@@ -213,7 +213,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * Tests redirects being automatically created upon path alias change.
    */
-  function NOtestAutomaticRedirects() {
+  function testAutomaticRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Create a node and update its path alias which should result in a redirect
@@ -250,7 +250,7 @@ class RedirectUITest extends WebTestBase {
    */
   function testRedirectLoop() {
     /** @var \Drupal\Core\Entity\FieldableDatabaseStorageController $controller */
-    $controller = $this->container->get('entity.manager')->getStorageController('redirect');
+    $controller = $this->container->get('entity.manager')->getStorage('redirect');
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $controller->create();
     $redirect1->setSource('node');

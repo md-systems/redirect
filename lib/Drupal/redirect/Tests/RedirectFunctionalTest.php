@@ -88,7 +88,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $this->assertRedirect($redirect);
 
     // Reload the redirect.
-    \Drupal::entityManager()->getStorageController('redirect')->resetCache();
+    \Drupal::entityManager()->getStorage('redirect')->resetCache();
     $redirect = redirect_load($redirect->id());
 
     $this->assertEqual($redirect->getCount(), 1);
@@ -108,7 +108,7 @@ class RedirectFunctionalTest extends RedirectTestBase {
     $this->assertRedirect($redirect);
 
     // Reload the redirect.
-    \Drupal::entityManager()->getStorageController('redirect')->resetCache();
+    \Drupal::entityManager()->getStorage('redirect')->resetCache();
     $redirect = redirect_load($redirect->id());
 
     $redirect->setLastAccessed(1);

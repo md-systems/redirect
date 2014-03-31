@@ -118,7 +118,7 @@ class RedirectFormController extends ContentEntityFormController {
 
     // Search for duplicate.
     $redirects = \Drupal::entityManager()
-      ->getStorageController('redirect')
+      ->getStorage('redirect')
       ->loadByProperties(array('hash' => $hash));
 
     if (!empty($redirects)) {

@@ -49,7 +49,7 @@ class RedirectRepository {
     }
 
     // Load redirects by hash.
-    $redirects = $this->manager->getStorageController('redirect')->loadByProperties(array('hash' => $hashes));
+    $redirects = $this->manager->getStorage('redirect')->loadByProperties(array('hash' => $hashes));
     if (!empty($redirects)) {
       return array_shift($redirects);
     }
@@ -67,7 +67,7 @@ class RedirectRepository {
    *   Array of redirect entities.
    */
   public function findBySourcePath($source_path) {
-    return $this->manager->getStorageController('redirect')->loadByProperties(array('redirect_source__url' => $source_path));
+    return $this->manager->getStorage('redirect')->loadByProperties(array('redirect_source__url' => $source_path));
   }
 
   /**
@@ -79,6 +79,6 @@ class RedirectRepository {
    * @return \Drupal\redirect\Entity\Redirect
    */
   public function load($redirect_id) {
-    return $this->manager->getStorageController('redirect')->load($redirect_id);
+    return $this->manager->getStorage('redirect')->load($redirect_id);
   }
 }

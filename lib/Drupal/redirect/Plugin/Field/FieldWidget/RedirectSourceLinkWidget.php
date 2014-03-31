@@ -24,7 +24,7 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
  * entity as it drops validation for non existing paths.
  *
  * @FieldWidget(
- *   id = "link_redirect",
+ *   id = "redirect_link",
  *   label = @Translation("Redirect link"),
  *   field_types = {
  *     "link"
@@ -41,8 +41,6 @@ class RedirectSourceLinkWidget extends LinkWidget {
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
-    $url_type = $this->getFieldSetting('url_type');
-
     $default_url_value = NULL;
     if (isset($items[$delta]->url)) {
       try {
@@ -67,47 +65,14 @@ class RedirectSourceLinkWidget extends LinkWidget {
       }
     }
     $element['url'] = array(
-      '#type' => 'url',
+      '#type' => 'textfield',
       '#title' => $this->t('URL'),
       '#placeholder' => $this->getSetting('placeholder_url'),
       '#default_value' => $default_url_value,
       '#maxlength' => 2048,
       '#required' => $element['#required'],
+      '#field_prefix' => \Drupal::url('<front>', array(), array('absolute' => TRUE)),
     );
-
-    // If the field is configured to allow internal paths, it cannot use the
-    // 'url' form element and we have to do the validation ourselves.
-    if ($url_type & LinkItemInterface::LINK_INTERNAL) {
-      $element['url']['#type'] = 'textfield';
-      $element['#element_validate'][] = array($this, 'validateUrl');
-    }
-
-    // If the field is configured to allow only internal paths, add a useful
-    // element prefix.
-    if ($url_type == LinkItemInterface::LINK_INTERNAL) {
-      $element['url']['#field_prefix'] = \Drupal::url('<front>', array(), array('absolute' => TRUE));
-    }
-    // If the field is configured to allow both internal and external paths,
-    // show a useful description.
-    elseif ($url_type == LinkItemInterface::LINK_GENERIC) {
-      $element['url']['#description'] = $this->t('This can be an internal Drupal path such as %add-node or an external URL such as %drupal. Enter %front to link to the front page.', array('%front' => '<front>', '%add-node' => 'node/add', '%drupal' => 'http://drupal.org'));
-    }
-
-    $element['title'] = array(
-      '#type' => 'textfield',
-      '#title' => $this->t('Link text'),
-      '#placeholder' => $this->getSetting('placeholder_title'),
-      '#default_value' => isset($items[$delta]->title) ? $items[$delta]->title : NULL,
-      '#maxlength' => 255,
-      '#access' => $this->getFieldSetting('title') != DRUPAL_DISABLED,
-    );
-    // Post-process the title field to make it conditionally required if URL is
-    // non-empty. Omit the validation on the field edit form, since the field
-    // settings cannot be saved otherwise.
-    $is_field_edit_form = ($element['#entity'] === NULL);
-    if (!$is_field_edit_form && $this->getFieldSetting('title') == DRUPAL_REQUIRED) {
-      $element['#element_validate'][] = array($this, 'validateTitle');
-    }
 
     // Exposing the attributes array in the widget is left for alternate and more
     // advanced field widgets.
@@ -168,43 +133,6 @@ class RedirectSourceLinkWidget extends LinkWidget {
     }
 
     return $element;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateUrl(&$element, &$form_state, $form) {
-    $url_type = $this->getFieldSetting('url_type');
-    $url_is_valid = TRUE;
-
-    // Validate the 'url' element.
-    if ($element['url']['#value'] !== '') {
-      try {
-        $url = Url::createFromPath($element['url']['#value']);
-
-        if ($url->isExternal() && !UrlHelper::isValid($element['url']['#value'], TRUE)) {
-          $url_is_valid = FALSE;
-        }
-        elseif ($url->isExternal() && $url_type == LinkItemInterface::LINK_INTERNAL) {
-          $url_is_valid = FALSE;
-        }
-      }
-      catch (NotFoundHttpException $e) {
-        $url_is_valid = FALSE;
-      }
-      catch (MatchingRouteNotFoundException $e) {
-        // User is creating a redirect from non existing path. This is not an
-        // error state.
-        $url_is_valid = TRUE;
-      }
-      catch (ParamNotConvertedException $e) {
-        $url_is_valid = FALSE;
-      }
-    }
-
-    if (!$url_is_valid) {
-      \Drupal::formBuilder()->setError($element['url'], $form_state, $this->t('The URL %url is not valid.', array('%url' => $element['url']['#value'])));
-    }
   }
 
   /**
