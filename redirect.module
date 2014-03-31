@@ -140,97 +140,6 @@ function redirect_menu_link_defaults() {
   return $items;
 }
 
-function redirect_set_current_redirect($redirect) {
-  $static = &drupal_static(__FUNCTION__);
-  $static = $redirect;
-}
-
-function redirect_get_current_redirect() {
-  $redirect = drupal_static('redirect_set_current_redirect', NULL);
-
-  // If a redirect has not been set with redirect_set_current_redirect(), then
-  // attempt to find a redirect matching the current path, query string, and
-  // language code.
-  if (!isset($redirect)) {
-    $redirect = redirect_load_by_source(current_path(), $GLOBALS['language']->language, drupal_get_query_parameters());
-  }
-
-  // @todo Add an alter hook here?
-  return $redirect;
-}
-
-/**
- * Implements hook_url_inbound_alter().
- */
-function redirect_url_inbound_alter(&$path, $original_path, $path_language) {
-  // If the current path global does not exist, then drupal_get_path_alias()
-  // will fail. This condition only happens when $path is the front page.
-  // @todo Remove when http://drupal.org/node/1329914 is fixed in core.
-  if (empty($_GET['q'])) {
-    $_GET['q'] = \Drupal::config('system.site')->get('page.front');
-    return;
-  }
-
-  // If the inbound path has been changed, then attempt to find a redirect
-  // matching the original path and save it for processing later in
-  // redirect_init(). For example, if the Sub-pathauto module changes the path
-  // 'foo/redirect' to 'node/1/redirect', and there is a redirect enabled for
-  // the path 'foo/redirect', then redirect_init() would normally fail since it
-  // would not find a match.
-  if ($path != $original_path && $original_path == current_path()) {
-    $current_langcode = !empty($path_language) ? $path_language : $GLOBALS['language']->language;
-    $current_query = UrlHelper::filterQueryParameters(\Drupal::request()->query->all());
-    if ($redirect = redirect_load_by_source($original_path, $current_langcode, $current_query)) {
-      redirect_set_current_redirect($redirect);
-    }
-  }
-
-  // Redirect to canonical URLs.
-  if ($path && \Drupal::config('redirect.settings')->get('canonical')) {
-    $alias = Drupal::service('path.alias_manager.cached')->getPathAlias($path, $path_language);
-    if ($alias != $path && $alias != $original_path) {
-      //return redirect_redirect(array('redirect' => $alias, 'type' => 'global'));
-    }
-
-    // Redirect from default entity paths to the proper entity path.
-    //if ($path_entity = redirect_load_entity_from_path($path)) {
-    //  if ($uri = entity_uri($path_entity['entity_type'], $path_entity['entity'])) {
-    //    if ($path != $uri['path']) {
-    //      return redirect_redirect(array('redirect' => $uri['path'], 'redirect_options' => $uri['options'], 'type' => 'global'));
-    //    }
-    //  }
-    //}
-  }
-}
-
-/**
- * Implements hook_entity_info_alter().
- */
-function redirect_entity_info_alter(&$info) {
-  $default_paths = array(
-    'node' => 'node/%node',
-    'user' => 'user/%user',
-    'taxonomy_term' => 'taxonomy/term/%taxonomy_term',
-  );
-
-  foreach ($default_paths as $entity_type => $default_path) {
-    if (isset($info[$entity_type]) && !isset($info[$entity_type]['default path'])) {
-      $info[$entity_type]['default path'] = $default_path;
-    }
-  }
-
-  // Disable support for some entity types that cause problems.
-  $unsupported_entity_types = array(
-    'comment',
-    'media',
-  );
-  foreach ($unsupported_entity_types as $unsupported_entity_type) {
-    if (isset($info[$unsupported_entity_type])) {
-      $info[$unsupported_entity_type]['redirect'] = FALSE;
-    }
-  }
-}
-
 /**
  * Check if an entity type supports redirects.
  *
@@ -253,43 +162,6 @@ function redirect_entity_type_supports_redirects($entity_type) {
   }
 
   return isset($types[$entity_type]) ? $types[$entity_type] : FALSE;
-}
-
-/**
- * Implements hook_init().
- */
-function redirect_init() {
-  if (!redirect_can_redirect()) {
-    return;
-  }
-
-  // Fetch the current redirect.
-  if ($redirect = redirect_get_current_redirect()) {
-    redirect_redirect($redirect);
-  }
-
-  $redirect_global = FALSE;
-  $request_uri = $original_uri = ltrim(request_uri(), '/');
-
-  // Redirect from non-clean URLs to clean URLs.
-  // @todo - deal with clean_url configuration being removed. See
-  //   https://drupal.org/node/1659580
-  if (\Drupal::config('redirect.settings')->get('global_clean') && strpos($request_uri, '?q=') !== FALSE) {
-    //$redirect_global = TRUE;
-    //$request_uri = str_replace('?q=', '', $request_uri);
-  }
-
-  if (strpos($request_uri, 'index.php') !== FALSE) {
-    //$redirect_global = TRUE;
-    //$request_uri = str_replace('index.php', '', $request_uri);
-  }
-
-  //$request_uri = ltrim($request_uri, '/');
-  //$parsed = parse_url($request_uri);
-
-  if ($redirect_global && $request_uri != $original_uri) {
-    redirect_redirect(array(/*'redirect' => $request_uri,*/ 'type' => 'global'));
-  }
 }
 
 /**
@@ -489,79 +361,6 @@ function redirect_load_by_hash($hash) {
 }
 
 /**
- * Load multiple URL redirects from the database by {redirect}.source.
- *
- * @param $source
- *   The source of the URL redirect.
- *
- *
- * @return \Drupal\redirect\Entity\Redirect
- *   An array of URL redirect objects indexed by redirect IDs.
- *   @todo - added the type above as that is actually what will fall out of this
- *      function.
- *
- * @todo - this function is extremely confusing:
- *   1) it says it will return an array of redirect which is not true as the
- *      statement after the return will return either one or false.
- *   2) we have the language param which is passed into the query with the
- *      lang not specified value.
- *   3) just a remark: the hook_redirect_load_by_source is used by anyone? has
- *      it any sense to use that hook?
- *
- * @see redirect_load_multiple()
- * @see _redirect_uasort
- * @see redirect_compare_array_recursive()
- *
- * @ingroup redirect_api
- */
-function redirect_load_by_source($source, $language = Language::LANGCODE_NOT_SPECIFIED, array $query = array()) {
-  // Run a case-insensitive query for matching RIDs first.
-  $rid_query = db_select('redirect');
-  $rid_query->addField('redirect', 'rid');
-  if ($source != \Drupal::config('system.site')->get('page.front')) {
-    $rid_query->condition('source', db_like($source), 'LIKE');
-  }
-  else {
-    $source_condition = db_or();
-    $source_condition->condition('source', db_like($source), 'LIKE');
-    $source_condition->condition('source', '');
-    $rid_query->condition($source_condition);
-  }
-  $rid_query->condition('language', array($language, Language::LANGCODE_NOT_SPECIFIED));
-  $rids = $rid_query->execute()->fetchCol();
-
-  if ($rids && $redirects = redirect_load_multiple($rids)) {
-    // Narrow down the list of candidates.
-    foreach ($redirects as $rid => $redirect) {
-      if ($redirect->getSourceOption('query')) {
-        if (empty($query) || !redirect_compare_array_recursive($redirect->getSourceOption('query'), $query)) {
-          unset($redirects[$rid]);
-          continue;
-        }
-      }
-
-      // Add a case sensitive matches condition to be used in sorting.
-      if ($source !== $redirect->source) {
-        $redirects[$rid]->weight = 1;
-      }
-    }
-
-    if (!empty($redirects)) {
-      // Sort the redirects in the proper order.
-      uasort($redirects, '_redirect_uasort');
-
-      // Allow other modules to alter the redirect candidates before selecting the top one.
-      $context = array('language' => $language, 'query' => $query);
-      \Drupal::moduleHandler()->alter('redirect_load_by_source', $redirects, $source, $context);
-
-      return !empty($redirects) ? reset($redirects) : FALSE;
-    }
-  }
-
-  return FALSE;
-}
-
-/**
  * Load multiple URL redirects from the database.
  *
  * @param $rids
@@ -642,28 +441,6 @@ function redirect_access($op, $redirect, UserInterface $account = NULL) {
   }
 
   return FALSE;
-}
-
-/**
- * Validate a redirect.
- */
-function redirect_validate(Redirect $redirect, $form, &$form_state) {
-  // Check that there there are no redirect loops.
-  if (url($redirect->getSource()) == url($redirect->getRedirect())) {
-    \Drupal::formBuilder()->setErrorByName('redirect', $form_state, t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
-  }
-
-  if ($existing = redirect_load_by_hash($redirect->getHash())) {
-    if ($redirect->id() != $existing->id()) {
-      \Drupal::formBuilder()->setErrorByName('source', $form_state, t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => redirect_url($redirect->source, $redirect->source_options), '@edit-page' => url('admin/config/search/redirect/edit/'. $existing->rid))));
-    }
-  }
-
-  // Allow other modules to validate the SSH public key.
-  foreach (\Drupal::moduleHandler()->getImplementations('redirect_validate') as $module) {
-    $function = $module . '_redirect_validate';
-    $function($redirect, $form, $form_state);
-  }
 }
 
 /**
@@ -854,127 +631,6 @@ function redirect_purge_inactive_redirects(array $types = array('redirect'), $in
 }
 
 /**
- * Perform an URL redirect.
- *
- * @param $redirect
- *   An optional URL redirect array.
- *
- * @ingroup redirect_api
- */
-function redirect_redirect($redirect = NULL) {
-  // First check if we're in an infinite loop.
-  $session_id = session_id();
-  if (\Drupal::flood()->isAllowed('redirection', 5, 15, $session_id ? $session_id : NULL)) {
-    \Drupal::flood()->register('redirection', 60, $session_id ? $session_id : NULL);
-  }
-  else {
-    // For now don't trigger an error if being run inside SimpleTest.
-    if (empty($GLOBALS['drupal_test_info']['test_run_id'])) {
-      trigger_error(t('Infinite redirect loop prevented.'), E_USER_WARNING);
-    }
-    return FALSE;
-  }
-
-  if (!isset($redirect)) {
-    $redirect = new stdClass();
-  }
-  redirect_create($redirect, array('redirect' => current_path(), 'type' => 'manual', 'callback' => 'redirect_goto', 'cache' => TRUE));
-
-  if (empty($redirect->status_code)) {
-    $redirect->status_code = \Drupal::config('redirect.settings')->get('default_status_code');
-  }
-
-  if (\Drupal::config('redirect.settings')->get('passthrough_querystring')) {
-    // Preserve the current query parameters in the redirect.
-    $redirect->redirect_options += array('query' => array());
-    $redirect->redirect_options['query'] += UrlHelper::filterQueryParameters(\Drupal::request()->query->all());
-  }
-
-  // Prevent the destination query parameter from overriding this redirect.
-  //if (isset($_GET['destination'])) {
-    // Simply unset the parameter since it has already been passed into
-    // $options['query'] in the previous code.
-  //  unset($_GET['destination']);
-  //}
-
-  // Allow other modules to alter the redirect before passing to drupal_goto().
-  \Drupal::moduleHandler()->alter('redirect', $redirect);
-
-  // Continue if the redirect has not been disabled by hook_redirect_alter().
-  if (isset($redirect->redirect) && isset($redirect->callback) && $redirect->redirect !== FALSE && function_exists($redirect->callback)) {
-    // Perform the actual redirect.
-    $callback = $redirect->callback;
-    $callback($redirect);
-  }
-}
-
-/**
- * Redirect callback; perform an URL redirect.
- */
-function redirect_goto($redirect) {
-  $redirect->redirect_options['absolute'] = TRUE;
-  $url = url($redirect->redirect, $redirect->redirect_options);
-  drupal_add_http_header('Location', $url);
-  drupal_add_http_header('Status', redirect_status_code_options($redirect->status_code));
-
-  if (!empty($redirect->rid)) {
-    // Add a custom header for the redirect ID so when the redirect is served
-    // from the page cache, we can track it.
-    drupal_add_http_header('X-Redirect-ID', $redirect->rid);
-  }
-
-  $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
-
-  if (!\Drupal::config('redirect.settings')->get('page_cache') || !$cache_enabled || !drupal_page_is_cacheable() || empty($redirect->cache)) {
-    drupal_exit($url);
-  }
-
-  // @see drupal_exit()
-  if (drupal_get_bootstrap_phase() == DRUPAL_BOOTSTRAP_FULL) {
-    if (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'update') {
-      module_invoke_all('exit', $url);
-    }
-    drupal_session_commit();
-    if ($cache_enabled) {
-      // We must output something to allow the request to be cached.
-      echo ' ';
-      if ($cache = drupal_page_set_cache()) {
-        // When caching this redirect for the first time we still need to ensure
-        // that the correct cache headers are sent.
-        // @see drupal_page_footer()
-        drupal_serve_page_from_cache($cache);
-      }
-    }
-  }
-
-  exit;
-}
-
-/**
- * Gets the redirect hash.
- *
- * @param \Drupal\redirect\Entity\Redirect $redirect
- *
- * @return string
- *   Redirect hash.
- */
-function redirect_hash(Redirect $redirect) {
-  $hash = array(
-    'source' => $redirect->getSource(),
-    'language' => $redirect->getLanguage(),
-  );
-
-  if ($query = $redirect->getSourceOption('query')) {
-    $hash['source_query'] = $query;
-  }
-
-  \Drupal::moduleHandler()->alter('redirect_hash', $hash, $redirect);
-  redirect_sort_recursive($hash, 'ksort');
-  $redirect->hash = Crypt::hashBase64(serialize($hash));
-  return $redirect->hash;
-}
-
-/**
  * Clear a page from the page cache.
  */
 function redirect_page_cache_clear($redirect = NULL) {
@@ -990,39 +646,6 @@ function redirect_page_cache_clear($redirect = NULL) {
   else {
     // Clear the entire page cache.
     \Drupal::cache('cache_page')->deleteAll();
-  }
-}
-
-/**
- * Given a path determine if it is an entity default path.
- *
- * @param $path
- *   The internal path. The id of the entity should be in the string as '[id]'.
- * @return
- *   An array with the entity type and the loaded entity object.
- */
-function redirect_load_entity_from_path($path) {
-  $entity_paths = &drupal_static(__FUNCTION__);
-
-  if (!isset($entity_paths)) {
-    $entity_paths = array();
-    foreach (\Drupal::entityManager()->getDefinitions() as $entity_type => $entity_info) {
-      if (isset($entity_info['default path'])) {
-        $default_path = $entity_info['default path'];
-        $default_path = preg_quote($default_path, '/');
-        $default_path = str_replace(preg_quote('%' . $entity_type, '/'), '(\d+)', $default_path);
-        $entity_paths[$entity_type] = $default_path;
-      }
-    }
-  }
-
-  foreach ($entity_paths as $entity_type => $default_path) {
-    if (preg_match("/^{$default_path}$/", $path, $matches)) {
-      if ($entity = entity_load($entity_type, array($matches[1]))) {
-        return array('entity_type' => $entity_type, 'entity' => reset($entity));
-      }
-      break;
-    }
   }
 }
 
@@ -1078,27 +701,6 @@ function redirect_sort_recursive(&$array, $callback = 'sort') {
     }
   }
   return $result;
-}
-
-/**
- * Load a language object by its language code.
- *
- * @todo Remove when http://drupal.org/node/660736 is fixed in Drupal core.
- *
- * @param $language
- *   A language code. If not provided the default language will be returned.
- * @return
- *   A language object.
- */
-function redirect_language_load($language = Language::LANGCODE_NOT_SPECIFIED) {
-  $languages = &drupal_static(__FUNCTION__);
-
-  if (!isset($languages)) {
-    $languages = \Drupal::languageManager()->getLanguages();
-    $languages[Language::LANGCODE_NOT_SPECIFIED] = NULL;
-  }
-
-  return isset($languages[$language]) ? $languages[$language] : NULL;
 }
 
 /**

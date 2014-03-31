@@ -47,15 +47,17 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#options' => redirect_status_code_options(),
       '#default_value' => \Drupal::config('redirect.settings')->get('default_status_code'),
     );
-    $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
+    // @todo - enable once the feature is available.
+    // $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
+    // $form['page_cache'] = array(
+    //   '#type' => 'checkbox',
+    //   '#title' => t('Allow redirects to be saved into the page cache.'),
+    //   '#default_value' => \Drupal::config('redirect.settings')->get('page_cache'),
+    //   '#description' => t('This feature requires <a href="@performance">Cache pages for anonymous users</a> to be enabled and the %variable variable to be TRUE.', array('@performance' => url('admin/config/development/performance'), '%variable' => "\$conf['page_cache_invoke_hooks']")),
+    //   '#disabled' => !$cache_enabled || !$invoke_hooks,
+    // );
+
     $invoke_hooks = \Drupal::config('system.performance')->get('cache.page.invoke_hooks');
-    $form['page_cache'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow redirects to be saved into the page cache.'),
-      '#default_value' => \Drupal::config('redirect.settings')->get('page_cache'),
-      '#description' => t('This feature requires <a href="@performance">Cache pages for anonymous users</a> to be enabled and the %variable variable to be TRUE.', array('@performance' => url('admin/config/development/performance'), '%variable' => "\$conf['page_cache_invoke_hooks']")),
-      '#disabled' => !$cache_enabled || !$invoke_hooks,
-    );
     $options = array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000);
     $form['purge_inactive'] = array(
       '#type' => 'select',
@@ -68,15 +70,13 @@ class RedirectSettingsForm extends ConfigFormBase {
 
     $form['globals'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Always enabled redirections'),
+      '#title' => t('Global redirects'),
       '#description' => t('(formerly Global Redirect features)'),
-      '#access' => FALSE,
     );
     $form['globals']['redirect_global_home'] = array(
       '#type' => 'checkbox',
       '#title' => t('Redirect from paths like index.php and /node to the root directory.'),
       '#default_value' => \Drupal::config('redirect.settings')->get('global_home'),
-      '#access' => FALSE,
     );
     $form['globals']['redirect_global_clean'] = array(
       '#type' => 'checkbox',
@@ -84,7 +84,6 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#default_value' => \Drupal::config('redirect.settings')->get('global_clean'),
       // @todo - does still apply? See https://drupal.org/node/1659580
       //'#disabled' => !variable_get('clean_url', 0),
-      '#access' => FALSE,
     );
     $form['globals']['redirect_global_canonical'] = array(
       '#type' => 'checkbox',
@@ -95,7 +94,6 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => t('Remove trailing slashes from paths.'),
       '#default_value' => \Drupal::config('redirect.settings')->get('global_deslash'),
-      '#access' => FALSE,
     );
     $form['globals']['redirect_global_admin_paths'] = array(
       '#type' => 'checkbox',
