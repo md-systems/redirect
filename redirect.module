@@ -15,6 +15,7 @@
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\user\UserInterface;
@@ -84,87 +85,6 @@ function redirect_help($path, $arg) {
 }
 
 /**
- * Implements hook_menu().
- */
-function redirect_menu_link_defaults() {
-  $items['redirect.list'] = array(
-    'link_title' => 'URL redirects',
-    'description' => 'Redirect users from one URL to another.',
-    'route_name' => 'redirect.list',
-    'parent' => 'system.admin_config_search',
-    'menu_name' => 'admin',
-  );
-  $items['redirect.add'] = array(
-    'link_title' => 'Add redirect',
-    'route_name' => 'redirect.add',
-    'parent' => 'redirect.list',
-    'menu_name' => 'admin',
-  );
-  $items['redirect.settings'] = array(
-    'link_title' => 'Settings',
-    'description' => 'Configure behavior for URL redirects.',
-    'route_name' => 'redirect.settings',
-    'parent' => 'redirect.list',
-    'menu_name' => 'admin',
-  );
-
-  // If the database logging module is enabled, add special 404 listing pages.
-  if (\Drupal::moduleHandler()->moduleExists('dblog')) {
-    $items['redirect.fix_404'] = array(
-      'link_title' => 'Fix 404 pages',
-      'description' => 'Add redirects for 404 pages.',
-      'route_name' => 'redirect.fix_404',
-      'parent' => 'redirect.list',
-      'menu_name' => 'admin',
-    );
-    $items['redirect.goto_fix_404'] = array(
-      'link_title' => 'Fix 404 pages with URL redirects',
-      'route_name' => 'redirect.fix_404',
-      'parent' => 'dblog.page_not_found',
-      'menu_name' => 'admin',
-    );
-  }
-
-  // Devel generate integration.
-  /* @todo
-  if (\Drupal::moduleHandler()->moduleExists('devel_generate')) {
-    $items['redirect.devel_generate'] = array(
-      'link_title' => 'Generate redirects',
-      'description' => 'Generate a given number of redirects. Optionally delete current redirects.',
-      'route_name' => 'redirect.devel_generate',
-    );
-    $items['admin/config/search/redirect/generate'] = $items['admin/config/development/generate/redirects'];
-    $items['admin/config/search/redirect/generate']['type'] = MENU_LOCAL_ACTION;
-  }
-  */
-  return $items;
-}
-
-/**
- * Check if an entity type supports redirects.
- *
- * @param $entity_type
- *   An entity type.
- *
- * @return bool
- *   TRUE if the entity type has an uri callback and supports redirects, or
- *   FALSE otherwise.
- */
-function redirect_entity_type_supports_redirects($entity_type) {
-  $types = &drupal_static(__FUNCTION__);
-
-  if (!isset($types)) {
-    $types = array();
-    foreach (\Drupal::entityManager()->getDefinitions() as $type => $entity_info) {
-      // @todo - what is the redirect offset here for?
-//      $types[$type] = $entity_info->getUriCallback() && (!isset($entity_info['redirect']) || !empty($entity_info['redirect']));
-    }
-  }
-
-  return isset($types[$entity_type]) ? $types[$entity_type] : FALSE;
-}
-
-/**
  * Implements hook_cron().
  */
 function redirect_cron() {
@@ -206,6 +126,7 @@ function redirect_path_update(array $path) {
       $redirect->setSource($unchanged_path['alias']);
       $redirect->setRedirect($path['alias']);
       $redirect->setLanguage($unchanged_path['langcode']);
+      $redirect->setStatusCode(\Drupal::config('redirect.settings')->get('default_status_code'));
       $redirect->save();
     }
   }
@@ -267,35 +188,11 @@ function redirect_page_build(&$page) {
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter().
- *
- * Adds support for creating redirects if a node URL alias is changed.
+ * Implements hook_entity_presave().
  */
-function redirect_form_node_form_alter(&$form, &$form_state) {
-  if (!empty($form['path']['pid']['#value'])) {
-    redirect_path_set_unchanged(path_load($form['path']['pid']['#value']));
-  }
-}
-
-/**
- * Implements hook_form_BASE_FORM_ID_alter().
- *
- * Adds support for creating redirects if a taxonomy term URL alias is changed.
- */
-function redirect_form_taxonomy_term_form_alter(&$form, &$form_state) {
-  if (!empty($form['path']['pid']['#value'])) {
-    redirect_path_set_unchanged(path_load($form['path']['pid']['#value']));
-  }
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- *
- * Adds support for creating redirects if an URL alias is changed.
- */
-function redirect_form_path_admin_form_alter(&$form, &$form_state) {
-  if (!empty($form['pid']['#value'])) {
-    redirect_path_set_unchanged(path_load($form['pid']['#value']));
+function redirect_entity_presave(EntityInterface $entity) {
+  if (!$entity->isNew() && isset($entity->path) && $entity->path instanceof FieldItemList) {
+    redirect_path_set_unchanged(path_load($entity->path->pid));
   }
 }
 
@@ -866,79 +763,6 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
 }
 
 /**
- * Implements hook_field_attach_form().
- *
- * @todo Investigate using hook_entity_load() to load all entity redirects.
- * @todo Figure out how to support entity URIs that contain query strings.
- *
- * @todo - get rid of deprecated / unused functions with the entity conversion
- *    task.
- */
-function _redirect_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
-  list($id) = entity_extract_ids($entity_type, $entity);
-  if (!empty($form['redirect']) || empty($id)) {
-    return;
-  }
-
-  // Check if this entity type supports redirects.
-  if (!redirect_entity_type_supports_redirects($entity_type)) {
-    return;
-  }
-
-  $uri = entity_uri($entity_type, $entity);
-  if (empty($uri['path'])) {
-    // If the entity has no source path, then we cannot lookup the existing
-    // redirects.
-    return;
-  }
-
-  $info = entity_get_info($entity_type);
-  $form['redirect'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('URL redirects'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-    '#access' => user_access('administer redirects'),
-    '#weight' => 30,
-    '#attributes' => array('class' => array('redirect-list')),
-  );
-
-  // Only support vertical tabs if there is a vertical tab element.
-  foreach (element_children($form) as $key) {
-    if (isset($form[$key]['#type']) && $form[$key]['#type'] == 'vertical_tabs') {
-      $form['redirect']['#group'] = $key;
-      $form['redirect']['#attached']['js']['vertical-tabs'] = drupal_get_path('module', 'redirect') . '/redirect.js';
-    }
-  }
-
-  $redirect = array(
-    'redirect' => $uri['path'],
-    'redirect_options' => array_diff_key($uri['options'], array('entity_type' => '', 'entity' => '')),
-    'language' => $langcode,
-  );
-
-  $form['redirect']['actions'] = array(
-    '#theme' => 'links',
-    '#links' => array(),
-    '#attributes' => array('class' => array('action-links')),
-  );
-  if (redirect_access('create', 'redirect')) {
-    $form['redirect']['actions']['#links']['add'] = array(
-      'title' => t('Add URL redirect to this @entitytype', array('@entitytype' => drupal_strtolower($info['label']))),
-      'href' => 'admin/config/search/redirect/add',
-      'query' => array_filter($redirect) + drupal_get_destination(),
-    );
-  }
-
-  // We don't have to put our include in $form_state['build_info']['files']
-  // since the build array will already be cached.
-  module_load_include('inc', 'redirect', 'redirect.admin');
-  $redirects = redirect_load_multiple(FALSE, array('redirect' => $uri['path']));
-  $header = array('source', 'status_code', 'language', 'count', 'access', 'operations');
-  $form['redirect'] += redirect_list_table($redirects, $header);
-}
-
-/**
  * Implements hook_field_extra_fields().
  *
  * @todo - get rid of deprecated / unused functions with the entity conversion
@@ -999,9 +823,7 @@ function redirect_redirect_operations() {
 }
 
 /**
- * @param $form
- * @param $form_state
- * @return mixed
+ * Ajax callback for the redirect link widget.
  */
 function redirect_source_link_get_status_messages($form, &$form_state) {
   return $form['redirect_source']['widget'][0]['status_box'];
