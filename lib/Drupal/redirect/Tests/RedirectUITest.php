@@ -218,11 +218,14 @@ class RedirectUITest extends WebTestBase {
 
     // Create a node and update its path alias which should result in a redirect
     // being automatically created from the old alias to the new one.
-    $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => 'en', 'path' => array('alias' => 'node_test_alias')));
+    $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => Language::LANGCODE_NOT_SPECIFIED, 'path' => array('alias' => 'node_test_alias')));
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[alias]' => 'node_test_alias_updated'), t('Save'));
 
-    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), 'en');
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertEqual($redirect->getRedirectUrl(), 'node_test_alias_updated');
+    $this->drupalGet('admin/config/search/redirect');
+    // Test if the automatically created redirect works.
+    $this->assertRedirect('node_test_alias', 'node_test_alias_updated');
 
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.
@@ -230,6 +233,8 @@ class RedirectUITest extends WebTestBase {
     $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[alias]' => 'term_test_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('term_test_alias');
     $this->assertEqual($redirect->getRedirectUrl(), 'term_test_alias_updated');
+    // Test if the automatically created redirect works.
+    $this->assertRedirect('term_test_alias', 'term_test_alias_updated');
 
     // Test the path alias update via the admin path form.
     $this->drupalPostForm('admin/config/search/path/add', array(
@@ -243,13 +248,20 @@ class RedirectUITest extends WebTestBase {
     $this->drupalPostForm(NULL, array('alias' => 'aaa_path_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('aaa_path_alias', array(), 'en');
     $this->assertEqual($redirect->getRedirectUrl(), 'aaa_path_alias_updated');
+    // Test if the automatically created redirect works.
+    $this->assertRedirect('aaa_path_alias', 'aaa_path_alias_updated');
+
+    // Test the automatically created redirect shows up in the form correctly.
+    $this->drupalGet('admin/config/search/redirect/edit/' . $redirect->id());
+    $this->assertFieldByName('redirect_source[0][url]', 'aaa_path_alias');
+    $this->assertFieldByName('redirect_redirect[0][url]', 'aaa_path_alias_update');
   }
 
   /**
    * Test the redirect loop protection and logging.
    */
   function testRedirectLoop() {
-    /** @var \Drupal\Core\Entity\FieldableDatabaseStorageController $controller */
+    /** @var \Drupal\Core\Entity\ContentEntityDatabaseStorage $controller */
     $controller = $this->container->get('entity.manager')->getStorage('redirect');
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $controller->create();
@@ -317,6 +329,39 @@ class RedirectUITest extends WebTestBase {
     ));
     $term->save();
     return $term;
+  }
+
+  /**
+   * Asserts the redirect from $path to the $expected_ending_url.
+   *
+   * @param string $path
+   *   The request path.
+   * @param $expected_ending_url
+   *   The path where we expect it to redirect. If NULL value provided, no
+   *   redirect is expected.
+   * @param string $expected_ending_status
+   *   The status we expect to get with the first request.
+   */
+  public function assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
+    $this->drupalHead($GLOBALS['base_url'] . base_path() . $path);
+    $headers = $this->drupalGetHeaders(TRUE);
+
+    $ending_url = isset($headers[0]['location']) ? $headers[0]['location'] : NULL;
+    $message = String::format('Testing redirect from %from to %to. Ending url: %url', array('%from' => $path, '%to' => $expected_ending_url, '%url' => $ending_url));
+
+    if ($expected_ending_url == '<front>') {
+      $expected_ending_url = $GLOBALS['base_url'] . base_path();
+    }
+    elseif (!empty($expected_ending_url)) {
+      $expected_ending_url = $GLOBALS['base_url'] . base_path() . $expected_ending_url;
+    }
+    else {
+      $expected_ending_url = NULL;
+    }
+
+    $this->assertEqual($expected_ending_url, $ending_url, $message);
+
+    $this->assertEqual($headers[0][':status'], $expected_ending_status);
   }
 
 }

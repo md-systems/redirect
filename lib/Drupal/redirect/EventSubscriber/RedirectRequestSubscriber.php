@@ -86,7 +86,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     parse_str($request->getQueryString(), $request_query);
     $path = ltrim($request->getPathInfo(), '/');
 
-    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage());
+    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->id);
 
     if (!empty($redirect)) {
 
@@ -108,6 +108,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
           $redirect_query += $request_query;
         }
 
+        // This logic will get the alias url, if any.
         $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(
           'absolute' => TRUE,
           'query' => $redirect_query,
@@ -137,7 +138,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   static function getSubscribedEvents() {
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 50);
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 500);
     return $events;
   }
 }

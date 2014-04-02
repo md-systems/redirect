@@ -100,7 +100,7 @@ function redirect_entity_delete($entity, $entity_type) {
   //   want to support automatic redirects on path change - we need to define
   //   how to enable this.
   if (in_array($entity_type, array('node', 'taxonomy'))) {
-    redirect_delete_by_entity_path($entity_type, $entity);
+//    redirect_delete_by_entity_path($entity_type, $entity);
   }
 }
 
@@ -189,10 +189,23 @@ function redirect_page_build(&$page) {
 
 /**
  * Implements hook_entity_presave().
+ *
+ * Adds unchanged path info in case we find the path field.
  */
 function redirect_entity_presave(EntityInterface $entity) {
   if (!$entity->isNew() && isset($entity->path) && $entity->path instanceof FieldItemList) {
     redirect_path_set_unchanged(path_load($entity->path->pid));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds support for creating redirects if an URL alias is changed.
+ */
+function redirect_form_path_admin_form_alter(&$form, &$form_state) {
+  if (!empty($form['pid']['#value'])) {
+    redirect_path_set_unchanged(path_load($form['pid']['#value']));
   }
 }
 
