@@ -37,8 +37,20 @@ class RedirectFormController extends ContentEntityFormController {
         $redirect_options = $this->getRequest()->get('redirect_options');
       }
 
-      $redirect->setSource(urldecode($this->getRequest()->get('source')), $source_options);
-      $redirect->setRedirect(urldecode($this->getRequest()->get('redirect')), $redirect_options);
+      $source_url = urldecode($this->getRequest()->get('source'));
+      if (!empty($source_url)) {
+        $redirect->setSource($source_url, $source_options);
+      }
+
+      $redirect_url = urldecode($this->getRequest()->get('redirect'));
+      if (!empty($redirect_url)) {
+        try {
+          $redirect->setRedirect($redirect_url, $redirect_options);
+        }
+        catch (MatchingRouteNotFoundException $e) {
+          drupal_set_message(t('Invalid redirect URL %url provided.', array('%url' => $redirect_url)), 'warning');
+        }
+      }
 
       $redirect->setLanguage($this->getRequest()->get('language') ? $this->getRequest()->get('language') : Language::LANGCODE_NOT_SPECIFIED);
     }
