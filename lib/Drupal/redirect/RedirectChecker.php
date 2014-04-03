@@ -55,7 +55,7 @@ class RedirectChecker {
       $is_admin = (bool) $route->getOption('_admin_route');
     }
 
-    if (ltrim($request->getScriptName(), '/') != 'index.php') {
+    if (strpos($request->getScriptName(), 'index.php') === FALSE) {
       // Do not redirect if the root script is not /index.php.
       $can_redirect = FALSE;
     }
