@@ -81,4 +81,17 @@ class RedirectRepository {
   public function load($redirect_id) {
     return $this->manager->getStorage('redirect')->load($redirect_id);
   }
+
+  /**
+   * Loads multiple redirect entities.
+   *
+   * @param array $redirect_ids
+   *   Redirect ids to load.
+   *
+   * @return \Drupal\redirect\Entity\Redirect[]
+   *   List of redirect entities.
+   */
+  public function loadMultiple(array $redirect_ids = NULL) {
+    return $this->manager->getStorage('redirect')->loadMultiple($redirect_ids);
+  }
 }

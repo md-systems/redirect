@@ -137,7 +137,7 @@ function redirect_schema() {
     ),
     'indexes' => array(
       'expires' => array('type', 'access'),
-      'source_language' => array('redirect_source__url', 'language'),
+      'source_language' => array(array('redirect_source__url', 64), 'language'),
     ),
   );
 

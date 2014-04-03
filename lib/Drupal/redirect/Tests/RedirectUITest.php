@@ -226,6 +226,10 @@ class RedirectUITest extends WebTestBase {
     $this->drupalGet('admin/config/search/redirect');
     // Test if the automatically created redirect works.
     $this->assertRedirect('node_test_alias', 'node_test_alias_updated');
+    // Test that the redirect will be deleted upon node deletion.
+    $this->drupalPostForm('node/' . $node->id() . '/delete', array(), t('Delete'));
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
+    $this->assertNull($redirect);
 
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.

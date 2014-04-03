@@ -111,17 +111,31 @@ class Redirect extends ContentEntityBase {
    *   Shouldn't this be done automatically?
    */
   public static function postLoad(EntityStorageInterface $storage_controller, array &$entities) {
-    foreach ($entities as &$entity) {
+    foreach ($entities as $entity) {
       $i = 0;
       foreach ($entity->get('redirect_source') as $source) {
-        $entity->redirect_source->get($i)->options = unserialize($source->options);
-        $entity->redirect_source->get($i)->route_parameters = unserialize($source->route_parameters);
+        if (is_string($source->options)) {
+          $entity->redirect_source->get($i)->options = unserialize($source->options);
+        }
+        if (is_string($source->route_parameters)) {
+          $entity->redirect_source->get($i)->route_parameters = unserialize($source->route_parameters);
+        }
         $i++;
       }
       $i = 0;
       foreach ($entity->get('redirect_redirect') as $redirect) {
-        $entity->redirect_redirect->get($i)->options = unserialize($redirect->options);
-        $entity->redirect_redirect->get($i)->route_parameters = unserialize($redirect->route_parameters);
+        if (is_string($redirect->options)) {
+          $entity->redirect_redirect->get($i)->options = unserialize($redirect->options);
+        }
+        else {
+          $entity->redirect_redirect->get($i)->options = array();
+        }
+        if (is_string($redirect->route_parameters)) {
+          $entity->redirect_redirect->get($i)->route_parameters = unserialize($redirect->route_parameters);
+        }
+        else {
+          $entity->redirect_redirect->get($i)->route_parameters = array();
+        }
         $i++;
       }
     }
@@ -285,27 +299,26 @@ class Redirect extends ContentEntityBase {
   public function setRedirect($url, array $options = array()) {
     $value = array();
 
-    try {
-      $parsed_url = UrlHelper::parse($url);
+    $parsed_url = UrlHelper::parse($url);
 
-      $url = Url::createFromPath($parsed_url['path']);
-      if (!empty($parsed_url['query'])) {
-        $url->setOption('query', $parsed_url['query']);
-      }
-      if (!empty($parsed_url['fragment'])) {
-        $url->setOption('fragment', $parsed_url['fragment']);
-      }
+    /** @var \Drupal\Core\Path\AliasManager $alias_manager */
+    $alias_manager = \Drupal::service('path.alias_manager');
+    // Make sure we have the system path.
+    $parsed_url['path'] = $alias_manager->getSystemPath($parsed_url['path']);
 
-      $value += $url->toArray();
-      // Reset the URL value to contain only the path.
-      $value['url'] = $parsed_url['path'];
-
-      $value['options'] += $options;
+    $url = Url::createFromPath($parsed_url['path']);
+    if (!empty($parsed_url['query'])) {
+      $url->setOption('query', $parsed_url['query']);
     }
-    catch (\Exception $e) {
-      $value['url'] = $url;
-      $value['options'] = $options;
+    if (!empty($parsed_url['fragment'])) {
+      $url->setOption('fragment', $parsed_url['fragment']);
     }
+
+    $value += $url->toArray();
+    // Reset the URL value to contain only the path.
+    $value['url'] = $parsed_url['path'];
+
+    $value['options'] += $options;
 
     $this->redirect_redirect->set(0, $value);
   }

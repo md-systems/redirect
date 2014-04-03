@@ -19,6 +19,7 @@ redirect.edit:
   path: '/admin/config/search/redirect/edit/{redirect}'
   defaults:
     _entity_form: 'redirect.edit'
+    _title: 'Edit URL redirect'
   requirements:
     #_entity_access: 'redirect.update'
     _permission: 'administer redirects'
@@ -27,6 +28,7 @@ redirect.delete:
   path: '/admin/config/search/redirect/delete/{redirect}'
   defaults:
     _entity_form: 'redirect.delete'
+    _title: 'Delete URL redirect'
   requirements:
     #_entity_access: 'redirect.delete'
     _permission: 'administer redirects'

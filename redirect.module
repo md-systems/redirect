@@ -13,6 +13,7 @@
  * @} End of "defgroup redirect_api".
  */
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemList;
@@ -94,34 +95,28 @@ function redirect_cron() {
 
 /**
  * Implements hook_entity_delete().
+ *
+ * Will delete redirects based on the entity URL.
  */
-function redirect_entity_delete($entity, $entity_type) {
-  // @todo - hardcode for now. There might be other entity types that would
-  //   want to support automatic redirects on path change - we need to define
-  //   how to enable this.
-  if (in_array($entity_type, array('node', 'taxonomy'))) {
-//    redirect_delete_by_entity_path($entity_type, $entity);
+function redirect_entity_delete(EntityInterface $entity, $entity_type) {
+  if (redirect_entity_has_path_field($entity)) {
+    redirect_delete_by_path($entity->url());
   }
 }
 
 /**
  * Implements hook_path_update().
+ *
+ * Will create redirect from the old path alias to the new one.
  */
 function redirect_path_update(array $path) {
   if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
-  // @todo - what exactly is the code below for? If that relates to the
-  //   entity_type support for redirects this will not work as such data will
-  //   never be part of the path data array.
-  elseif (isset($path['redirect']) && !$path['redirect']) {
-    return;
-  }
 
   $unchanged_path = redirect_path_get_unchanged();
   if (!empty($unchanged_path) && $unchanged_path['pid'] == $path['pid'] && $unchanged_path['alias'] != $path['alias']) {
-    $hash = Redirect::generateHash($unchanged_path['alias'], array(), $unchanged_path['langcode']);
-    if (!redirect_load_by_hash($hash)) {
+    if (!redirect_repository()->findMatchingRedirect($unchanged_path['alias'], array(), $unchanged_path['langcode'])) {
       $redirect = redirect_create();
       $redirect->setSource($unchanged_path['alias']);
       $redirect->setRedirect($path['alias']);
@@ -193,9 +188,26 @@ function redirect_page_build(&$page) {
  * Adds unchanged path info in case we find the path field.
  */
 function redirect_entity_presave(EntityInterface $entity) {
-  if (!$entity->isNew() && isset($entity->path) && $entity->path instanceof FieldItemList) {
+  if (!$entity->isNew() && redirect_entity_has_path_field($entity)) {
     redirect_path_set_unchanged(path_load($entity->path->pid));
   }
+}
+
+/**
+ * Checks if the entity has path field.
+ *
+ * @param EntityInterface $entity
+ *   The entity to check.
+ *
+ * @return bool
+ *   TRUE if the entity has the path field.
+ */
+function redirect_entity_has_path_field(EntityInterface $entity) {
+  if (isset($entity->path) && $entity->path instanceof FieldItemList) {
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 /**
@@ -238,56 +250,13 @@ function redirect_path_get_unchanged() {
 }
 
 /**
- * Load an URL redirect from the database.
+ * Gets the redirect repository service.
  *
- * @param $rid
- *   The URL redirect ID.
- * @param $reset
- *   Whether to reset the redirect_load_multiple cache.
- *
- * @return \Drupal\redirect\Entity\Redirect
- *   An URL redirect object, or FALSE if loading failed.
- *
- * @ingroup redirect_api
+ * @return \Drupal\redirect\RedirectRepository
+ *   The repository service.
  */
-function redirect_load($rid, $reset = FALSE) {
-  return entity_load('redirect', $rid, $reset);
-}
-
-/**
- * Load an URL redirect from the database by {redirect}.hash.
- *
- * @param $hash
- *   The hash of the URL redirect.
- *
- * @return Redirect
- *   An URL redirect object, or FALSE if loading failed.
- *
- * @ingroup redirect_api
- */
-function redirect_load_by_hash($hash) {
-  $redirects = entity_load_multiple_by_properties('redirect', array('hash' => $hash));
-  return !empty($redirects) ? reset($redirects) : FALSE;
-}
-
-/**
- * Load multiple URL redirects from the database.
- *
- * @param $rids
- *   An array of redirect IDs.
- * @param $conditions
- *   An array of conditions on the {redirect} table in the form 'field' =>
- *   $value.
- * @param $reset
- *   Whether to reset the redirect_load_multiple cache.
- *
- * @return \Drupal\redirect\Entity\Redirect[]
- *   An array of URL redirect objects indexed by redirect IDs.
- *
- * @ingroup redirect_api
- */
-function redirect_load_multiple($rids = array(), array $conditions = array(), $reset = FALSE) {
-  return entity_load_multiple('redirect', $rids, $conditions, $reset);
+function redirect_repository() {
+  return \Drupal::service('redirect.repository');
 }
 
 /**
@@ -394,18 +363,6 @@ function redirect_redirect_delete($redirect) {
 }
 
 /**
- * Delete a single URL redirect.
- *
- * @param $rid
- *   The ID of the redirect to delete.
- *
- * @ingroup redirect_api
- */
-function redirect_delete($rid) {
-  redirect_delete_multiple(array($rid));
-}
-
-/**
  * Delete any redirects associated with a path or any of its sub-paths.
  *
  * Given a source like 'node/1' this function will delete any redirects that
@@ -417,84 +374,22 @@ function redirect_delete($rid) {
  * @ingroup redirect_api
  */
 function redirect_delete_by_path($path) {
+  $path = ltrim($path, '/');
   $query = db_select('redirect');
   $query->addField('redirect', 'rid');
   $query_or = db_or();
-  $query_or->condition('source', db_like($path), 'LIKE');
-  $query_or->condition('source', db_like($path . '/') . '%', 'LIKE');
-  $query_or->condition('redirect', db_like($path), 'LIKE');
-  $query_or->condition('redirect', db_like($path . '/') . '%', 'LIKE');
+  $query_or->condition('redirect_source__url', db_like($path), 'LIKE');
+  $query_or->condition('redirect_source__url', db_like($path . '/') . '%', 'LIKE');
+  $query_or->condition('redirect_redirect__url', db_like($path), 'LIKE');
+  $query_or->condition('redirect_redirect__url', db_like($path . '/') . '%', 'LIKE');
+
   $query->condition($query_or);
   $rids = $query->execute()->fetchCol();
 
   if ($rids) {
-    redirect_delete_multiple($rids);
-  }
-}
-
-/**
- * Delete an entity URL alias and any of its sub-paths.
- *
- * This function also checks to see if the default entity URI is different from
- * the current entity URI and will delete any of the default aliases.
- *
- * @param $entity_type
- *   A string with the entity type.
- * @param $entity
- *   An entity object.
- *
- * @ingroup redirect_api
- */
-function redirect_delete_by_entity_path($entity_type, EntityInterface $entity) {
-
-  if ($url = $entity->url()) {
-    redirect_delete_by_path($url);
-  }
-
-  //$info = entity_get_info($entity_type);
-  //if (isset($info['default path'])) {
-  //  list($id) = entity_extract_ids($entity_type, $entity);
-  //  $default_path = str_replace('[id]', $id, $info['default path']);
-  //  if ($uri['path'] !== $default_path) {
-  //    redirect_delete_by_path($default_path);
-  //  }
-  //}
-}
-
-/**
- * Delete multiple URL redirects.
- *
- * @param $rids
- *   An array of redirect IDs to delete.
- *
- * @ingroup redirect_api
- *
- * @todo - handle via entity API
- */
-function redirect_delete_multiple(array $rids) {
-  $transaction = db_transaction();
-  if (!empty($rids)) {
-    $redirects = redirect_load_multiple($rids);
-
-    try {
-      // Let modules react to the individual redirects being deleted.
-      foreach ($redirects as $rid => $redirect) {
-        module_invoke_all('redirect_delete', $redirect);
-        module_invoke_all('entity_delete', $redirect, 'redirect');
-      }
-
-      db_delete('redirect')
-        ->condition('rid', $rids, 'IN')
-        ->execute();
+    foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
+      $redirect->delete();
     }
-    catch (Exception $e) {
-      $transaction->rollback();
-      watchdog_exception('redirect', $e);
-      throw $e;
-    }
-
-    // Clear the redirect_load_multiple cache.
-    entity_get_controller('redirect')->resetCache();
   }
 }
 
@@ -534,8 +429,10 @@ function redirect_purge_inactive_redirects(array $types = array('redirect'), $in
   $rids = $query->execute()->fetchCol();
 
   if (count($rids)) {
-    redirect_delete_multiple($rids);
-    watchdog('redirect', format_plural(count($rids), 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
+    foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
+      $redirect->delete();
+    }
+    watchdog('redirect', String::format(count($rids), 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
     return $rids;
   }
 }
@@ -773,36 +670,6 @@ function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
     '#default_value' => $form['language']['#value'],
     '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
   );
-}
-
-/**
- * Implements hook_field_extra_fields().
- *
- * @todo - get rid of deprecated / unused functions with the entity conversion
- *    task.
- */
-function redirect_field_extra_fields() {
-  $manager = \Drupal::entityManager();
-  foreach ($manager->getDefinitions() as $entity_name => $entity_type) {
-    if ($entity_name == 'comment') {
-      // The comment entity type supports URIs, but they're not real.
-      continue;
-    }
-    foreach ($manager->getBundleInfo($entity_name) as $bundle_name => $bundle) {
-      if (!isset($bundle['uri callback']) && !$entity_type->getUriCallback()) {
-        // The bundle or base entity must have an URI callback defined otherwise
-        // we cannot use the entity_uri() function to lookup the entity's source
-        // path.
-        continue;
-      }
-      $info[$entity_name][$bundle_name]['form']['redirect'] = array(
-        'label' => t('URL redirects'),
-        'description' => t('Redirect module form elements'),
-        'weight' => 30,
-      );
-    }
-  }
-  return $info;
 }
 
 /**

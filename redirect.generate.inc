@@ -63,7 +63,9 @@ function redirect_generate_batch_delete(array &$context) {
 
   $limit = 20;
   $rids = db_query_range("SELECT rid FROM {redirect} WHERE rid > :rid ORDER BY rid", 0, $limit, array(':rid' => $context['sandbox']['current_rid']))->fetchCol();
-  redirect_delete_multiple($rids);
+  foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
+    $redirect->delete();
+  }
 
   // Update our progress information.
   $context['sandbox']['progress'] += count($rids);
