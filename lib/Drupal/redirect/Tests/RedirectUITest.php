@@ -350,7 +350,7 @@ class RedirectUITest extends WebTestBase {
    * @param string $expected_ending_status
    *   The status we expect to get with the first request.
    */
-  public function _assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
+  public function assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
     $headers = $this->drupalGetHeaders(TRUE);
 
     $ending_url = isset($headers[0]['location']) ? $headers[0]['location'] : NULL;
