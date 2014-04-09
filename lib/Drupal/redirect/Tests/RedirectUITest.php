@@ -52,8 +52,7 @@ class RedirectUITest extends WebTestBase {
       'administer redirects',
       'access site reports',
       'access content',
-      'create article content',
-      'edit any article content',
+      'bypass node access',
       'create url aliases',
       'administer taxonomy',
       'administer url aliases',
@@ -95,6 +94,11 @@ class RedirectUITest extends WebTestBase {
     $this->assertText('non-existing');
     $this->assertLink('node');
     $this->assertText(Language::LANGCODE_NOT_SPECIFIED);
+    $this->assertText(t('Never'), 'Last access time is "Never"');
+    // Assert the redirect that will also update the last access time.
+    $this->assertRedirect('non-existing', 'node');
+    $this->drupalGet('admin/config/search/redirect');
+    $this->assertNoText(t('Never'), 'Last access time has been updated');
 
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
@@ -222,7 +226,7 @@ class RedirectUITest extends WebTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[alias]' => 'node_test_alias_updated'), t('Save'));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
-    $this->assertEqual($redirect->getRedirectUrl(), 'node_test_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl(), 'node/' . $node->id());
     $this->drupalGet('admin/config/search/redirect');
     // Test if the automatically created redirect works.
     $this->assertRedirect('node_test_alias', 'node_test_alias_updated');
@@ -236,7 +240,7 @@ class RedirectUITest extends WebTestBase {
     $term = $this->createTerm($this->createVocabulary());
     $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[alias]' => 'term_test_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('term_test_alias');
-    $this->assertEqual($redirect->getRedirectUrl(), 'term_test_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl(), 'taxonomy/term/1');
     // Test if the automatically created redirect works.
     $this->assertRedirect('term_test_alias', 'term_test_alias_updated');
 
@@ -248,17 +252,17 @@ class RedirectUITest extends WebTestBase {
     // Note that here we rely on fact that we land on the path alias list page
     // and the default sort is by the alias, which implies that the first edit
     // link leads to the edit page of the aaa_path_alias.
-    $this->clickLink(t('edit'));
+    $this->clickLink(t('Edit'));
     $this->drupalPostForm(NULL, array('alias' => 'aaa_path_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('aaa_path_alias', array(), 'en');
-    $this->assertEqual($redirect->getRedirectUrl(), 'aaa_path_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl(), 'node');
     // Test if the automatically created redirect works.
     $this->assertRedirect('aaa_path_alias', 'aaa_path_alias_updated');
 
     // Test the automatically created redirect shows up in the form correctly.
     $this->drupalGet('admin/config/search/redirect/edit/' . $redirect->id());
     $this->assertFieldByName('redirect_source[0][url]', 'aaa_path_alias');
-    $this->assertFieldByName('redirect_redirect[0][url]', 'aaa_path_alias_update');
+    $this->assertFieldByName('redirect_redirect[0][url]', 'aaa_path_alias_updated');
   }
 
   /**
@@ -346,8 +350,7 @@ class RedirectUITest extends WebTestBase {
    * @param string $expected_ending_status
    *   The status we expect to get with the first request.
    */
-  public function assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
-    $this->drupalHead($GLOBALS['base_url'] . base_path() . $path);
+  public function _assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
     $headers = $this->drupalGetHeaders(TRUE);
 
     $ending_url = isset($headers[0]['location']) ? $headers[0]['location'] : NULL;

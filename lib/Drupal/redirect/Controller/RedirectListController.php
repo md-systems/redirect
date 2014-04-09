@@ -30,7 +30,16 @@ class RedirectListController extends EntityListBuilder {
     $row['status_code']['data'] = $redirect->getStatusCode();
     $row['language']['data'] = $redirect->getLanguage();
     $row['count']['data'] = $redirect->getCount();
-    $row['access']['data'] = \Drupal::service('date')->formatInterval(REQUEST_TIME - $redirect->getLastAccessed());
+
+    if ($redirect->getLastAccessed()) {
+      $time_ago_message = $this->t('@time ago',
+        array('@time' => \Drupal::service('date')->formatInterval(REQUEST_TIME - $redirect->getLastAccessed())));
+    }
+    else {
+      $time_ago_message = $this->t('Never');
+    }
+
+    $row['access']['data'] = $time_ago_message;
     $row['operations']['data'] = $this->buildOperations($redirect);
     return $row;
   }
