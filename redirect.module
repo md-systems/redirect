@@ -189,7 +189,7 @@ function redirect_page_build(&$page) {
  */
 function redirect_entity_presave(EntityInterface $entity) {
   if (!$entity->isNew() && redirect_entity_has_path_field($entity)) {
-    redirect_path_set_unchanged(path_load($entity->path->pid));
+    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load($entity->path->pid));
   }
 }
 
