@@ -110,7 +110,9 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
         // This logic will get the alias url, if any.
         $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(
-          'absolute' => TRUE,
+          // @todo: Absolute URLs based on the route are broken, enable again
+          //   when https://drupal.org/node/2248683 is fixed.
+          // 'absolute' => TRUE,
           'query' => $redirect_query,
         ));
       }

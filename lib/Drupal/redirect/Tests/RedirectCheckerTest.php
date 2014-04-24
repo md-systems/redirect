@@ -33,7 +33,7 @@ class RedirectCheckerTest extends UnitTestCase {
 
     $config = array('redirect.settings' => array('global_admin_paths' => FALSE));
 
-    $state = $this->getMockBuilder('Drupal\Core\KeyValueStore\StateInterface')
+    $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
       ->getMock();
     $state->expects($this->any())
       ->method('get')
@@ -58,7 +58,7 @@ class RedirectCheckerTest extends UnitTestCase {
     $this->assertFalse($checker->canRedirect($request), 'Cannot redirect other than GET method');
 
     // Maintenance mode is on.
-    $state = $this->getMockBuilder('Drupal\Core\KeyValueStore\StateInterface')
+    $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
       ->getMock();
     $state->expects($this->any())
       ->method('get')
@@ -71,7 +71,7 @@ class RedirectCheckerTest extends UnitTestCase {
     $this->assertFalse($checker->canRedirect($request), 'Cannot redirect if maintenance mode is on');
 
     // We are at a admin path.
-    $state = $this->getMockBuilder('Drupal\Core\KeyValueStore\StateInterface')
+    $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
       ->getMock();
     $state->expects($this->any())
       ->method('get')
@@ -105,7 +105,7 @@ class RedirectCheckerTest extends UnitTestCase {
    * Tests the loop checker.
    */
   public function testIsLoop() {
-    $state = $this->getMockBuilder('Drupal\Core\KeyValueStore\StateInterface')
+    $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
       ->getMock();
     $request = $this->getRequestStub('index.php', 'GET');
 
