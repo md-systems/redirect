@@ -138,8 +138,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    // This needs to run after
-    // Symfony\Component\HttpKernel\EventListener::onKernelRequest(), which has
+    // This needs to run after RouterListener::onKernelRequest(), which has
     // a priority of 32.
     $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 31);
     return $events;
