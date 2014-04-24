@@ -110,9 +110,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
         // This logic will get the alias url, if any.
         $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(
-          // @todo: Absolute URLs based on the route are broken, enable again
-          //   when https://drupal.org/node/2248683 is fixed.
-          // 'absolute' => TRUE,
+          'absolute' => TRUE,
           'query' => $redirect_query,
         ));
       }
@@ -139,8 +137,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  static function getSubscribedEvents() {
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 500);
+  public static function getSubscribedEvents() {
+    // This needs to run after
+    // Symfony\Component\HttpKernel\EventListener::onKernelRequest(), which has
+    // a priority of 32.
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 31);
     return $events;
   }
 }
