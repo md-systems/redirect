@@ -24,11 +24,11 @@ use Drupal\link\LinkItemInterface;
  *   label = @Translation("Redirect"),
  *   bundle_label = @Translation("Redirect type"),
  *   controllers = {
- *     "list_builder" = "Drupal\redirect\Controller\RedirectListController",
+ *     "list_builder" = "Drupal\redirect\Controller\RedirectListBuilder",
  *     "form" = {
- *       "default" = "Drupal\redirect\Form\RedirectFormController",
+ *       "default" = "Drupal\redirect\Form\RedirectForm",
  *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",
- *       "edit" = "Drupal\redirect\Form\RedirectFormController"
+ *       "edit" = "Drupal\redirect\Form\RedirectForm"
  *     }
  *   },
  *   base_table = "redirect",

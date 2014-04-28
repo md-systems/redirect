@@ -8,13 +8,13 @@
 namespace Drupal\redirect\Form;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Entity\ContentEntityFormController;
+use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
 use Drupal\redirect\Entity\Redirect;
 
-class RedirectFormController extends ContentEntityFormController {
+class RedirectForm extends ContentEntityForm {
 
   /**
    * {@inheritdoc}
