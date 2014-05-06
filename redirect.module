@@ -217,7 +217,7 @@ function redirect_entity_has_path_field(EntityInterface $entity) {
  */
 function redirect_form_path_admin_form_alter(&$form, &$form_state) {
   if (!empty($form['pid']['#value'])) {
-    redirect_path_set_unchanged(path_load($form['pid']['#value']));
+    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('pid' => $form['pid']['#value'])));
   }
 }
 

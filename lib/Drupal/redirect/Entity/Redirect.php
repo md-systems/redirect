@@ -304,7 +304,7 @@ class Redirect extends ContentEntityBase {
     /** @var \Drupal\Core\Path\AliasManager $alias_manager */
     $alias_manager = \Drupal::service('path.alias_manager');
     // Make sure we have the system path.
-    $parsed_url['path'] = $alias_manager->getSystemPath($parsed_url['path']);
+    $parsed_url['path'] = $alias_manager->getPathByAlias($parsed_url['path']);
 
     $url = Url::createFromPath($parsed_url['path']);
     if (!empty($parsed_url['query'])) {
