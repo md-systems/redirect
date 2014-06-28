@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\ParameterBag;
 
 /**
  * Tests the redirect logic.
+ *
+ * @group redirect
  */
 class RedirectCheckerTest extends UnitTestCase {
 

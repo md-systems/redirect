@@ -19,6 +19,8 @@ use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 
 /**
  * Tests the redirect logic.
+ *
+ * @group redirect
  */
 class RedirectRequestSubscriberTest extends UnitTestCase {
 
