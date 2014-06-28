@@ -52,7 +52,7 @@ class RedirectCheckerTest extends UnitTestCase {
     $this->assertTrue($checker->canRedirect($request), 'Can redirect');
 
     // The script name is not index.php.
-    $request = $this->getRequestStub('not_index.php', 'GET');
+    $request = $this->getRequestStub('statistics.php', 'GET');
     $this->assertFalse($checker->canRedirect($request), 'Cannot redirect script name not index.php');
 
     // The request method is not GET.

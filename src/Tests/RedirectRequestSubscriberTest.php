@@ -224,12 +224,15 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->method('isLoop')
       ->will($this->returnValue(FALSE));
 
+    $context = $this->getMock('Symfony\Component\Routing\RequestContext');
+
     $subscriber = new RedirectRequestSubscriber(
       $url_generator,
       $this->getRedirectRepositoryStub('findMatchingRedirect', $redirect),
       $this->getLanguageManagerStub(),
       $this->getConfigFactoryStub(array('redirect.settings' => array('passthrough_querystring' => $retain_query))),
-      $checker
+      $checker,
+      $context
     );
 
     // Run the main redirect method.
