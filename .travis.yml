@@ -87,7 +87,7 @@ script:
   - TEST_OUTPUT=$(! egrep -i "([0-9]+ fails)|(PHP Fatal error)|([0-9]+ exceptions)" /tmp/test.txt > /dev/null)$?
   - echo $TEST_OUTPUT
   - cd $TRAVIS_BUILD_DIR/../drupal/core
-  - ./vendor/bin/phpunit --verbose --debug  --coverage-text ../modules/redirect
+  - ./vendor/bin/phpunit --verbose --debug ../modules/redirect
   - TEST_PHPUNIT=$?
   - echo $TEST_PHPUNIT
   # if the TEST_EXIT status is 0 AND the TEST_OUTPUT status is also 0 it means we succeeded, in all other cases we
