@@ -59,7 +59,7 @@ class RedirectChecker {
       // Do not redirect if the root script is not /index.php.
       $can_redirect = FALSE;
     }
-    elseif (!$request->isMethod('GET')) {
+    elseif (!($request->isMethod('GET') || $request->isMethod('HEAD'))) {
       // Do not redirect if this is other than GET request.
       $can_redirect = FALSE;
     }

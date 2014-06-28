@@ -223,7 +223,7 @@ class RedirectUITest extends WebTestBase {
     // Create a node and update its path alias which should result in a redirect
     // being automatically created from the old alias to the new one.
     $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => Language::LANGCODE_NOT_SPECIFIED, 'path' => array('alias' => 'node_test_alias')));
-    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[alias]' => 'node_test_alias_updated'), t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias_updated'), t('Save'));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertEqual($redirect->getRedirectUrl(), 'node/' . $node->id());
@@ -238,7 +238,7 @@ class RedirectUITest extends WebTestBase {
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.
     $term = $this->createTerm($this->createVocabulary());
-    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[alias]' => 'term_test_alias_updated'), t('Save'));
+    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[0][alias]' => 'term_test_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('term_test_alias');
     $this->assertEqual($redirect->getRedirectUrl(), 'taxonomy/term/1');
     // Test if the automatically created redirect works.
@@ -351,6 +351,7 @@ class RedirectUITest extends WebTestBase {
    *   The status we expect to get with the first request.
    */
   public function assertRedirect($path, $expected_ending_url, $expected_ending_status = 'HTTP/1.1 301 Moved Permanently') {
+    $this->drupalHead($path);
     $headers = $this->drupalGetHeaders(TRUE);
 
     $ending_url = isset($headers[0]['location']) ? $headers[0]['location'] : NULL;

@@ -8,6 +8,7 @@
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
+use Drupal\Core\Url;
 
 class RedirectDeleteForm extends ContentEntityConfirmFormBase {
 
@@ -22,9 +23,7 @@ class RedirectDeleteForm extends ContentEntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelRoute() {
-    return array(
-      'route_name' => 'redirect.list',
-    );
+    return new Url('redirect.list');
   }
 
   /**

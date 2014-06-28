@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Routing\RequestContext;
 
 /**
  * Redirect subscriber for controller requests.
@@ -48,6 +49,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   protected $checker;
 
   /**
+   * @var \Symfony\Component\Routing\RequestContext
+   */
+  protected $context;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Routing\UrlGenerator $url_generator
@@ -60,13 +66,16 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    *   The config.
    * @param \Drupal\redirect\RedirectChecker $checker
    *   The redirect checker service.
+   * @param \Symfony\Component\Routing\RequestContext
+   *   Request context.
    */
-  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, RedirectChecker $checker) {
+  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, RedirectChecker $checker, RequestContext $context) {
     $this->urlGenerator = $url_generator;
     $this->redirectRepository = $redirect_repository;
     $this->languageManager = $language_manager;
     $this->config = $config->get('redirect.settings');
     $this->checker = $checker;
+    $this->context = $context;
   }
 
   /**
@@ -85,6 +94,8 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     // Get URL info and process it to be used for hash generation.
     parse_str($request->getQueryString(), $request_query);
     $path = ltrim($request->getPathInfo(), '/');
+
+    $this->context->fromRequest($request);
 
     $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->id);
 
@@ -138,9 +149,10 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    // This needs to run after RouterListener::onKernelRequest(), which has
-    // a priority of 32.
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 31);
+    // This needs to run before RouterListener::onKernelRequest(), which has
+    // a priority of 32. Otherwise, that aborts the request if no matching
+    // route is found.
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestCheckRedirect', 33);
     return $events;
   }
 }

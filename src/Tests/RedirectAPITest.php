@@ -2,19 +2,19 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Test\RedirectAPITest
+ * Contains \Drupal\redirect\Tests\RedirectAPITest.
  */
 
 namespace Drupal\redirect\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
+use Drupal\simpletest\KernelTestBase;
 
-class RedirectAPITest extends DrupalUnitTestBase {
+class RedirectAPITest extends KernelTestBase {
 
   /**
-   * @var \Drupal\Core\Entity\FieldableDatabaseStorageController
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $controller;
 
@@ -42,8 +42,8 @@ class RedirectAPITest extends DrupalUnitTestBase {
   public function setUp() {
     parent::setUp();
 
-    $this->installSchema('redirect', array('redirect'));
-    $this->installSchema('user', array('users'));
+    $this->installEntitySchema('redirect');
+    $this->installEntitySchema('user');
     $this->installConfig(array('redirect'));
 
     $this->controller = $this->container->get('entity.manager')->getStorage('redirect');
