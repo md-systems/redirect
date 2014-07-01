@@ -70,8 +70,8 @@ before_script:
 
 script:
   # go to our Drupal module directory
-  - mkdir $TRAVIS_BUILD_DIR/../drupal/modules/pathauto
-  - cp -R $TRAVIS_BUILD_DIR/* $TRAVIS_BUILD_DIR/../drupal/modules/pathauto/
+  - mkdir $TRAVIS_BUILD_DIR/../drupal/modules/redirect
+  - cp -R $TRAVIS_BUILD_DIR/* $TRAVIS_BUILD_DIR/../drupal/modules/redirect/
   # go to our Drupal main directory
   - cd $TRAVIS_BUILD_DIR/../drupal
   - ls -la $TRAVIS_BUILD_DIR/../drupal/sites/default
