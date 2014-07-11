@@ -97,7 +97,7 @@ function redirect_cron() {
  *
  * Will delete redirects based on the entity URL.
  */
-function redirect_entity_delete(EntityInterface $entity, $entity_type) {
+function redirect_entity_delete(EntityInterface $entity) {
   if (redirect_entity_has_path_field($entity)) {
     redirect_delete_by_path($entity->url());
   }
