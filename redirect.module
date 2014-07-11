@@ -18,6 +18,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\user\UserInterface;
 
@@ -73,13 +74,11 @@ function redirect_permission() {
 /**
  * Implements hook_help().
  */
-function redirect_help($path, $arg) {
+function redirect_help($route_name, RouteMatchInterface $route_match) {
   $output = '';
-  switch ($path) {
-    case 'admin/config/search/redirect/404':
+  switch ($route_name) {
+    case 'redirect.fix_404':
       $output = '<p>' . t('This page lists all paths that have resulted in 404 errors and do not yet have any redirects assigned to them.') . '</p>';
-      break;
-    case 'admin/reports/page-not-found':
       break;
   }
   return $output;

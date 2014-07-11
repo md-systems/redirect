@@ -11,6 +11,9 @@ use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\KernelTestBase;
 
+/**
+ * API tests for redirect module.
+ */
 class RedirectAPITest extends KernelTestBase {
 
   /**

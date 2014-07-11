@@ -11,6 +11,9 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
+/**
+ * UI tests for redirect module.
+ */
 class RedirectUITest extends WebTestBase {
 
   /**
