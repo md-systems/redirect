@@ -20,14 +20,6 @@ use Symfony\Component\HttpFoundation\ParameterBag;
  */
 class RedirectCheckerTest extends UnitTestCase {
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Redirect checker tests',
-      'description' => 'Unit tests for the RedirectChecker class.',
-      'group' => 'Redirect',
-    );
-  }
-
   /**
    * Tests the can redirect check.
    */

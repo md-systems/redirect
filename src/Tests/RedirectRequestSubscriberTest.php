@@ -24,14 +24,6 @@ use Symfony\Component\HttpKernel\Event\PostResponseEvent;
  */
 class RedirectRequestSubscriberTest extends UnitTestCase {
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Redirect request subscriber tests',
-      'description' => 'Unit tests for the RedirectRequestSubscriber class.',
-      'group' => 'Redirect',
-    );
-  }
-
   /**
    * Unit test of the RedirectRequestSubscriber::onKernelRequestCheckRedirect().
    */

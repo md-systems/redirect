@@ -12,7 +12,9 @@ use Drupal\Core\Language\Language;
 use Drupal\simpletest\KernelTestBase;
 
 /**
- * API tests for redirect module.
+ * Redirect entity and redirect API test coverage.
+ *
+ * @group Redirect
  */
 class RedirectAPITest extends KernelTestBase {
 
@@ -27,17 +29,6 @@ class RedirectAPITest extends KernelTestBase {
    * @var array
    */
   public static $modules = array('redirect', 'link', 'field', 'system', 'user');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Redirect API tests',
-      'description' => 'Redirect entity and redirect API test coverage.',
-      'group' => 'Redirect',
-    );
-  }
 
   /**
    * {@inheritdoc}

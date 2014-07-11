@@ -13,6 +13,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * UI tests for redirect module.
+ *
+ * @group Redirect
  */
 class RedirectUITest extends WebTestBase {
 
@@ -32,17 +34,6 @@ class RedirectUITest extends WebTestBase {
    * @var array
    */
   public static $modules = array('redirect', 'node', 'path', 'dblog', 'views', 'taxonomy');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Redirect UI tests',
-      'description' => 'Test interface functionality.',
-      'group' => 'Redirect',
-    );
-  }
 
   /**
    * {@inheritdoc}
