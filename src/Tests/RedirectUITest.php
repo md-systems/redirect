@@ -14,7 +14,7 @@ use Drupal\simpletest\WebTestBase;
 /**
  * UI tests for redirect module.
  *
- * @group Redirect
+ * @group redirect
  */
 class RedirectUITest extends WebTestBase {
 

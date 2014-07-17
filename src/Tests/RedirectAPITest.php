@@ -14,7 +14,7 @@ use Drupal\simpletest\KernelTestBase;
 /**
  * Redirect entity and redirect API test coverage.
  *
- * @group Redirect
+ * @group redirect
  */
 class RedirectAPITest extends KernelTestBase {
 
