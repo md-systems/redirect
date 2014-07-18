@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect\Plugin\views\field;
 
+use Drupal\Component\Utility\String;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 
 class FieldRedirectRedirect extends FieldPluginBase {
@@ -67,7 +68,7 @@ class FieldRedirectRedirect extends FieldPluginBase {
       $this->options['alter']['absolute'] = $redirect_options['absolute'];
     }
     else {
-      $text = check_plain($text);
+      $text = String::checkPlain($text);
     }
 
     return $text;
