@@ -9,6 +9,7 @@ namespace Drupal\redirect\Form;
 
 use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 
 class RedirectFix404Form extends FormBase {
 
@@ -22,7 +23,7 @@ class RedirectFix404Form extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $destination = drupal_get_destination();
 
     $search = $this->getRequest()->get('search');
@@ -119,7 +120,7 @@ class RedirectFix404Form extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($form_state['triggering_element']['#action'] == 'filter') {
       $form_state['redirect'] = array(
         'admin/config/search/redirect/404',

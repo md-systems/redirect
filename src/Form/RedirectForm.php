@@ -13,6 +13,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
 use Drupal\redirect\Entity\Redirect;
+use Drupal\Core\Form\FormStateInterface;
 
 class RedirectForm extends ContentEntityForm {
 
@@ -59,7 +60,7 @@ class RedirectForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
@@ -96,7 +97,7 @@ class RedirectForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
     $source = $form_state['values']['redirect_source'][0];
     $redirect = $form_state['values']['redirect_redirect'][0];
@@ -147,7 +148,7 @@ class RedirectForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $this->entity->save();
     drupal_set_message(t('The redirect has been saved.'));
     $form_state['redirect_route']['route_name'] = 'redirect.list';

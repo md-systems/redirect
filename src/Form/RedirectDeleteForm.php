@@ -9,6 +9,7 @@ namespace Drupal\redirect\Form;
 
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
 use Drupal\Core\Url;
+use Drupal\Core\Form\FormStateInterface;
 
 class RedirectDeleteForm extends ContentEntityConfirmFormBase {
 
@@ -36,7 +37,7 @@ class RedirectDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $this->entity->delete();
     drupal_set_message(t('The redirect %redirect has been deleted.', array('%redirect' => $this->entity->getRedirectUrl())));
     $form_state['redirect_route']['route_name'] = 'redirect.list';

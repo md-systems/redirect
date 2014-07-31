@@ -9,13 +9,11 @@ namespace Drupal\redirect\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
-use Drupal\link\LinkItemInterface;
 use Drupal\link\Plugin\Field\FieldWidget\LinkWidget;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\Core\Url;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Plugin implementation of the 'link' widget for the redirect module.
@@ -40,7 +38,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $default_url_value = NULL;
     if (isset($items[$delta]->url)) {
       try {
@@ -138,7 +136,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
   /**
    * {@inheritdoc}
    */
-  public function massageFormValues(array $values, array $form, array &$form_state) {
+  public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
     $values = parent::massageFormValues($values, $form, $form_state);
     // It is likely that the url provided for this field is not existing and
     // so the logic in the parent method did not set any defaults. Just run

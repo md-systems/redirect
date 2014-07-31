@@ -17,6 +17,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemList;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\redirect\Entity\Redirect;
@@ -213,7 +214,7 @@ function redirect_entity_has_path_field(EntityInterface $entity) {
  *
  * Adds support for creating redirects if an URL alias is changed.
  */
-function redirect_form_path_admin_edit_alter(&$form, &$form_state) {
+function redirect_form_path_admin_edit_alter(&$form, FormStateInterface $form_state) {
   if (!empty($form['pid']['#value'])) {
     redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('pid' => $form['pid']['#value'])));
   }
@@ -660,7 +661,7 @@ function _redirect_uasort($a, $b) {
 /**
  * Implements hook_form_FORM_ID_alter() on behalf of locale.module.
  */
-function locale_form_redirect_edit_form_alter(&$form, &$form_state) {
+function locale_form_redirect_edit_form_alter(array &$form, FormStateInterface $form_state) {
   $form['language'] = array(
     '#type' => 'select',
     '#title' => t('Language'),
@@ -703,6 +704,6 @@ function redirect_redirect_operations() {
 /**
  * Ajax callback for the redirect link widget.
  */
-function redirect_source_link_get_status_messages($form, &$form_state) {
+function redirect_source_link_get_status_messages(array $form, FormStateInterface $form_state) {
   return $form['redirect_source']['widget'][0]['status_box'];
 }
