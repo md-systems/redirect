@@ -75,7 +75,7 @@ class RedirectAPITest extends KernelTestBase {
     // Create a few more redirects to test the select.
     for ($i = 0; $i < 5; $i++) {
       $redirect = $this->controller->create();
-      $redirect->setSource($this->randomName());
+      $redirect->setSource($this->randomMachineName());
       $redirect->save();
     }
 

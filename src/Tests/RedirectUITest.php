@@ -302,9 +302,9 @@ class RedirectUITest extends WebTestBase {
   function createVocabulary() {
     // Create a vocabulary.
     $vocabulary = entity_create('taxonomy_vocabulary', array(
-      'name' => $this->randomName(),
-      'description' => $this->randomName(),
-      'vid' => drupal_strtolower($this->randomName()),
+      'name' => $this->randomMachineName(),
+      'description' => $this->randomMachineName(),
+      'vid' => drupal_strtolower($this->randomMachineName()),
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
       'weight' => mt_rand(0, 10),
     ));
@@ -319,9 +319,9 @@ class RedirectUITest extends WebTestBase {
     $filter_formats = filter_formats();
     $format = array_pop($filter_formats);
     $term = entity_create('taxonomy_term', array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'description' => array(
-        'value' => $this->randomName(),
+        'value' => $this->randomMachineName(),
         // Use the first available text format.
         'format' => $format->format,
       ),
