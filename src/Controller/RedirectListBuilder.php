@@ -33,7 +33,7 @@ class RedirectListBuilder extends EntityListBuilder {
 
     if ($redirect->getLastAccessed()) {
       $time_ago_message = $this->t('@time ago',
-        array('@time' => \Drupal::service('date')->formatInterval(REQUEST_TIME - $redirect->getLastAccessed())));
+        array('@time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $redirect->getLastAccessed())));
     }
     else {
       $time_ago_message = $this->t('Never');

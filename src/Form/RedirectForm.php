@@ -151,6 +151,6 @@ class RedirectForm extends ContentEntityForm {
   public function save(array $form, FormStateInterface $form_state) {
     $this->entity->save();
     drupal_set_message(t('The redirect has been saved.'));
-    $form_state['redirect_route']['route_name'] = 'redirect.list';
+    $form_state->setRedirect('redirect.list');
   }
 }
