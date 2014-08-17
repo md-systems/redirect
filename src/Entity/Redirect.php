@@ -11,7 +11,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
@@ -456,25 +456,25 @@ class Redirect extends ContentEntityBase {
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
-    $fields['rid'] = FieldDefinition::create('integer')
+    $fields['rid'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Redirect ID'))
       ->setDescription(t('The redirect ID.'))
       ->setReadOnly(TRUE);
 
-    $fields['uuid'] = FieldDefinition::create('uuid')
+    $fields['uuid'] = BaseFieldDefinition::create('uuid')
       ->setLabel(t('UUID'))
       ->setDescription(t('The record UUID.'))
       ->setReadOnly(TRUE);
 
-    $fields['hash'] = FieldDefinition::create('string')
+    $fields['hash'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Hash'))
       ->setDescription(t('The redirect hash.'));
 
-    $fields['type'] = FieldDefinition::create('string')
+    $fields['type'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Type'))
       ->setDescription(t('The redirect type.'));
 
-    $fields['uid'] = FieldDefinition::create('entity_reference')
+    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID of the node author.'))
       ->setSettings(array(
@@ -482,7 +482,7 @@ class Redirect extends ContentEntityBase {
         'default_value' => 0,
       ));
 
-    $fields['redirect_source'] = FieldDefinition::create('redirect_source_link')
+    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
       ->setLabel(t('From'))
       ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
       ->setRequired(TRUE)
@@ -503,7 +503,7 @@ class Redirect extends ContentEntityBase {
       ))
       ->setDisplayConfigurable('form', TRUE);
 
-    $fields['redirect_redirect'] = FieldDefinition::create('link')
+    $fields['redirect_redirect'] = BaseFieldDefinition::create('link')
       ->setLabel(t('To'))
       ->setRequired(TRUE)
       ->setTranslatable(FALSE)
@@ -523,19 +523,19 @@ class Redirect extends ContentEntityBase {
       ))
       ->setDisplayConfigurable('form', TRUE);
 
-    $fields['language'] = FieldDefinition::create('language')
+    $fields['language'] = BaseFieldDefinition::create('language')
       ->setLabel(t('Language code'))
       ->setDescription(t('The node language code.'));
 
-    $fields['status_code'] = FieldDefinition::create('integer')
+    $fields['status_code'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Status code'))
       ->setDescription(t('The redirect status code.'));
 
-    $fields['count'] = FieldDefinition::create('integer')
+    $fields['count'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Count'))
       ->setDescription(t('The redirect count.'));
 
-    $fields['access'] = FieldDefinition::create('integer')
+    $fields['access'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Access timestamp'))
       ->setDescription(t('The timestamp the redirect was last accessed.'));
 
