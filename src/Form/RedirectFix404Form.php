@@ -122,13 +122,10 @@ class RedirectFix404Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($form_state['triggering_element']['#action'] == 'filter') {
-      $form_state['redirect'] = array(
-        'admin/config/search/redirect/404',
-        array('query' => array('search' => trim($form_state['values']['filter'])))
-      );
+      $form_state->setRedirect('redirect.fix_404', array(), array('query' => array('search' => trim($form_state->getValue('filter')))));
     }
     else {
-      $form_state['redirect'] = 'admin/config/search/redirect/404';
+      $form_state->setRedirect('redirect.fix_404');
     }
   }
 
