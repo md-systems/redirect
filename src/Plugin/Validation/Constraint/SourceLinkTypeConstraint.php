@@ -9,9 +9,9 @@ namespace Drupal\redirect\Plugin\Validation\Constraint;
 
 use Drupal\link\LinkItemInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Component\Utility\UrlHelper;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorInterface;
 use Symfony\Component\Validator\ExecutionContextInterface;
@@ -77,7 +77,7 @@ class SourceLinkTypeConstraint extends Constraint implements ConstraintValidator
         catch (NotFoundHttpException $e) {
           $url_is_valid = FALSE;
         }
-        catch (MatchingRouteNotFoundException $e) {
+        catch (ResourceNotFoundException $e) {
           // User is creating a redirect from non existing path. This is not an
           // error state.
           $url_is_valid = TRUE;

@@ -14,6 +14,7 @@ use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 class RedirectForm extends ContentEntityForm {
 
@@ -120,7 +121,7 @@ class RedirectForm extends ContentEntityForm {
         $form_state->setErrorByName('redirect_redirect', t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
       }
     }
-    catch (MatchingRouteNotFoundException $e) {
+    catch (ResourceNotFoundException $e) {
       // Do nothing, we want to only compare the resulting URLs.
     }
 
