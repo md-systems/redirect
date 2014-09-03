@@ -23,7 +23,7 @@ use Drupal\link\LinkItemInterface;
  *   id = "redirect",
  *   label = @Translation("Redirect"),
  *   bundle_label = @Translation("Redirect type"),
- *   controllers = {
+ *   handlers = {
  *     "list_builder" = "Drupal\redirect\Controller\RedirectListBuilder",
  *     "form" = {
  *       "default" = "Drupal\redirect\Form\RedirectForm",
