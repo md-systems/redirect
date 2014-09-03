@@ -9,11 +9,10 @@ namespace Drupal\redirect\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\link\Plugin\Field\FieldWidget\LinkWidget;
 use Drupal\Core\Url;
-use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 /**
  * Plugin implementation of the 'link' widget for the redirect module.
@@ -47,7 +46,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
         $default_url_value = ltrim($url->toString(), '/');
       }
       // If the path has no matching route reconstruct it manually.
-      catch (MatchingRouteNotFoundException $e) {
+      catch (ResourceNotFoundException $e) {
         $default_url_value = $items[$delta]->url;
         if (isset($items[$delta]->options['query']) && is_array($items[$delta]->options['query'])) {
           $default_url_value .= '?';
