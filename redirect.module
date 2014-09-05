@@ -108,12 +108,15 @@ function redirect_entity_delete(EntityInterface $entity) {
  * Implements hook_path_update().
  *
  * Will create redirect from the old path alias to the new one.
+ *
+ * @todo Clean this up when https://www.drupal.org/node/1854284 lands.
  */
 function redirect_path_update(array $path) {
   if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
   $unchanged_path = redirect_path_get_unchanged();
+
   if (!empty($unchanged_path) && $unchanged_path['pid'] == $path['pid'] && $unchanged_path['alias'] != $path['alias']) {
     if (!redirect_repository()->findMatchingRedirect($unchanged_path['alias'], array(), $unchanged_path['langcode'])) {
       $redirect = redirect_create();
@@ -244,7 +247,9 @@ function redirect_path_set_unchanged($unchanged_path) {
 function redirect_path_get_unchanged() {
   //return drupal_static('redirect_unchanged_path');
   $unchanged_path = \Drupal::state()->get('redirect_unchanged_path');
-  \Drupal::state()->set('redirect_unchanged_path', NULL);
+  // Commented out because currently, pathss are saved multiple times and so
+  // the information is deleted too early.
+  //\Drupal::state()->set('redirect_unchanged_path', NULL);
   return $unchanged_path;
 }
 
