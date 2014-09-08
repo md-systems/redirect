@@ -136,7 +136,7 @@ function redirect_path_update(array $path) {
  */
 function redirect_path_insert(array $path) {
   // Delete all redirects having the same source as this alias.
-  redirect_delete_by_path($path['alias'], $path['language'], FALSE);
+  redirect_delete_by_path($path['alias'], $path['langcode'], FALSE);
 }
 
 /**
