@@ -57,6 +57,8 @@ install:
 
 before_script:
   - cd $TRAVIS_BUILD_DIR/../drupal
+  # Mysql might time out for long tests, increase the wait timeout.
+  - mysql -e 'SET @@GLOBAL.wait_timeout=1200'
   # Update drupal core
   - git pull origin 8.0.x
   # Install the site
