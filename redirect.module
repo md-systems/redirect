@@ -117,6 +117,8 @@ function redirect_path_update(array $path) {
   }
   $unchanged_path = redirect_path_get_unchanged();
 
+  // Delete all redirects having the same source as this alias.
+  redirect_delete_by_path($path['alias'], $path['langcode'], FALSE);
   if (!empty($unchanged_path) && $unchanged_path['pid'] == $path['pid'] && $unchanged_path['alias'] != $path['alias']) {
     if (!redirect_repository()->findMatchingRedirect($unchanged_path['alias'], array(), $unchanged_path['langcode'])) {
       $redirect = redirect_create();
@@ -127,6 +129,14 @@ function redirect_path_update(array $path) {
       $redirect->save();
     }
   }
+}
+
+/**
+ * Implements hook_path_insert().
+ */
+function redirect_path_insert(array $path) {
+  // Delete all redirects having the same source as this alias.
+  redirect_delete_by_path($path['alias'], $path['language'], FALSE);
 }
 
 /**
@@ -191,7 +201,7 @@ function redirect_page_build(&$page) {
  */
 function redirect_entity_presave(EntityInterface $entity) {
   if (!$entity->isNew() && redirect_entity_has_path_field($entity)) {
-    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('pid' => $entity->path->pid)));
+    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('source' => $entity->getSystemPath())));
   }
 }
 
@@ -372,20 +382,32 @@ function redirect_redirect_delete($redirect) {
  * Given a source like 'node/1' this function will delete any redirects that
  * have that specific source or any sources that match 'node/1/%'.
  *
- * @param $path
+ * @param string $path
  *   An string with an internal Drupal path.
+ * @param string $langcode
+ *   (optional) If specified, limits deletion to redirects for the given
+ *   language. Defaults to all languages.
+ * @param bool $match_subpaths_and_redirect
+ *   (optional) Whether redirects with a destination to the given path and
+ *   sub-paths should also be deleted.
  *
  * @ingroup redirect_api
  */
-function redirect_delete_by_path($path) {
+function redirect_delete_by_path($path, $langcode = NULL, $match_subpaths_and_redirect = TRUE) {
   $path = ltrim($path, '/');
   $query = db_select('redirect');
   $query->addField('redirect', 'rid');
   $query_or = db_or();
   $query_or->condition('redirect_source__url', db_like($path), 'LIKE');
-  $query_or->condition('redirect_source__url', db_like($path . '/') . '%', 'LIKE');
-  $query_or->condition('redirect_redirect__url', db_like($path), 'LIKE');
-  $query_or->condition('redirect_redirect__url', db_like($path . '/') . '%', 'LIKE');
+  if ($match_subpaths_and_redirect) {
+    $query_or->condition('redirect_source__url', db_like($path . '/') . '%', 'LIKE');
+    $query_or->condition('redirect_redirect__url', db_like($path), 'LIKE');
+    $query_or->condition('redirect_redirect__url', db_like($path . '/') . '%', 'LIKE');
+  }
+
+  if ($langcode) {
+    $query->condition('language', $langcode);
+  }
 
   $query->condition($query_or);
   $rids = $query->execute()->fetchCol();

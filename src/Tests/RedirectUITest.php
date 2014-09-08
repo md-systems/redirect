@@ -38,7 +38,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * {@inheritdoc}
    */
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
@@ -58,7 +58,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * Test the redirect UI.
    */
-  function testRedirectUI() {
+  public function testRedirectUI() {
     $this->drupalLogin($this->adminUser);
 
     // Test populating the redirect form with predefined values.
@@ -176,7 +176,7 @@ class RedirectUITest extends WebTestBase {
   /**
    * Tests the fix 404 pages workflow.
    */
-  function testFix404Pages() {
+  public function testFix404Pages() {
     $this->drupalLogin($this->adminUser);
 
     // Visit a non existing page to have the 404 watchdog entry.
@@ -211,22 +211,37 @@ class RedirectUITest extends WebTestBase {
   /**
    * Tests redirects being automatically created upon path alias change.
    */
-  function testAutomaticRedirects() {
+  public function testAutomaticRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Create a node and update its path alias which should result in a redirect
     // being automatically created from the old alias to the new one.
-    $node = $this->drupalCreateNode(array('type' => 'article', 'langcode' => Language::LANGCODE_NOT_SPECIFIED, 'path' => array('alias' => 'node_test_alias')));
+    $node = $this->drupalCreateNode(array(
+      'type' => 'article',
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'path' => array('alias' => 'node_test_alias'),
+    ));
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias_updated'), t('Save'));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertEqual($redirect->getRedirectUrl(), 'node/' . $node->id());
-    $this->drupalGet('admin/config/search/redirect');
     // Test if the automatically created redirect works.
     $this->assertRedirect('node_test_alias', 'node_test_alias_updated');
+
+    // Test that changing the path back deletes the first redirect, creates
+    // a new one and does not result in a loop.
+    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias'), t('Save'));
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
+    $this->assertNull($redirect);
+
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias_updated', array(), Language::LANGCODE_NOT_SPECIFIED);
+    $this->assertEqual($redirect->getRedirectUrl(), 'node/' . $node->id());
+    // Test if the automatically created redirect works.
+    $this->assertRedirect('node_test_alias_updated', 'node_test_alias');
+
     // Test that the redirect will be deleted upon node deletion.
     $this->drupalPostForm('node/' . $node->id() . '/delete', array(), t('Delete'));
-    $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
+    $redirect = $this->repository->findMatchingRedirect('node_test_alias_updated', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertNull($redirect);
 
     // Create a term and update its path alias and check if we have a redirect
