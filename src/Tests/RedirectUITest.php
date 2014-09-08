@@ -278,17 +278,17 @@ class RedirectUITest extends WebTestBase {
    * Test the redirect loop protection and logging.
    */
   function testRedirectLoop() {
-    /** @var \Drupal\Core\Entity\ContentEntityDatabaseStorage $controller */
-    $controller = $this->container->get('entity.manager')->getStorage('redirect');
+    /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
+    $storage = $this->container->get('entity.manager')->getStorage('redirect');
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
-    $redirect1 = $controller->create();
+    $redirect1 = $storage->create();
     $redirect1->setSource('node');
     $redirect1->setRedirect('admin');
     $redirect1->setStatusCode(301);
     $redirect1->save();
 
     /** @var \Drupal\redirect\Entity\Redirect $redirect2 */
-    $redirect2 = $controller->create();
+    $redirect2 = $storage->create();
     $redirect2->setSource('admin');
     $redirect2->setRedirect('node');
     $redirect2->setStatusCode(301);
