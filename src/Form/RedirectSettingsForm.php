@@ -110,7 +110,7 @@ class RedirectSettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('redirect.settings');
-    foreach ($form_state['values'] as $key => $value) {
+    foreach ($form_state->getValues() as $key => $value) {
       if (strpos($key, 'redirect_') !== FALSE) {
         $config->set(str_replace('redirect_', '', $key), $value);
       }

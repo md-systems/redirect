@@ -100,8 +100,8 @@ class RedirectForm extends ContentEntityForm {
    */
   public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
-    $source = $form_state['values']['redirect_source'][0];
-    $redirect = $form_state['values']['redirect_redirect'][0];
+    $source = $form_state->getValue(array('redirect_source', 0));
+    $redirect = $form_state->getValue(array('redirect_redirect', 0));
 
     if ($source['url'] == '<front>') {
       $form_state->setErrorByName('redirect_source', t('It is not allowed to create a redirect from the front page.'));
@@ -128,7 +128,7 @@ class RedirectForm extends ContentEntityForm {
     $parsed_url = UrlHelper::parse(trim($source['url']));
     $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
     $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
-    $hash = Redirect::generateHash($path, $query, $form_state['values']['language']);
+    $hash = Redirect::generateHash($path, $query, $form_state->getValue('language'));
 
     // Search for duplicate.
     $redirects = \Drupal::entityManager()

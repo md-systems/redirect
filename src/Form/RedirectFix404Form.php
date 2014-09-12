@@ -121,7 +121,8 @@ class RedirectFix404Form extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    if ($form_state['triggering_element']['#action'] == 'filter') {
+
+    if ($form_state->getTriggeringElement()['#action'] == 'filter') {
       $form_state->setRedirect('redirect.fix_404', array(), array('query' => array('search' => trim($form_state->getValue('filter')))));
     }
     else {
