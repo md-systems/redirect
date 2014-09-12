@@ -53,36 +53,30 @@ class RedirectAPITest extends KernelTestBase {
     $redirect->setSource('some-url', array('query' => array('key' => 'val')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
-
     // Update the redirect source query and check if hash has been updated as
     // expected.
     $redirect->setSource('some-url', array('query' => array('key1' => 'val1')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
-
     // Update the redirect source path and check if hash has been updated as
     // expected.
     $redirect->setSource('another-url', array('query' => array('key1' => 'val1')));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
-
     // Update the redirect language and check if hash has been updated as
     // expected.
     $redirect->setLanguage(Language::LANGCODE_DEFAULT);
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT), $redirect->getHash());
-
     // Create a few more redirects to test the select.
     for ($i = 0; $i < 5; $i++) {
       $redirect = $this->controller->create();
       $redirect->setSource($this->randomMachineName());
       $redirect->save();
     }
-
     /** @var \Drupal\redirect\RedirectRepository $repository */
     $repository = \Drupal::service('redirect.repository');
     $redirect = $repository->findMatchingRedirect('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT);
-
     if (!empty($redirect)) {
       $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
       $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
@@ -90,7 +84,6 @@ class RedirectAPITest extends KernelTestBase {
     else {
       $this->fail(t('Failed to find matching redirect.'));
     }
-
     // Load the redirect based on url.
     $redirects = $repository->findBySourcePath('another-url');
     $redirect = array_shift($redirects);
@@ -100,25 +93,6 @@ class RedirectAPITest extends KernelTestBase {
     }
     else {
       $this->fail(t('Failed to find redirect by source path.'));
-    }
-  }
-
-  /**
-   * Test the redirect_compare_array_recursive() function.
-   */
-  public function testCompareArrayRecursive() {
-    $haystack = array('a' => 'aa', 'b' => 'bb', 'c' => array('c1' => 'cc1', 'c2' => 'cc2'));
-    $cases = array(
-      array('query' => array('a' => 'aa', 'b' => 'invalid'), 'result' => FALSE),
-      array('query' => array('b' => 'bb', 'b' => 'bb'), 'result' => TRUE),
-      array('query' => array('b' => 'bb', 'c' => 'invalid'), 'result' => FALSE),
-      array('query' => array('b' => 'bb', 'c' => array()), 'result' => TRUE),
-      array('query' => array('b' => 'bb', 'c' => array('invalid')), 'result' => FALSE),
-      array('query' => array('b' => 'bb', 'c' => array('c2' => 'invalid')), 'result' => FALSE),
-      array('query' => array('b' => 'bb', 'c' => array('c2' => 'cc2')), 'result' => TRUE),
-    );
-    foreach ($cases as $index => $case) {
-      $this->assertEqual($case['result'], redirect_compare_array_recursive($case['query'], $haystack));
     }
   }
 

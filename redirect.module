@@ -12,7 +12,6 @@
  *
  * @} End of "defgroup redirect_api".
  */
-use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityInterface;
@@ -20,8 +19,8 @@ use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\redirect\Entity\Redirect;
-use Drupal\user\UserInterface;
 
 /**
  * Modules should return this value from hook_redirect_access() to allow access
@@ -108,23 +107,21 @@ function redirect_entity_delete(EntityInterface $entity) {
  * Implements hook_path_update().
  *
  * Will create redirect from the old path alias to the new one.
- *
- * @todo Clean this up when https://www.drupal.org/node/1854284 lands.
  */
 function redirect_path_update(array $path) {
   if (!\Drupal::config('redirect.settings')->get('auto_redirect')) {
     return;
   }
-  $unchanged_path = redirect_path_get_unchanged();
+  $original_path = $path['original'];
 
   // Delete all redirects having the same source as this alias.
   redirect_delete_by_path($path['alias'], $path['langcode'], FALSE);
-  if (!empty($unchanged_path) && $unchanged_path['pid'] == $path['pid'] && $unchanged_path['alias'] != $path['alias']) {
-    if (!redirect_repository()->findMatchingRedirect($unchanged_path['alias'], array(), $unchanged_path['langcode'])) {
-      $redirect = redirect_create();
-      $redirect->setSource($unchanged_path['alias']);
+  if ($original_path['alias'] != $path['alias']) {
+    if (!redirect_repository()->findMatchingRedirect($original_path['alias'], array(), $original_path['langcode'])) {
+      $redirect = Redirect::create();
+      $redirect->setSource($original_path['alias']);
       $redirect->setRedirect($path['alias']);
-      $redirect->setLanguage($unchanged_path['langcode']);
+      $redirect->setLanguage($original_path['langcode']);
       $redirect->setStatusCode(\Drupal::config('redirect.settings')->get('default_status_code'));
       $redirect->save();
     }
@@ -195,17 +192,6 @@ function redirect_page_build(&$page) {
 }
 
 /**
- * Implements hook_entity_presave().
- *
- * Adds unchanged path info in case we find the path field.
- */
-function redirect_entity_presave(EntityInterface $entity) {
-  if (!$entity->isNew() && redirect_entity_has_path_field($entity)) {
-    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('source' => $entity->getSystemPath())));
-  }
-}
-
-/**
  * Checks if the entity has path field.
  *
  * @param EntityInterface $entity
@@ -223,47 +209,6 @@ function redirect_entity_has_path_field(EntityInterface $entity) {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
- *
- * Adds support for creating redirects if an URL alias is changed.
- */
-function redirect_form_path_admin_edit_alter(&$form, FormStateInterface $form_state) {
-  if (!empty($form['pid']['#value'])) {
-    redirect_path_set_unchanged(\Drupal::service('path.alias_storage')->load(array('pid' => $form['pid']['#value'])));
-  }
-}
-
-/**
- * Stores the unchanged path.
- *
- * @param string $unchanged_path
- *   The unchanged path.
- */
-function redirect_path_set_unchanged($unchanged_path) {
-  // Using a static cache seems more appropriate than states. However it did not
-  // work for the node form, where the form alter hook is not invoked during the
-  // submit action.
-  //$path = &drupal_static('redirect_unchanged_path');
-  //$path = $unchanged_path;
-  \Drupal::state()->set('redirect_unchanged_path', $unchanged_path);
-}
-
-/**
- * Gets the original path data if any set.
- *
- * @return array
- *   The path data.
- */
-function redirect_path_get_unchanged() {
-  //return drupal_static('redirect_unchanged_path');
-  $unchanged_path = \Drupal::state()->get('redirect_unchanged_path');
-  // Commented out because currently, pathss are saved multiple times and so
-  // the information is deleted too early.
-  //\Drupal::state()->set('redirect_unchanged_path', NULL);
-  return $unchanged_path;
-}
-
-/**
  * Gets the redirect repository service.
  *
  * @return \Drupal\redirect\RedirectRepository
@@ -271,82 +216,6 @@ function redirect_path_get_unchanged() {
  */
 function redirect_repository() {
   return \Drupal::service('redirect.repository');
-}
-
-/**
- * Determine whether the current user may perform the given operation on the
- * specified redirect.
- *
- * @param string $op
- *   The operation to be performed on the redirect. Possible values are:
- *   - "create"
- *   - "update"
- *   - "delete"
- * @param object $redirect
- *   The redirect object on which the operation is to be performed, or redirect
- *   type (e.g. 'feedburner') for the "create" operation.
- * @param UserInterface $account
- *   Optional, a user object representing the user for whom the operation is to
- *   be performed. Determines access for a user other than the current user.
- *
- * @return bool
- *   TRUE if the operation may be performed, FALSE otherwise.
- */
-function redirect_access($op, $redirect, UserInterface $account = NULL) {
-  global $user;
-
-  $rights = &drupal_static(__FUNCTION__, array());
-
-  if (!$redirect || !in_array($op, array('create', 'update', 'delete'), TRUE)) {
-    // If there was no redirect to check against, or the $op was not one of the
-    // supported ones, we return access denied.
-    return FALSE;
-  }
-  // If no user object is supplied, the access check is for the current user.
-  if (empty($account)) {
-    $account = $user;
-  }
-
-  $cid = isset($redirect->rid) ? $redirect->rid : $redirect;
-
-  // Return cached value if access already checked for this redirect, user and op.
-  if (isset($rights[$account->id()][$cid][$op])) {
-    return $rights[$account->id()][$cid][$op];
-  }
-
-  // Administrators can access all redirects.
-  if ($account->hasPermission('administer redirects')) {
-    $rights[$account->id()][$cid][$op] = TRUE;
-    return TRUE;
-  }
-
-  // We grant access to the redirect if both of the following conditions are met:
-  // - No modules say to deny access.
-  // - At least one module says to grant access.
-  $access = \Drupal::moduleHandler()->invokeAll('redirect_access', array('op' => $op, 'redirect' => $redirect, 'account' => $account));
-  if (in_array(REDIRECT_ACCESS_DENY, $access, TRUE)) {
-    $rights[$account->id()][$cid][$op] = FALSE;
-    return FALSE;
-  }
-  elseif (in_array(REDIRECT_ACCESS_ALLOW, $access, TRUE)) {
-    $rights[$account->id()][$cid][$op] = TRUE;
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-/**
- * Creates a redirect entity object.
- *
- * @param array $values
- *   Initial values to be set for the entity object.
- *
- * @return \Drupal\redirect\Entity\Redirect
- *   The created redirect entity object.
- */
-function redirect_create($values = array()) {
-  return entity_create('redirect', $values);
 }
 
 /**
@@ -483,39 +352,6 @@ function redirect_page_cache_clear($redirect = NULL) {
 }
 
 /**
- * Compare tha all values and associations in one array match another array.
- *
- * We cannot use array_diff_assoc() here because we need to be recursive.
- *
- * @param $match
- *   The array that has the values.
- * @param $haystack
- *   The array that will be searched for values.
- * @return
- *   TRUE if all the elements of $match were found in $haystack, or FALSE
- *   otherwise.
- */
-function redirect_compare_array_recursive($match, $haystack) {
-  foreach ($match as $key => $value) {
-    if (!array_key_exists($key, $haystack)) {
-      return FALSE;
-    }
-    elseif (is_array($value)) {
-      if (!is_array($haystack[$key])) {
-        return FALSE;
-      }
-      elseif (!redirect_compare_array_recursive($value, $haystack[$key])) {
-        return FALSE;
-      }
-    }
-    elseif ($value != $haystack[$key]) {
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-/**
  * Sort an array recusively.
  *
  * @param $array
@@ -557,7 +393,7 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
   // The base_url might be rewritten from the language rewrite in domain mode.
   if (!isset($options['base_url'])) {
     // @todo - is this correct? See https://drupal.org/node/1798832.
-    if (isset($options['https']) && settings()->get('mixed_mode_sessions', FALSE)) {
+    if (isset($options['https']) && Settings::get('mixed_mode_sessions', FALSE)) {
       if ($options['https'] === TRUE) {
         $options['base_url'] = $GLOBALS['base_secure_url'];
         $options['absolute'] = TRUE;
@@ -588,52 +424,6 @@ function redirect_url($path, array $options = array(), $clean_url = NULL) {
   }
 
   return $url;
-}
-
-function redirect_parse_url($url) {
-  $original_url = $url;
-  $url = trim($url, " \t\n\r\0\x0B\/");
-  $parsed = parse_url($url);
-
-  if (isset($parsed['fragment'])) {
-    $url = substr($url, 0, -strlen($parsed['fragment']));
-    $url = trim($url, '#');
-  }
-  if (isset($parsed['query'])) {
-    $url = substr($url, 0, -strlen($parsed['query']));
-    $url = trim($url, '?&');
-    $parsed_query = array();
-    parse_str($parsed['query'], $parsed_query);
-    $parsed['query'] = $parsed_query;
-  }
-
-  // Convert absolute to relative.
-  if (isset($parsed['scheme']) && isset($parsed['host'])) {
-    $base_secure_url = rtrim($GLOBALS['base_secure_url'] . base_path(), '/');
-    $base_insecure_url = rtrim($GLOBALS['base_insecure_url'] . base_path(), '/');
-    if (strpos($url, $base_secure_url) === 0) {
-      $url = str_replace($base_secure_url, '', $url);
-      $parsed['https'] = TRUE;
-    }
-    elseif (strpos($url, $base_insecure_url) === 0) {
-      $url = str_replace($base_insecure_url, '', $url);
-    }
-  }
-
-  $url = trim($url, '/');
-
-  // Convert to frontpage paths.
-  if ($url == '<front>') {
-    $url = '';
-  }
-
-  //$parsed['url'] = http_build_query($url, HTTP_URL_STRIP_QUERY | HTTP_URL_STRIP_FRAGMENT);
-  $parsed['url'] = $url;
-
-  // Allow modules to alter the parsed URL.
-  drupal_alter('redirect_parse_url', $parsed, $original_url);
-
-  return $parsed;
 }
 
 function redirect_status_code_options($code = NULL) {

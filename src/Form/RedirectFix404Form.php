@@ -89,7 +89,7 @@ class RedirectFix404Form extends FormBase {
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
       $operations = array();
-      if (redirect_access('create', 'redirect')) {
+      if (\Drupal::entityManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
           'title' => t('Add redirect'),
           'href' => 'admin/config/search/redirect/add/',

@@ -7,6 +7,7 @@
 
 use Drupal\Component\Utility\Random;
 use Drupal\devel_generate\DevelGenerateBase;
+use Drupal\redirect\Entity\Redirect;
 
 /**
  * @file
@@ -101,7 +102,7 @@ function redirect_generate_batch_generate($num, array &$context) {
   for ($i = 0; $i < min($limit, $context['sandbox']['max'] - $context['sandbox']['progress']); $i++) {
     $rand = mt_rand(0, 100);
 
-    $redirect = redirect_create();
+    $redirect = Redirect::create();
 
     $source = _redirect_generate_url();
     $source_options = array();
