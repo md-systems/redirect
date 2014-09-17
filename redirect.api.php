@@ -108,67 +108,6 @@ function hook_redirect_load_by_source_alter(array &$redirects, $source, array $c
 }
 
 /**
- * Control access to a redirect.
- *
- * Modules may implement this hook if they want to have a say in whether or not
- * a given user has access to perform a given operation on a redirect.
- *
- * The administrative account (user ID #1) always passes any access check,
- * so this hook is not called in that case. Users with the "administer redirects"
- * permission may always update and delete redirects through the administrative
- * interface.
- *
- * Note that not all modules will want to influence access on all
- * redirect types. If your module does not want to actively grant or
- * block access, return REDIRECT_ACCESS_IGNORE or simply return nothing.
- * Blindly returning FALSE will break other redirect access modules.
- *
- * @param string $op
- *   The operation to be performed. Possible values:
- *   - "create"
- *   - "delete"
- *   - "update"
- * @param string $redirect
- *   The redirect object on which the operation is to be performed, or, if it
- *   does not yet exist, the type of redirect to be created.
- * @param object $account
- *   A user object representing the user for whom the operation is to be
- *   performed.
- *
- * @return
- *   REDIRECT_ACCESS_ALLOW if the operation is to be allowed;
- *   REDIRECT_ACCESS_DENY if the operation is to be denied;
- *   REDIRECT_ACCESSS_IGNORE to not affect this operation at all.
- *
- * @see redirect_access()
- * @ingroup redirect_api_hooks
- */
-function hook_redirect_access($op, $redirect, $account) {
-  $type = is_string($redirect) ? $redirect : $redirect->type;
-
-  if (in_array($type, array('normal', 'special'))) {
-    if ($op == 'create' && user_access('create ' . $type . ' redirects', $account)) {
-      return REDIRECT_ACCESS_ALLOW;
-    }
-
-    if ($op == 'update') {
-      if (user_access('edit any ' . $type . ' content', $account) || (user_access('edit own ' . $type . ' content', $account) && ($account->uid == $redirect->uid))) {
-        return REDIRECT_ACCESS_ALLOW;
-      }
-    }
-
-    if ($op == 'delete') {
-      if (user_access('delete any ' . $type . ' content', $account) || (user_access('delete own ' . $type . ' content', $account) && ($account->uid == $redirect->uid))) {
-        return REDIRECT_ACCESS_ALLOW;
-      }
-    }
-  }
-
-  // Returning nothing from this function would have the same effect.
-  return REDIRECT_ACCESS_IGNORE;
-}
-
-/**
  * Act on a redirect object about to be shown on the add/edit form.
  *
  * This hook is invoked from redirect_create().

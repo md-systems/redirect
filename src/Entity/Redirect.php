@@ -12,7 +12,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
@@ -88,11 +88,6 @@ class Redirect extends ContentEntityBase {
   public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
     $values += array(
       'type' => 'redirect',
-      'uid' => \Drupal::currentUser()->id(),
-      'language' => Language::LANGCODE_NOT_SPECIFIED,
-      'status_code' => 0,
-      'count' => 0,
-      'access' => 0,
     );
   }
 
@@ -477,9 +472,9 @@ class Redirect extends ContentEntityBase {
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID of the node author.'))
+      ->setDefaultValueCallback(array('Drupal\redirect\Entity\Redirect', 'getCurrentUserId'))
       ->setSettings(array(
         'target_type' => 'user',
-        'default_value' => 0,
       ));
 
     $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
@@ -525,21 +520,37 @@ class Redirect extends ContentEntityBase {
 
     $fields['language'] = BaseFieldDefinition::create('language')
       ->setLabel(t('Language code'))
-      ->setDescription(t('The node language code.'));
+      ->setDescription(t('The node language code.'))
+      ->setDefaultValue(LanguageInterface::LANGCODE_NOT_SPECIFIED);
 
     $fields['status_code'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Status code'))
-      ->setDescription(t('The redirect status code.'));
+      ->setDescription(t('The redirect status code.'))
+      ->setDefaultValue(0);
 
     $fields['count'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Count'))
-      ->setDescription(t('The redirect count.'));
+      ->setDescription(t('The redirect count.'))
+      ->setDefaultValue(0);
 
-    $fields['access'] = BaseFieldDefinition::create('integer')
+    $fields['access'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Access timestamp'))
-      ->setDescription(t('The timestamp the redirect was last accessed.'));
+      ->setDescription(t('The timestamp the redirect was last accessed.'))
+      ->setDefaultValue(0);
 
     return $fields;
+  }
+
+  /**
+   * Default value callback for 'uid' base field definition.
+   *
+   * @see ::baseFieldDefinitions()
+   *
+   * @return array
+   *   An array of default values.
+   */
+  public static function getCurrentUserId() {
+    return array(\Drupal::currentUser()->id());
   }
 
 }

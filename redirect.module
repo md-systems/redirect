@@ -23,25 +23,6 @@ use Drupal\Core\Site\Settings;
 use Drupal\redirect\Entity\Redirect;
 
 /**
- * Modules should return this value from hook_redirect_access() to allow access
- * to a redirect.
- */
-define('REDIRECT_ACCESS_ALLOW', 'allow');
-
-/**
- * Modules should return this value from hook_redirect_access() to deny access
- * to a redirect.
- */
-define('REDIRECT_ACCESS_DENY', 'deny');
-
-/**
- * Modules should return this value from hook_redirect_access() to not affect
- * redirect access.
- */
-define('REDIRECT_ACCESS_IGNORE', NULL);
-
-
-/**
  * Implements hook_hook_info().
  */
 function redirect_hook_info() {
