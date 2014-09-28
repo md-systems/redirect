@@ -43,16 +43,6 @@ function redirect_hook_info() {
 }
 
 /**
- * Implements hook_permission().
- */
-function redirect_permission() {
-  $permissions['administer redirects'] = array(
-    'title' => t('Administer URL redirections'),
-  );
-  return $permissions;
-}
-
-/**
  * Implements hook_help().
  */
 function redirect_help($route_name, RouteMatchInterface $route_match) {
