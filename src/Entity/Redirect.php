@@ -32,7 +32,6 @@ use Drupal\link\LinkItemInterface;
  *     }
  *   },
  *   base_table = "redirect",
- *   fieldable = TRUE,
  *   translatable = FALSE,
  *   admin_permission = "administer redirects",
  *   entity_keys = {
