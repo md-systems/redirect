@@ -471,7 +471,7 @@ class Redirect extends ContentEntityBase {
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID of the node author.'))
-      ->setDefaultValueCallback(array('Drupal\redirect\Entity\Redirect', 'getCurrentUserId'))
+      ->setDefaultValueCallback('\Drupal\redirect\Entity\Redirect::getCurrentUserId')
       ->setSettings(array(
         'target_type' => 'user',
       ));
