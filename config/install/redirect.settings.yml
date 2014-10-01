@@ -5,7 +5,6 @@ page_cache: false
 default_status_code: 301
 passthrough_querystring: true
 warning: false
-
 global_clean: true
 global_admin_paths: false
 global_home: true
