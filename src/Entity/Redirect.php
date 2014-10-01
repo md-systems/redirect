@@ -208,7 +208,7 @@ class Redirect extends ContentEntityBase {
     try {
       $parsed_url = UrlHelper::parse($url);
 
-      $url = Url::createFromPath($parsed_url['path']);
+      $url = Url::fromUri($parsed_url['path']);
       if (!empty($parsed_url['query'])) {
         $url->setOption('query', $parsed_url['query']);
       }
@@ -300,7 +300,7 @@ class Redirect extends ContentEntityBase {
     // Make sure we have the system path.
     $parsed_url['path'] = $alias_manager->getPathByAlias($parsed_url['path']);
 
-    $url = Url::createFromPath($parsed_url['path']);
+    $url = Url::fromUri($parsed_url['path']);
     if (!empty($parsed_url['query'])) {
       $url->setOption('query', $parsed_url['query']);
     }
