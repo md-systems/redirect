@@ -6,34 +6,34 @@ redirect.settings:
   mapping:
     canonical:
       type: boolean
-      lable: 'Redirect from non-canonical URLs to the canonical URLs.'
+      label: 'Redirect from non-canonical URLs to the canonical URLs.'
     auto_redirect:
       type: boolean
-      lable: 'Automatically create redirects when URL aliases are changed.'
+      label: 'Automatically create redirects when URL aliases are changed.'
     purge_inactive:
       type: boolean
-      lable: 'Delete redirects that have not been accessed for'
+      label: 'Delete redirects that have not been accessed for'
     page_cache:
       type: boolean
-      lable: 'Allow redirects to be saved into the page cache.'
+      label: 'Allow redirects to be saved into the page cache.'
     default_status_code:
       type: string
-      lable: 'efault redirect status'
+      label: 'Default redirect status'
     passthrough_querystring:
       type: boolean
-      lable: 'Retain query string through redirect.'
+      label: 'Retain query string through redirect.'
     warning:
       type: boolean
-      lable: 'Display a warning message to users when they are redirected.'
+      label: 'Display a warning message to users when they are redirected.'
     global_clean:
       type: boolean
-      lable: 'Redirect from non-clean URLs to clean URLs.'
+      label: 'Redirect from non-clean URLs to clean URLs.'
     global_admin_paths:
       type: boolean
-      lable: 'Allow redirections on admin paths.'
+      label: 'Allow redirections on admin paths.'
     global_home:
       type: boolean
-      lable: 'Redirect from paths like index.php and /node to the root directory.'
+      label: 'Redirect from paths like index.php and /node to the root directory.'
     global_deslash:
       type: boolean
-      lable: 'Remove trailing slashes from paths.'
+      label: 'Remove trailing slashes from paths.'
