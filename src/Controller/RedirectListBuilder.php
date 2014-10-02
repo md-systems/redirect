@@ -10,6 +10,7 @@ namespace Drupal\redirect\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
+use Drupal\Core\Url;
 
 class RedirectListBuilder extends EntityListBuilder {
 
@@ -26,7 +27,7 @@ class RedirectListBuilder extends EntityListBuilder {
 
   public function buildRow(EntityInterface $redirect) {
     $row['redirect_source']['data'] = $redirect->getSourceUrl();
-    $row['redirect_redirect']['data'] = l($redirect->getRedirectUrl(), $redirect->getRedirectUrl());
+    $row['redirect_redirect']['data'] = \Drupal::l($redirect->getRedirectUrl(), Url::fromUri('base://' . $redirect->getRedirectUrl());
     $row['status_code']['data'] = $redirect->getStatusCode();
     $row['language']['data'] = $redirect->getLanguage();
     $row['count']['data'] = $redirect->getCount();

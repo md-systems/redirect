@@ -67,9 +67,9 @@ class RedirectFix404Form extends FormBase {
     $count_query->isNull('r.rid');
     $this->filterQuery($count_query, array('w.message'), $search);
 
-    $query = db_select('watchdog', 'w');
-    $query->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header);
-    $query->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
+    $query = db_select('watchdog', 'w')
+      ->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header)
+      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
     $query->fields('w', array('message'));
     $query->addExpression('COUNT(wid)', 'count');
     $query->addExpression('MAX(timestamp)', 'timestamp');
@@ -84,7 +84,7 @@ class RedirectFix404Form extends FormBase {
     $rows = array();
     foreach ($results as $result) {
       $row = array();
-      $row['source'] = l($result->message, $result->message, array('query' => $destination));
+      $row['source'] = \Drupal::l($result->message, $result->message, array('query' => $destination));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 

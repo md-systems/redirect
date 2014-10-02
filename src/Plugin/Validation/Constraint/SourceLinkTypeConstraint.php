@@ -65,7 +65,7 @@ class SourceLinkTypeConstraint extends Constraint implements ConstraintValidator
           //   run.
           $parsed_url = UrlHelper::parse($url_string);
 
-          $url = Url::createFromPath($parsed_url['path']);
+          $url = Url::fromUri('base://' . $parsed_url['path']);
 
           if ($url->isExternal() && !UrlHelper::isValid($url_string, TRUE)) {
             $url_is_valid = FALSE;

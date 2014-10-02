@@ -66,7 +66,7 @@ class RedirectForm extends ContentEntityForm {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
 
-    if (\Drupal::moduleHandler()->moduleExists('locale')) {
+    if (\Drupal::moduleHandler()->moduleExists('language')) {
       $form['language'] = array(
         '#type' => 'language_select',
         '#title' => t('Language'),
@@ -111,8 +111,8 @@ class RedirectForm extends ContentEntityForm {
     }
 
     try {
-      $source_url = Url::createFromPath($source['url']);
-      $redirect_url = Url::createFromPath($redirect['url']);
+      $source_url = Url::fromUri('base://' . $source['url']);
+      $redirect_url = Url::fromUri('base://' . $redirect['url']);
 
       // It is relevant to do this comparison only in case the source path has
       // a valid route. Otherwise the validation will fail on the redirect path

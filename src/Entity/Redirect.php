@@ -208,7 +208,7 @@ class Redirect extends ContentEntityBase {
     try {
       $parsed_url = UrlHelper::parse($url);
 
-      $url = Url::fromUri($parsed_url['path']);
+      $url = Url::fromUri('base://' . $parsed_url['path']);
       if (!empty($parsed_url['query'])) {
         $url->setOption('query', $parsed_url['query']);
       }
@@ -291,16 +291,8 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setRedirect($url, array $options = array()) {
-    $value = array();
-
     $parsed_url = UrlHelper::parse($url);
-
-    /** @var \Drupal\Core\Path\AliasManager $alias_manager */
-    $alias_manager = \Drupal::service('path.alias_manager');
-    // Make sure we have the system path.
-    $parsed_url['path'] = $alias_manager->getPathByAlias($parsed_url['path']);
-
-    $url = Url::fromUri($parsed_url['path']);
+    $url = \Drupal::pathValidator()->getUrlIfValid($parsed_url['path']);
     if (!empty($parsed_url['query'])) {
       $url->setOption('query', $parsed_url['query']);
     }
@@ -308,9 +300,11 @@ class Redirect extends ContentEntityBase {
       $url->setOption('fragment', $parsed_url['fragment']);
     }
 
-    $value += $url->toArray();
+    $value = $url->toArray();
     // Reset the URL value to contain only the path.
-    $value['url'] = $parsed_url['path'];
+    if (isset($value['path'])) {
+      $value['url'] = $value['path'];
+    }
 
     $value['options'] += $options;
 
