@@ -1,0 +1,39 @@
+# Schema for the configuration files of the Redirect module.
+
+redirect.settings:
+  type: mapping
+  label: 'Redirect settings'
+  mapping:
+    canonical:
+      type: boolean
+      label: 'Redirect from non-canonical URLs to the canonical URLs.'
+    auto_redirect:
+      type: boolean
+      label: 'Automatically create redirects when URL aliases are changed.'
+    purge_inactive:
+      type: boolean
+      label: 'Delete redirects that have not been accessed for'
+    page_cache:
+      type: boolean
+      label: 'Allow redirects to be saved into the page cache.'
+    default_status_code:
+      type: string
+      label: 'Default redirect status'
+    passthrough_querystring:
+      type: boolean
+      label: 'Retain query string through redirect.'
+    warning:
+      type: boolean
+      label: 'Display a warning message to users when they are redirected.'
+    global_clean:
+      type: boolean
+      label: 'Redirect from non-clean URLs to clean URLs.'
+    global_admin_paths:
+      type: boolean
+      label: 'Allow redirections on admin paths.'
+    global_home:
+      type: boolean
+      label: 'Redirect from paths like index.php and /node to the root directory.'
+    global_deslash:
+      type: boolean
+      label: 'Remove trailing slashes from paths.'
