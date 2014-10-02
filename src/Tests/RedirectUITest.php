@@ -9,6 +9,7 @@ namespace Drupal\redirect\Tests;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -125,14 +126,14 @@ class RedirectUITest extends WebTestBase {
       'redirect_source[0][url]' => 'non-existing?key=value',
     ), 'redirect_source[0][url]');
     $this->assertRaw(t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-      array('%source' => 'non-existing?key=value', '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      array('%source' => 'non-existing?key=value', '@edit-page' => $redirect->url('edit-form'))));
 
     // The hint about a valid path.
     $this->drupalPostAjaxForm('admin/config/search/redirect/add', array(
       'redirect_source[0][url]' => 'node',
     ), 'redirect_source[0][url]');
     $this->assertRaw(t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
-      array('%path' => 'node', '@url-alias' => url('admin/config/search/path/add'))));
+      array('%path' => 'node', '@url-alias' => Url::fromUri('admin/config/search/path/add'))));
 
     // Test validation.
     // Duplicate redirect.
@@ -141,7 +142,7 @@ class RedirectUITest extends WebTestBase {
       'redirect_redirect[0][url]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
-      array('%source' => 'non-existing?key=value', '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))));
+      array('%source' => 'non-existing?key=value', '@edit-page' => $redirect->url('edit-form'))));
 
     // Redirecting to itself.
     $this->drupalPostForm('admin/config/search/redirect/add', array(

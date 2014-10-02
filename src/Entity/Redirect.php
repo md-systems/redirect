@@ -293,6 +293,9 @@ class Redirect extends ContentEntityBase {
   public function setRedirect($url, array $options = array()) {
     $parsed_url = UrlHelper::parse($url);
     $url = \Drupal::pathValidator()->getUrlIfValid($parsed_url['path']);
+    if (!$url) {
+      $url = Url::fromUri($parsed_url['path']);
+    }
     if (!empty($parsed_url['query'])) {
       $url->setOption('query', $parsed_url['query']);
     }
@@ -305,6 +308,12 @@ class Redirect extends ContentEntityBase {
     if (isset($value['path'])) {
       $value['url'] = $value['path'];
     }
+    else {
+      // @todo Core requires the url to be not empty or the values are filtered
+      //   out.
+      $value['url'] = $url->toString();
+    }
+
 
     $value['options'] += $options;
 

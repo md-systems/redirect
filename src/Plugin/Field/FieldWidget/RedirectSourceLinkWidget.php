@@ -41,7 +41,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
     $default_url_value = NULL;
     if (isset($items[$delta]->url)) {
       try {
-        $url = Url::fromUri($items[$delta]->url);
+        $url = Url::fromUri('base://' . $items[$delta]->url);
         $url->setOptions($items[$delta]->options);
         $default_url_value = ltrim($url->toString(), '/');
       }
