@@ -141,7 +141,7 @@ class RedirectForm extends ContentEntityForm {
         $form_state->setErrorByName('redirect_source', t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
           array(
             '%source' => $redirect->getSourceUrl(),
-            '@edit-page' => url('admin/config/search/redirect/edit/' . $redirect->id()))));
+            '@edit-page' => $redirect->url('edit-form'))));
       }
     }
   }

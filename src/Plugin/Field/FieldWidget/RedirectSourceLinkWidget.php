@@ -103,7 +103,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
         try {
           \Drupal::service('router')->match('/' . $form_state->getValue(array('redirect_source', 0, 'url')));
           $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
-              array('%path' => $form_state->getValue(array('redirect_source', 0, 'url')), '@url-alias' => url('admin/config/search/path/add'))) . '</div>';
+              array('%path' => $form_state->getValue(array('redirect_source', 0, 'url')), '@url-alias' => Url::fromUri('admin/config/search/path/add'))) . '</div>';
         }
         catch (ResourceNotFoundException $e) {
           // Do nothing, expected behaviour.
@@ -118,7 +118,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
           $redirects = $repository->findBySourcePath($path);
           if (!empty($redirects)) {
             $redirect = array_shift($redirects);
-            $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->getSourceUrl(), '@edit-page' => url('admin/config/search/redirect/edit/'. $redirect->id()))) . '</div>';
+            $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->getSourceUrl(), '@edit-page' => $redirect->url('edit-form'))) . '</div>';
           }
         }
       }
