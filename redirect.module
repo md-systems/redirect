@@ -298,7 +298,7 @@ function redirect_purge_inactive_redirects(array $types = array('redirect'), $in
     foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
       $redirect->delete();
     }
-    watchdog('redirect', String::format(count($rids), 'Removed 1 inactive redirect from the database.', 'Removed @count inactive redirects from the database.'));
+    \Drupal::logger('redirect')->notice('Removed @count inactive redirects from the database.', array('@count' => count($rids)));
     return $rids;
   }
 }

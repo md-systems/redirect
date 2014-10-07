@@ -103,7 +103,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
       // If we are in a loop log it and send 503 response.
       if ($this->checker->isLoop($request)) {
-        watchdog('redirect', 'Redirect loop identified at %path for redirect %id', array('%path' => $request->getRequestUri(), '%id' => $redirect->id()), WATCHDOG_ERROR);
+        \Drupal::logger('redirect')->warning('Redirect loop identified at %path for redirect %id', array('%path' => $request->getRequestUri(), '%id' => $redirect->id()));
         $response = new Response();
         $response->setStatusCode(503);
         $response->setContent('Service unavailable');
