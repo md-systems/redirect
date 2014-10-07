@@ -294,7 +294,7 @@ class Redirect extends ContentEntityBase {
     $parsed_url = UrlHelper::parse($url);
     $url = \Drupal::pathValidator()->getUrlIfValid($parsed_url['path']);
     if (!$url) {
-      $url = Url::fromUri($parsed_url['path']);
+      $url = Url::fromUri('base://' . $parsed_url['path']);
     }
     if (!empty($parsed_url['query'])) {
       $url->setOption('query', $parsed_url['query']);
