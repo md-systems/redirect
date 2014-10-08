@@ -8,6 +8,7 @@
 namespace Drupal\redirect\Form;
 
 use Drupal\Core\Database\Query\Select;
+use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -138,7 +139,7 @@ class RedirectFix404Form extends FormBase {
    * @param $keys
    *   The filter string to use.
    */
-  protected function filterQuery(Select $query, array $fields, $keys = '') {
+  protected function filterQuery(SelectInterface $query, array $fields, $keys = '') {
     if ($keys && $fields) {
       // Replace wildcards with PDO wildcards.
       $conditions = db_or();
