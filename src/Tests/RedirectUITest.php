@@ -133,7 +133,7 @@ class RedirectUITest extends WebTestBase {
       'redirect_source[0][url]' => 'node',
     ), 'redirect_source[0][url]');
     $this->assertRaw(t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
-      array('%path' => 'node', '@url-alias' => Url::fromUri('admin/config/search/path/add'))));
+      array('%path' => 'node', '@url-alias' => Url::fromRoute('path.admin_add')->toString())));
 
     // Test validation.
     // Duplicate redirect.
