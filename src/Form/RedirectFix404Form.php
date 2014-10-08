@@ -11,6 +11,7 @@ use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 
 class RedirectFix404Form extends FormBase {
 
@@ -85,7 +86,7 @@ class RedirectFix404Form extends FormBase {
     $rows = array();
     foreach ($results as $result) {
       $row = array();
-      $row['source'] = \Drupal::l($result->message, $result->message, array('query' => $destination));
+      $row['source'] = \Drupal::l($result->message, Url::fromUri('base://' . $result->message), array('query' => $destination));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
