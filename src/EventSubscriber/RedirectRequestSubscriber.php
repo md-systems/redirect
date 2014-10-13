@@ -97,7 +97,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
     $this->context->fromRequest($request);
 
-    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->id);
+    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->getId());
 
     if (!empty($redirect)) {
 
