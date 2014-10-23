@@ -138,6 +138,8 @@ function redirect_path_delete($path) {
  * Implements hook_page_build().
  *
  * Adds an action on 404 pages to create a redirect.
+ *
+ * @todo hook_page_build() can no longer be used for this. Find a different way.
  */
 function redirect_page_build(&$page) {
   if (redirect_is_current_page_404() && \Drupal::currentUser()->hasPermission('administer redirects')) {
