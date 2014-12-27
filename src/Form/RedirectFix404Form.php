@@ -94,8 +94,7 @@ class RedirectFix404Form extends FormBase {
       if (\Drupal::entityManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
           'title' => t('Add redirect'),
-          'href' => 'admin/config/search/redirect/add/',
-          'query' => array('source' => $result->message) + $destination,
+          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $result->message) + $destination]),
         );
       }
       $row['operations'] = array(

@@ -136,7 +136,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
         }
 
         $url = $this->urlGenerator->generateFromPath($parsed_url['path'], array(
-          'external' => TRUE,
+          'absolute' => TRUE,
           'query' => $redirect_query,
         ));
       }

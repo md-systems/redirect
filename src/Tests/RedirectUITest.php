@@ -10,6 +10,7 @@ namespace Drupal\redirect\Tests;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 
@@ -244,7 +245,7 @@ class RedirectUITest extends WebTestBase {
     // Test that the redirect will be deleted upon node deletion.
     $this->drupalPostForm('node/' . $node->id() . '/delete', array(), t('Delete'));
     $redirect = $this->repository->findMatchingRedirect('node_test_alias_updated', array(), Language::LANGCODE_NOT_SPECIFIED);
-    $this->assertNull($redirect);
+    $this->assertTrue(empty($redirect));
 
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.
@@ -307,7 +308,7 @@ class RedirectUITest extends WebTestBase {
     }
     else {
       $log = reset($log);
-      $this->assertEqual($log->severity, WATCHDOG_ERROR);
+      $this->assertEqual($log->severity, RfcLogLevel::WARNING);
       $this->assertEqual(String::format($log->message, unserialize($log->variables)),
         String::format('Redirect loop identified at %path for redirect %id', array('%path' => '/admin', '%id' => $redirect2->id())));
     }
@@ -340,7 +341,7 @@ class RedirectUITest extends WebTestBase {
       'description' => array(
         'value' => $this->randomMachineName(),
         // Use the first available text format.
-        'format' => $format->format,
+        'format' => $format->id(),
       ),
       'vid' => $vocabulary->id(),
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
