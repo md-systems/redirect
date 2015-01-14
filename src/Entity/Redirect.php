@@ -41,8 +41,8 @@ use Drupal\link\LinkItemInterface;
  *     "bundle" = "type"
  *   },
  *   links = {
- *     "delete-form" = "redirect.delete",
- *     "edit-form" = "redirect.edit",
+ *     "delete-form" = "/admin/config/search/redirect/delete/{redirect}",
+ *     "edit-form" = "/admin/config/search/redirect/edit/{redirect}'",
  *   }
  * )
  */
