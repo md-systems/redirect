@@ -283,10 +283,10 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
-   * Sets the source URL data.
+   * Sets the redirect destination URL data.
    *
    * @param string $url
-   *   The base url of the source.
+   *   The base url of the redirect destination.
    * @param array $options
    *   The source url options.
    */
