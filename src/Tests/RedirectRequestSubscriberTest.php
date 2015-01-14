@@ -108,7 +108,7 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->getMock();
     $url_generator->expects($this->once())
       ->method('generateFromPath')
-      ->with($route_url, array('external' => TRUE, 'query' => $final_query))
+      ->with($route_url, array('absolute' => TRUE, 'query' => $final_query))
       ->will($this->returnValue('dummy_value'));
     $url_generator->expects($this->never())
       ->method('generateFromRoute');
@@ -128,7 +128,7 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->getMock();
     $url_generator->expects($this->once())
       ->method('generateFromPath')
-      ->with($route_url, array('external' => TRUE, 'query' => $final_query))
+      ->with($route_url, array('absolute' => TRUE, 'query' => $final_query))
       ->will($this->returnValue('dummy_value'));
     $url_generator->expects($this->never())
       ->method('generateFromRoute');
