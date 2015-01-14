@@ -14,7 +14,7 @@ redirect.add:
   requirements:
     _entity_create_access: 'redirect'
 
-redirect.edit:
+entity.redirect.edit_form:
   path: '/admin/config/search/redirect/edit/{redirect}'
   defaults:
     _entity_form: 'redirect.edit'
@@ -22,7 +22,7 @@ redirect.edit:
   requirements:
     _entity_access: 'redirect.update'
 
-redirect.delete:
+entity.redirect.delete_form:
   path: '/admin/config/search/redirect/delete/{redirect}'
   defaults:
     _entity_form: 'redirect.delete'
