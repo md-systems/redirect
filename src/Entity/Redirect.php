@@ -296,11 +296,11 @@ class Redirect extends ContentEntityBase {
     if (!$url) {
       $url = Url::fromUri('base://' . $parsed_url['path']);
     }
-    if (!empty($parsed_url['query'])) {
-      $url->setOption('query', $parsed_url['query']);
+    if (!empty($options['query'])) {
+      $url->setOption('query', $options['query']);
     }
-    if (!empty($parsed_url['fragment'])) {
-      $url->setOption('fragment', $parsed_url['fragment']);
+    if (!empty($options['fragment'])) {
+      $url->setOption('fragment', $options['fragment']);
     }
 
     $value = $url->toArray();
