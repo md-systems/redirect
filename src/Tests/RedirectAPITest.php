@@ -51,6 +51,7 @@ class RedirectAPITest extends KernelTestBase {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
     $redirect->setSource('some-url', array('query' => array('key' => 'val')));
+
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
     // Update the redirect source query and check if hash has been updated as

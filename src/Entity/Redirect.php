@@ -95,7 +95,7 @@ class Redirect extends ContentEntityBase {
    */
   public function preSave(EntityStorageInterface $storage_controller) {
     $source = $this->getSource();
-    $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query', array()), $this->getLanguage()));
+    $this->set('hash', Redirect::generateHash($source['uri'], $this->getSourceOption('query', array()), $this->getLanguage()));
   }
 
   /**
@@ -204,45 +204,7 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setSource($url, array $options = array()) {
-    $value = array();
-    try {
-      $parsed_url = UrlHelper::parse($url);
-
-      $url = Url::fromUri('base://' . $parsed_url['path']);
-      if (!empty($parsed_url['query'])) {
-        $url->setOption('query', $parsed_url['query']);
-      }
-      if (!empty($parsed_url['fragment'])) {
-        $url->setOption('fragment', $parsed_url['fragment']);
-      }
-
-      $value += $url->toArray();
-      // Reset the URL value to contain only the path.
-      $value['url'] = $parsed_url['path'];
-    }
-    // We have invalid URL - for the source process anyway.
-    catch (\Exception $e) {
-      // In case we have query process the url.
-      if (strpos($url, '?') !== FALSE) {
-        $url = UrlHelper::parse($value['url']);
-        $value['url'] = $url['path'];
-        $value['options']['query'] = $url['query'];
-      }
-      else {
-        $value['url'] = $url;
-      }
-      $value += array(
-        'route_name' => NULL,
-        'route_parameters' => array(),
-        'options' => array(
-          'attributes' => array(),
-        ),
-      );
-    }
-
-    $value['options'] += $options;
-
-    $this->redirect_source->set(0, $value);
+    $this->redirect_source->set(0, ['uri' => $url, 'options' => $options]);
   }
 
   /**
@@ -260,16 +222,8 @@ class Redirect extends ContentEntityBase {
    * @return string
    */
   public function getSourceUrl() {
-    $query_string = '';
-    $i = 0;
-    foreach ($this->getSourceOption('query', array()) as $key => $value) {
-      if ($i > 0) {
-        $query_string .= '&';
-      }
-      $query_string .= "$key=$value";
-      $i++;
-    }
-    return $this->get('redirect_source')->url . (!empty($query_string) ? '?' . $query_string : '');
+    debug($this->get('redirect_source')->options);
+    return $this->get('redirect_source')->uri;
   }
 
   /**

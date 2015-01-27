@@ -67,7 +67,7 @@ class RedirectRepository {
    *   Array of redirect entities.
    */
   public function findBySourcePath($source_path) {
-    return $this->manager->getStorage('redirect')->loadByProperties(array('redirect_source__url' => $source_path));
+    return $this->manager->getStorage('redirect')->loadByProperties(array('redirect_source__uri' => $source_path));
   }
 
   /**
