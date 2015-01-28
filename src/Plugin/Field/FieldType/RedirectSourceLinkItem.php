@@ -16,7 +16,7 @@ use Drupal\link\Plugin\Field\FieldType\LinkItem;
  *   id = "redirect_source_link",
  *   label = @Translation("Redirect link"),
  *   description = @Translation("Stores a URL string used as the source for the redirect."),
- *   default_widget = "redirect_link",
+ *   default_widget = "link_default",
  *   default_formatter = "link",
  *   constraints = {"RedirectSourceLinkType" = {}}
  * )

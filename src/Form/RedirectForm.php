@@ -30,8 +30,13 @@ class RedirectForm extends ContentEntityForm {
       // To pass in the query set parameters into GET as follows:
       // source_options[query][key1]=value1&source_options[query][key2]=value2
       $source_options = array();
+      $source_query = array();
       if ($this->getRequest()->get('source_options')) {
         $source_options = $this->getRequest()->get('source_options');
+        if (isset($source_options['query'])) {
+          $source_query = $source_options['query'];
+          unset($source_options['query']);
+        }
       }
 
       $redirect_options = array();
@@ -41,7 +46,7 @@ class RedirectForm extends ContentEntityForm {
 
       $source_url = urldecode($this->getRequest()->get('source'));
       if (!empty($source_url)) {
-        $redirect->setSource($source_url, $source_options);
+        $redirect->setSource($source_url, $source_query, $source_options);
       }
 
       $redirect_url = urldecode($this->getRequest()->get('redirect'));
@@ -53,6 +58,8 @@ class RedirectForm extends ContentEntityForm {
           drupal_set_message(t('Invalid redirect URL %url provided.', array('%url' => $redirect_url)), 'warning');
         }
       }
+
+      debug($redirect->toArray());
 
       $redirect->setLanguage($this->getRequest()->get('language') ? $this->getRequest()->get('language') : Language::LANGCODE_NOT_SPECIFIED);
     }

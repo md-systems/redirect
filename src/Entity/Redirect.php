@@ -355,7 +355,7 @@ class Redirect extends ContentEntityBase {
         'target_type' => 'user',
       ));
 
-    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
+    $fields['redirect_source'] = BaseFieldDefinition::create('link')
       ->setLabel(t('From'))
       ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
       ->setRequired(TRUE)
@@ -365,13 +365,8 @@ class Redirect extends ContentEntityBase {
         'max_length' => 560,
         'link_type' => LinkItemInterface::LINK_INTERNAL,
       ))
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'redirect_link',
-        'weight' => -5,
-      ))
       ->setDisplayOptions('form', array(
-        'type' => 'redirect_link',
+        'type' => 'link_default',
         'weight' => -5,
       ))
       ->setDisplayConfigurable('form', TRUE);
@@ -384,11 +379,6 @@ class Redirect extends ContentEntityBase {
         'default_value' => '',
         'max_length' => 560,
         'link_type' => LinkItemInterface::LINK_GENERIC,
-      ))
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'link',
-        'weight' => -4,
       ))
       ->setDisplayOptions('form', array(
         'type' => 'link',

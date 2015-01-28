@@ -71,13 +71,13 @@ class RedirectUITest extends WebTestBase {
       'redirect' => 'node',
       'redirect_options' => array('query' => array('key' => 'val', 'key1' => 'val1')),
     )));
-    $this->assertFieldByName('redirect_source[0][url]', 'non-existing?key=val&key1=val1');
-    $this->assertFieldByName('redirect_redirect[0][url]', 'node?key=val&key1=val1');
+    $this->assertFieldByName('redirect_source[0][uri]', 'non-existing?key=val&key1=val1');
+    $this->assertFieldByName('redirect_redirect[0][uri]', 'node?key=val&key1=val1');
 
     // Test creating a new redirect via UI.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'non-existing',
-      'redirect_redirect[0][url]' => 'node',
+      'redirect_source[0][uri]' => 'non-existing',
+      'redirect_redirect[0][uri]' => 'node',
     ), t('Save'));
 
     // Try to find the redirect we just created.
@@ -99,13 +99,13 @@ class RedirectUITest extends WebTestBase {
 
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
-    $this->assertFieldByName('redirect_source[0][url]', 'non-existing');
-    $this->assertFieldByName('redirect_redirect[0][url]', 'node');
+    $this->assertFieldByName('redirect_source[0][uri]', 'non-existing');
+    $this->assertFieldByName('redirect_redirect[0][uri]', 'node');
     $this->assertFieldByName('status_code', $redirect->getStatusCode());
 
     // Append a query string to see if we handle query data properly.
     $this->drupalPostForm(NULL, array(
-      'redirect_source[0][url]' => 'non-existing?key=value',
+      'redirect_source[0][uri]' => 'non-existing?key=value',
     ), t('Save'));
 
     // Check the location after update and check if the value has been updated
@@ -125,45 +125,45 @@ class RedirectUITest extends WebTestBase {
     // Test the source url hints.
     // The hint about an existing base path.
     $this->drupalPostAjaxForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'non-existing?key=value',
-    ), 'redirect_source[0][url]');
+      'redirect_source[0][uri]' => 'non-existing?key=value',
+    ), 'redirect_source[0][uri]');
     $this->assertRaw(t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
       array('%source' => 'non-existing?key=value', '@edit-page' => $redirect->url('edit-form'))));
 
     // The hint about a valid path.
     $this->drupalPostAjaxForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'node',
-    ), 'redirect_source[0][url]');
+      'redirect_source[0][uri]' => 'node',
+    ), 'redirect_source[0][uri]');
     $this->assertRaw(t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
       array('%path' => 'node', '@url-alias' => Url::fromRoute('path.admin_add')->toString())));
 
     // Test validation.
     // Duplicate redirect.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'non-existing?key=value',
-      'redirect_redirect[0][url]' => 'node',
+      'redirect_source[0][uri]' => 'non-existing?key=value',
+      'redirect_redirect[0][uri]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
       array('%source' => 'non-existing?key=value', '@edit-page' => $redirect->url('edit-form'))));
 
     // Redirecting to itself.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'node',
-      'redirect_redirect[0][url]' => 'node',
+      'redirect_source[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
 
     // Redirecting the front page.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => '<front>',
-      'redirect_redirect[0][url]' => 'node',
+      'redirect_source[0][uri]' => '<front>',
+      'redirect_redirect[0][uri]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('It is not allowed to create a redirect from the front page.'));
 
     // Redirecting a url with fragment.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
-      'redirect_source[0][url]' => 'page-to-redirect#content',
-      'redirect_redirect[0][url]' => 'node',
+      'redirect_source[0][uri]' => 'page-to-redirect#content',
+      'redirect_redirect[0][uri]' => 'node',
     ), t('Save'));
     $this->assertRaw(t('The anchor fragments are not allowed.'));
 
@@ -193,10 +193,10 @@ class RedirectUITest extends WebTestBase {
     // Check if we generate correct Add redirect url and if the form is
     // pre-filled.
     $this->assertUrl('admin/config/search/redirect/add?source=non-existing&destination=admin/config/search/redirect/404');
-    $this->assertFieldByName('redirect_source[0][url]', 'non-existing');
+    $this->assertFieldByName('redirect_source[0][uri]', 'non-existing');
 
     // Save the redirect.
-    $this->drupalPostForm(NULL, array('redirect_redirect[0][url]' => 'node'), t('Save'));
+    $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => 'node'), t('Save'));
     $this->assertUrl('admin/config/search/redirect/404');
 
     // Check if the redirect works as expected.
@@ -273,8 +273,8 @@ class RedirectUITest extends WebTestBase {
 
     // Test the automatically created redirect shows up in the form correctly.
     $this->drupalGet('admin/config/search/redirect/edit/' . $redirect->id());
-    $this->assertFieldByName('redirect_source[0][url]', 'aaa_path_alias');
-    $this->assertFieldByName('redirect_redirect[0][url]', 'aaa_path_alias_updated');
+    $this->assertFieldByName('redirect_source[0][uri]', 'aaa_path_alias');
+    $this->assertFieldByName('redirect_redirect[0][uri]', 'aaa_path_alias_updated');
   }
 
   /**
