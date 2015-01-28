@@ -38,38 +38,32 @@ class RedirectSourceLinkWidget extends LinkWidget {
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
-    $default_url_value = NULL;
-    if (isset($items[$delta]->url)) {
-      try {
-        $url = Url::fromUri('base://' . $items[$delta]->url);
-        $url->setOptions($items[$delta]->options);
-        $default_url_value = ltrim($url->toString(), '/');
-      }
-      // If the path has no matching route reconstruct it manually.
-      catch (ResourceNotFoundException $e) {
-        $default_url_value = $items[$delta]->url;
-        if (isset($items[$delta]->options['query']) && is_array($items[$delta]->options['query'])) {
-          $default_url_value .= '?';
-          $i = 0;
-          foreach ($items[$delta]->options['query'] as $key => $value) {
-            if ($i > 0) {
-              $default_url_value .= '&';
-            }
-            $default_url_value .= "$key=$value";
-            $i++;
-          }
-        }
-      }
-    }
-    $element['url'] = array(
+    $default_url_value = $items[$delta]->uri;
+    $element['uri'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('URL'),
       '#placeholder' => $this->getSetting('placeholder_url'),
       '#default_value' => $default_url_value,
       '#maxlength' => 2048,
       '#required' => $element['#required'],
-      '#field_prefix' => \Drupal::url('<front>', array(), array('absolute' => TRUE)),
     );
+
+    // If the field is configured to support internal links, it cannot use the
+    // 'url' form element and we have to do the validation ourselves.
+    if ($this->supportsInternalLinks()) {
+      $element['uri']['#type'] = 'textfield';
+    }
+
+    // If the field is configured to allow only internal links, add a useful
+    // element prefix.
+    if (!$this->supportsExternalLinks()) {
+      $element['uri']['#field_prefix'] = \Drupal::url('<front>', array(), array('absolute' => TRUE));
+    }
+    // If the field is configured to allow both internal and external links,
+    // show a useful description.
+    elseif ($this->supportsExternalLinks() && $this->supportsInternalLinks()) {
+      $element['uri']['#description'] = $this->t('This can be an internal Drupal path such as %add-node or an external URL such as %drupal. Enter %front to link to the front page.', array('%front' => '<front>', '%add-node' => 'node/add', '%drupal' => 'http://drupal.org'));
+    }
 
     // Exposing the attributes array in the widget is left for alternate and more
     // advanced field widgets.
@@ -95,13 +89,13 @@ class RedirectSourceLinkWidget extends LinkWidget {
         '#suffix' => '</div>',
       );
 
-      if ($form_state->hasValue(array('redirect_source', 0, 'url'))) {
+      if ($form_state->hasValue(array('redirect_source', 0, 'uri'))) {
 
         // Warning about creating a redirect from a valid path.
         // @todo - Hmm... exception driven logic. Find a better way how to
         //   determine if we have a valid path.
         try {
-          \Drupal::service('router')->match('/' . $form_state->getValue(array('redirect_source', 0, 'url')));
+          \Drupal::service('router')->match('/' . $form_state->getValue(array('redirect_source', 0, 'uri')));
           $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
               array('%path' => $form_state->getValue(array('redirect_source', 0, 'url')), '@url-alias' => Url::fromRoute('path.admin_add')->toString())) . '</div>';
         }
@@ -123,7 +117,7 @@ class RedirectSourceLinkWidget extends LinkWidget {
         }
       }
 
-      $element['url']['#ajax'] = array(
+      $element['uri']['#ajax'] = array(
         'callback' => 'redirect_source_link_get_status_messages',
         'wrapper' => 'redirect-link-status',
       );

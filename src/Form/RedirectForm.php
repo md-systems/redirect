@@ -40,8 +40,13 @@ class RedirectForm extends ContentEntityForm {
       }
 
       $redirect_options = array();
+      $redirect_query = array();
       if ($this->getRequest()->get('redirect_options')) {
         $redirect_options = $this->getRequest()->get('redirect_options');
+        if (isset($redirect_options['query'])) {
+          $redirect_query = $redirect_options['query'];
+          unset($redirect_options['query']);
+        }
       }
 
       $source_url = urldecode($this->getRequest()->get('source'));
@@ -52,14 +57,12 @@ class RedirectForm extends ContentEntityForm {
       $redirect_url = urldecode($this->getRequest()->get('redirect'));
       if (!empty($redirect_url)) {
         try {
-          $redirect->setRedirect($redirect_url, $redirect_options);
+          $redirect->setRedirect($redirect_url, $redirect_query, $redirect_options);
         }
         catch (MatchingRouteNotFoundException $e) {
           drupal_set_message(t('Invalid redirect URL %url provided.', array('%url' => $redirect_url)), 'warning');
         }
       }
-
-      debug($redirect->toArray());
 
       $redirect->setLanguage($this->getRequest()->get('language') ? $this->getRequest()->get('language') : Language::LANGCODE_NOT_SPECIFIED);
     }
@@ -110,16 +113,16 @@ class RedirectForm extends ContentEntityForm {
     $source = $form_state->getValue(array('redirect_source', 0));
     $redirect = $form_state->getValue(array('redirect_redirect', 0));
 
-    if ($source['url'] == '<front>') {
+    if ($source['uri'] == '<front>') {
       $form_state->setErrorByName('redirect_source', t('It is not allowed to create a redirect from the front page.'));
     }
-    if (strpos($source['url'], '#') !== FALSE) {
+    if (strpos($source['uri'], '#') !== FALSE) {
       $form_state->setErrorByName('redirect_source', t('The anchor fragments are not allowed.'));
     }
 
     try {
-      $source_url = Url::fromUri('base://' . $source['url']);
-      $redirect_url = Url::fromUri('base://' . $redirect['url']);
+      $source_url = Url::fromUri('base://' . $source['uri']);
+      $redirect_url = Url::fromUri('base://' . $redirect['uri']);
 
       // It is relevant to do this comparison only in case the source path has
       // a valid route. Otherwise the validation will fail on the redirect path
@@ -132,7 +135,7 @@ class RedirectForm extends ContentEntityForm {
       // Do nothing, we want to only compare the resulting URLs.
     }
 
-    $parsed_url = UrlHelper::parse(trim($source['url']));
+    $parsed_url = UrlHelper::parse(trim($source['uri']));
     $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
     $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
     $hash = Redirect::generateHash($path, $query, $form_state->getValue('language'));

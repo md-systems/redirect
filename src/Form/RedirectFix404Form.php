@@ -64,7 +64,7 @@ class RedirectFix404Form extends FormBase {
 
     $count_query = db_select('watchdog', 'w');
     $count_query->addExpression('COUNT(DISTINCT(w.message))');
-    $count_query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__url');
+    $count_query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__uri');
     $count_query->condition('w.type', 'page not found');
     $count_query->isNull('r.rid');
     $this->filterQuery($count_query, array('w.message'), $search);
@@ -75,7 +75,7 @@ class RedirectFix404Form extends FormBase {
     $query->fields('w', array('message'));
     $query->addExpression('COUNT(wid)', 'count');
     $query->addExpression('MAX(timestamp)', 'timestamp');
-    $query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__url');
+    $query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__uri');
     $query->isNull('r.rid');
     $query->condition('w.type', 'page not found');
     $query->groupBy('w.message');

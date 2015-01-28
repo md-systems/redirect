@@ -90,7 +90,7 @@ class RedirectUITest extends WebTestBase {
     $this->assertUrl('admin/config/search/redirect');
     $this->assertText('non-existing');
     $this->assertLink('node');
-    $this->assertText(Language::LANGCODE_NOT_SPECIFIED);
+    $this->assertText(t('Not specified'));
     $this->assertText(t('Never'), 'Last access time is "Never"');
     // Assert the redirect that will also update the last access time.
     $this->assertRedirect('non-existing', 'node');
@@ -117,10 +117,11 @@ class RedirectUITest extends WebTestBase {
     // should be able to load the redirect using only the url part without
     // query.
     \Drupal::entityManager()->getStorage('redirect')->resetCache();
-    $redirects = $this->repository->findBySourcePath('non-existing');
-    $redirect = array_shift($redirects);
+    $redirect = $this->repository->findMatchingRedirect('non-existing', array('key' => 'value'));
+    // @FIXME
+    //$redirects = $this->repository->findBySourcePath('non-existing');
+    //$redirect = array_shift($redirects);
     $this->assertEqual($redirect->getSourceUrl(), 'non-existing?key=value');
-    $this->assertEqual($redirect->getSourceOption('query'), array('key' => 'value'));
 
     // Test the source url hints.
     // The hint about an existing base path.
@@ -235,7 +236,7 @@ class RedirectUITest extends WebTestBase {
     // a new one and does not result in a loop.
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
-    $this->assertNull($redirect);
+    $this->assertTrue(empty($redirect));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias_updated', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertEqual($redirect->getRedirectUrl(), 'node/' . $node->id());

@@ -34,7 +34,7 @@ class RedirectListBuilder extends EntityListBuilder {
       $row['redirect_redirect']['data'] = '';
     }
     $row['status_code']['data'] = $redirect->getStatusCode();
-    $row['language']['data'] = $redirect->getLanguage();
+    $row['language']['data'] = $redirect->language()->getName();
     $row['count']['data'] = $redirect->getCount();
 
     if ($redirect->getLastAccessed()) {

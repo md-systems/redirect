@@ -161,7 +161,7 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setSource($url, array $query = array(), array $options = array()) {
-    $uri = $url . '?' . UrlHelper::buildQuery($query);
+    $uri = $url . ($query ? '?' . UrlHelper::buildQuery($query) : '');
     $this->redirect_source->set(0, ['uri' => $uri, 'options' => $options]);
   }
 
@@ -198,11 +198,14 @@ class Redirect extends ContentEntityBase {
    *
    * @param string $url
    *   The base url of the redirect destination.
+   * @param array $query
+   *   Query arguments.
    * @param array $options
    *   The source url options.
    */
-  public function setRedirect($url, array $options = array()) {
-    $this->redirect_redirect->set(0, ['uri' => $url, 'options' => $options]);
+  public function setRedirect($url, array $query = array(), array $options = array()) {
+    $uri = $url . ($query ? '?' . UrlHelper::buildQuery($query) : '');
+    $this->redirect_redirect->set(0, ['uri' => $uri, 'options' => $options]);
   }
 
   /**
@@ -355,7 +358,7 @@ class Redirect extends ContentEntityBase {
         'target_type' => 'user',
       ));
 
-    $fields['redirect_source'] = BaseFieldDefinition::create('link')
+    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
       ->setLabel(t('From'))
       ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
       ->setRequired(TRUE)
@@ -366,7 +369,7 @@ class Redirect extends ContentEntityBase {
         'link_type' => LinkItemInterface::LINK_INTERNAL,
       ))
       ->setDisplayOptions('form', array(
-        'type' => 'link_default',
+        'type' => 'redirect_link',
         'weight' => -5,
       ))
       ->setDisplayConfigurable('form', TRUE);
