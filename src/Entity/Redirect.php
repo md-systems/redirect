@@ -13,7 +13,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
 /**
@@ -38,7 +37,8 @@ use Drupal\link\LinkItemInterface;
  *     "id" = "rid",
  *     "label" = "source",
  *     "uuid" = "uuid",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "langcode" = "language",
  *   },
  *   links = {
  *     "delete-form" = "/admin/config/search/redirect/delete/{redirect}",
@@ -77,13 +77,6 @@ class Redirect extends ContentEntityBase {
   /**
    * {@inheritdoc}
    */
-  public function id() {
-    return $this->get('rid')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
     $values += array(
       'type' => 'redirect',
@@ -94,8 +87,9 @@ class Redirect extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageInterface $storage_controller) {
-    $source = $this->getSource();
-    $this->set('hash', Redirect::generateHash($source['uri'], $this->getSourceOption('query', array()), $this->getLanguage()));
+    $url = $this->getSourceUrl();
+    $parsed_url = UrlHelper::parse($url);
+    $this->set('hash', Redirect::generateHash($parsed_url['path'],$parsed_url['query'], $this->language()->getId()));
   }
 
   /**
@@ -111,9 +105,6 @@ class Redirect extends ContentEntityBase {
         if (is_string($source->options)) {
           $entity->redirect_source->get($i)->options = unserialize($source->options);
         }
-        if (is_string($source->route_parameters)) {
-          $entity->redirect_source->get($i)->route_parameters = unserialize($source->route_parameters);
-        }
         $i++;
       }
       $i = 0;
@@ -124,35 +115,9 @@ class Redirect extends ContentEntityBase {
         else {
           $entity->redirect_redirect->get($i)->options = array();
         }
-        if (is_string($redirect->route_parameters)) {
-          $entity->redirect_redirect->get($i)->route_parameters = unserialize($redirect->route_parameters);
-        }
-        else {
-          $entity->redirect_redirect->get($i)->route_parameters = array();
-        }
         $i++;
       }
     }
-  }
-
-  /**
-   * Sets the redirect entity bundle.
-   *
-   * @param string $type
-   *   Redirect entity bundle.
-   */
-  public function setType($type) {
-    $this->set('type', $type);
-  }
-
-  /**
-   * Gets the redirect entity bundle.
-   *
-   * @return string
-   *   The redirect entity budnle.
-   */
-  public function getType() {
-    return $this->get('type')->value;
   }
 
   /**
@@ -163,16 +128,6 @@ class Redirect extends ContentEntityBase {
    */
   public function setLanguage($language) {
     $this->set('language', $language);
-  }
-
-  /**
-   * Gets the redirect language.
-   *
-   * @return string
-   *   The redirect language.
-   */
-  public function getLanguage() {
-    return $this->get('language')->value;
   }
 
   /**
@@ -200,11 +155,14 @@ class Redirect extends ContentEntityBase {
    *
    * @param string $url
    *   The base url of the source.
+   * @param array $query
+   *   Query arguments.
    * @param array $options
    *   The source url options.
    */
-  public function setSource($url, array $options = array()) {
-    $this->redirect_source->set(0, ['uri' => $url, 'options' => $options]);
+  public function setSource($url, array $query = array(), array $options = array()) {
+    $uri = $url . '?' . UrlHelper::buildQuery($query);
+    $this->redirect_source->set(0, ['uri' => $uri, 'options' => $options]);
   }
 
   /**
@@ -222,7 +180,6 @@ class Redirect extends ContentEntityBase {
    * @return string
    */
   public function getSourceUrl() {
-    debug($this->get('redirect_source')->options);
     return $this->get('redirect_source')->uri;
   }
 
@@ -245,33 +202,7 @@ class Redirect extends ContentEntityBase {
    *   The source url options.
    */
   public function setRedirect($url, array $options = array()) {
-    $parsed_url = UrlHelper::parse($url);
-    $url = \Drupal::pathValidator()->getUrlIfValid($parsed_url['path']);
-    if (!$url) {
-      $url = Url::fromUri('base://' . $parsed_url['path']);
-    }
-    if (!empty($options['query'])) {
-      $url->setOption('query', $options['query']);
-    }
-    if (!empty($options['fragment'])) {
-      $url->setOption('fragment', $options['fragment']);
-    }
-
-    $value = $url->toArray();
-    // Reset the URL value to contain only the path.
-    if (isset($value['path'])) {
-      $value['url'] = $value['path'];
-    }
-    else {
-      // @todo Core requires the url to be not empty or the values are filtered
-      //   out.
-      $value['url'] = $url->toString();
-    }
-
-
-    $value['options'] += $options;
-
-    $this->redirect_redirect->set(0, $value);
+    $this->redirect_redirect->set(0, ['uri' => $url, 'options' => $options]);
   }
 
   /**
@@ -281,16 +212,7 @@ class Redirect extends ContentEntityBase {
    *   The redirect URL.
    */
   public function getRedirectUrl() {
-    $query_string = '';
-    $i = 0;
-    foreach ($this->getRedirectOption('query', array()) as $key => $value) {
-      if ($i > 0) {
-        $query_string .= '&';
-      }
-      $query_string .= "$key=$value";
-      $i++;
-    }
-    return $this->get('redirect_redirect')->url . (!empty($query_string) ? '?' . $query_string : '');
+    return $this->get('redirect_redirect')->uri;
   }
 
   /**
