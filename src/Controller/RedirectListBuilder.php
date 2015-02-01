@@ -28,7 +28,7 @@ class RedirectListBuilder extends EntityListBuilder {
   public function buildRow(EntityInterface $redirect) {
     $row['redirect_source']['data'] = $redirect->getSourceUrl();
     if ($redirect->getRedirectUrl()) {
-      $row['redirect_redirect']['data'] = \Drupal::l($redirect->getRedirectUrl(), Url::fromUri('base://' . $redirect->getRedirectUrl()));
+      $row['redirect_redirect']['data'] = \Drupal::l($redirect->getRedirectUrl(), Url::fromUri('user-path:' . $redirect->getRedirectUrl()));
     }
     else {
       $row['redirect_redirect']['data'] = '';

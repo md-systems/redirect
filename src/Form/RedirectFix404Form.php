@@ -86,7 +86,7 @@ class RedirectFix404Form extends FormBase {
     $rows = array();
     foreach ($results as $result) {
       $row = array();
-      $row['source'] = \Drupal::l($result->message, Url::fromUri('base://' . $result->message), array('query' => $destination));
+      $row['source'] = \Drupal::l($result->message, Url::fromUri('user-path://' . $result->message), array('query' => $destination));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
