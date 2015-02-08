@@ -83,7 +83,7 @@ class RedirectAPITest extends KernelTestBase {
     $repository = \Drupal::service('redirect.repository');
     $redirect = $repository->findMatchingRedirect('another-url', array('key1' => 'val1'), 'de');
     if (!empty($redirect)) {
-      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
+      $this->assertEqual($redirect->getSourceUrl(), '/another-url?key1=val1');
     }
     else {
       $this->fail(t('Failed to find matching redirect.'));
@@ -92,7 +92,7 @@ class RedirectAPITest extends KernelTestBase {
     $redirects = $repository->findBySourcePath('another-url');
     $redirect = array_shift($redirects);
     if (!empty($redirect)) {
-      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
+      $this->assertEqual($redirect->getSourceUrl(), '/another-url?key1=val1');
     }
     else {
       $this->fail(t('Failed to find redirect by source path.'));

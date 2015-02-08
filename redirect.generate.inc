@@ -129,14 +129,13 @@ function redirect_generate_batch_generate($num, array &$context) {
       $redirect->setLanguage($languages[array_rand($languages)]);
     }
 
+    $query = array();
     if ($rand <= 30) {
-      $source_options['query'] = _redirect_generate_querystring();
+      $query = _redirect_generate_querystring();
     }
 
-    $redirect->setSource($source);
-    $redirect->setSourceOptions($source_options);
+    $redirect->setSource($source, $query);
     $redirect->setRedirect($redirect_target);
-    $redirect->setRedirectOptions($redirect_options);
 
     $redirect->save();
 

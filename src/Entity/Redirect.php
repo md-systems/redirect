@@ -87,9 +87,7 @@ class Redirect extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageInterface $storage_controller) {
-    $url = $this->getSourceUrl();
-    $parsed_url = UrlHelper::parse($url);
-    $this->set('hash', Redirect::generateHash($parsed_url['path'],$parsed_url['query'], $this->language()->getId()));
+    $this->set('hash', Redirect::generateHash($this->redirect_source->path, (array) $this->redirect_source->query, $this->language()->getId()));
   }
 
   /**
@@ -98,7 +96,7 @@ class Redirect extends ContentEntityBase {
    * @todo - here we unserialize the options fields for source and redirect.
    *   Shouldn't this be done automatically?
    */
-  public static function postLoad(EntityStorageInterface $storage_controller, array &$entities) {
+  public static function blapostLoad(EntityStorageInterface $storage_controller, array &$entities) {
     foreach ($entities as $entity) {
       $i = 0;
       foreach ($entity->get('redirect_source') as $source) {
@@ -153,16 +151,13 @@ class Redirect extends ContentEntityBase {
   /**
    * Sets the source URL data.
    *
-   * @param string $url
+   * @param string $path
    *   The base url of the source.
    * @param array $query
    *   Query arguments.
-   * @param array $options
-   *   The source url options.
    */
-  public function setSource($url, array $query = array(), array $options = array()) {
-    $uri = $url . ($query ? '?' . UrlHelper::buildQuery($query) : '');
-    $this->redirect_source->set(0, ['uri' => $uri, 'options' => $options]);
+  public function setSource($path, array $query = array()) {
+    $this->redirect_source->set(0, ['path' => $path, 'query' => $query]);
   }
 
   /**
@@ -180,7 +175,7 @@ class Redirect extends ContentEntityBase {
    * @return string
    */
   public function getSourceUrl() {
-    return $this->get('redirect_source')->uri;
+    return $this->get('redirect_source')->get(0)->getUrl()->toString();
   }
 
   /**
@@ -205,43 +200,17 @@ class Redirect extends ContentEntityBase {
    */
   public function setRedirect($url, array $query = array(), array $options = array()) {
     $uri = $url . ($query ? '?' . UrlHelper::buildQuery($query) : '');
-    $this->redirect_redirect->set(0, ['uri' => $uri, 'options' => $options]);
+    $this->redirect_redirect->set(0, ['uri' => 'user-path:/' . $uri, 'options' => $options]);
   }
 
   /**
    * Gets the redirect URL.
    *
-   * @return string
+   * @return \Drupal\Core\Url
    *   The redirect URL.
    */
   public function getRedirectUrl() {
-    return $this->get('redirect_redirect')->uri;
-  }
-
-  /**
-   * Gets the source URL options.
-   *
-   * @return array
-   *   The source URL options.
-   */
-  public function getSourceOptions() {
-    return $this->get('redirect_source')->options;
-  }
-
-  /**
-   * Gets a specific source URL option.
-   *
-   * @param string $key
-   *   Option key.
-   * @param mixed $default
-   *   Default value used in case option does not exist.
-   *
-   * @return mixed
-   *   The option value.
-   */
-  public function getSourceOption($key, $default = NULL) {
-    $options = $this->getSourceOptions();
-    return isset($options[$key]) ? $options[$key] : $default;
+    return $this->get('redirect_redirect')->get(0)->getUrl();
   }
 
   /**
@@ -268,14 +237,6 @@ class Redirect extends ContentEntityBase {
   public function getRedirectOption($key, $default = NULL) {
     $options = $this->getRedirectOptions();
     return isset($options[$key]) ? $options[$key] : $default;
-  }
-
-  public function getRedirectRouteName() {
-    return $this->get('redirect_redirect')->route_name;
-  }
-
-  public function getRedirectRouteParameters() {
-    return $this->get('redirect_redirect')->route_parameters;
   }
 
   /**
@@ -358,16 +319,11 @@ class Redirect extends ContentEntityBase {
         'target_type' => 'user',
       ));
 
-    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
+    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source')
       ->setLabel(t('From'))
       ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
       ->setRequired(TRUE)
       ->setTranslatable(FALSE)
-      ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 560,
-        'link_type' => LinkItemInterface::LINK_INTERNAL,
-      ))
       ->setDisplayOptions('form', array(
         'type' => 'redirect_link',
         'weight' => -5,
@@ -379,8 +335,6 @@ class Redirect extends ContentEntityBase {
       ->setRequired(TRUE)
       ->setTranslatable(FALSE)
       ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 560,
         'link_type' => LinkItemInterface::LINK_GENERIC,
       ))
       ->setDisplayOptions('form', array(

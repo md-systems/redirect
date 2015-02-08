@@ -29,11 +29,6 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   protected $redirectRepository;
 
   /**
-   * @var \Drupal\Core\Routing\UrlGenerator
-   */
-  protected $urlGenerator;
-
-  /**
    * @var \Drupal\Core\Language\LanguageManagerInterface
    */
   protected $languageManager;
@@ -56,8 +51,6 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
-   * @param \Drupal\Core\Routing\UrlGenerator $url_generator
-   *   The URL generator service.
    * @param \Drupal\redirect\RedirectRepository $redirect_repository
    *   The redirect entity repository.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -69,8 +62,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\Routing\RequestContext
    *   Request context.
    */
-  public function __construct(UrlGenerator $url_generator, RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, RedirectChecker $checker, RequestContext $context) {
-    $this->urlGenerator = $url_generator;
+  public function __construct(RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, RedirectChecker $checker, RequestContext $context) {
     $this->redirectRepository = $redirect_repository;
     $this->languageManager = $language_manager;
     $this->config = $config->get('redirect.settings');
@@ -112,35 +104,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
       }
 
       // Handle internal path.
-      if ($route_name = $redirect->getRedirectRouteName()) {
-
-        $redirect_query = $redirect->getRedirectOption('query', array());
-        if ($this->config->get('passthrough_querystring')) {
-          $redirect_query += $request_query;
-        }
-
-        // This logic will get the alias url, if any.
-        $url = $this->urlGenerator->generateFromRoute($route_name, $redirect->getRedirectRouteParameters(), array(
-          'absolute' => TRUE,
-          'query' => $redirect_query,
-        ));
+      $url = $redirect->getRedirectUrl();
+      if ($this->config->get('passthrough_querystring')) {
+        $url->setOption('query', (array) $url->getOption('query') + $request_query);
       }
-      // Handle external path.
-      else {
-        $url = $redirect->getRedirectUrl();
-        $parsed_url = UrlHelper::parse($url);
-
-        $redirect_query = $parsed_url['query'];
-        if ($this->config->get('passthrough_querystring')) {
-          $redirect_query += $request_query;
-        }
-
-        $url = $this->urlGenerator->generateFromPath($parsed_url['path'], array(
-          'absolute' => TRUE,
-          'query' => $redirect_query,
-        ));
-      }
-      $response = new RedirectResponse($url, $redirect->getStatusCode(), array('X-Redirect-ID' => $redirect->id()));
+      $response = new RedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), array('X-Redirect-ID' => $redirect->id()));
       $event->setResponse($response);
     }
   }
