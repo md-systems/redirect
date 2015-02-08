@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect\Tests;
 
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\KernelTestBase;
@@ -28,7 +29,7 @@ class RedirectAPITest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('redirect', 'link', 'field', 'system', 'user');
+  public static $modules = array('redirect', 'link', 'field', 'system', 'user', 'language');
 
   /**
    * {@inheritdoc}
@@ -40,6 +41,9 @@ class RedirectAPITest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installConfig(array('redirect'));
 
+    $language = ConfigurableLanguage::createFromLangcode('de');
+    $language->save();
+
     $this->controller = $this->container->get('entity.manager')->getStorage('redirect');
   }
 
@@ -50,24 +54,25 @@ class RedirectAPITest extends KernelTestBase {
     // Create a redirect and test if hash has been generated correctly.
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
-    $redirect->setSource('some-url', array('query' => array('key' => 'val')));
+    $redirect->setSource('some-url', array('key' => 'val'));
+
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
     // Update the redirect source query and check if hash has been updated as
     // expected.
-    $redirect->setSource('some-url', array('query' => array('key1' => 'val1')));
+    $redirect->setSource('some-url', array('key1' => 'val1'));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
     // Update the redirect source path and check if hash has been updated as
     // expected.
-    $redirect->setSource('another-url', array('query' => array('key1' => 'val1')));
+    $redirect->setSource('another-url', array('key1' => 'val1'));
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
     // Update the redirect language and check if hash has been updated as
     // expected.
-    $redirect->setLanguage(Language::LANGCODE_DEFAULT);
+    $redirect->setLanguage('de');
     $redirect->save();
-    $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT), $redirect->getHash());
+    $this->assertEqual(Redirect::generateHash('another-url', array('key1' => 'val1'), 'de'), $redirect->getHash());
     // Create a few more redirects to test the select.
     for ($i = 0; $i < 5; $i++) {
       $redirect = $this->controller->create();
@@ -76,10 +81,9 @@ class RedirectAPITest extends KernelTestBase {
     }
     /** @var \Drupal\redirect\RedirectRepository $repository */
     $repository = \Drupal::service('redirect.repository');
-    $redirect = $repository->findMatchingRedirect('another-url', array('key1' => 'val1'), Language::LANGCODE_DEFAULT);
+    $redirect = $repository->findMatchingRedirect('another-url', array('key1' => 'val1'), 'de');
     if (!empty($redirect)) {
-      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
-      $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+      $this->assertEqual($redirect->getSourceUrl(), '/another-url?key1=val1');
     }
     else {
       $this->fail(t('Failed to find matching redirect.'));
@@ -88,8 +92,7 @@ class RedirectAPITest extends KernelTestBase {
     $redirects = $repository->findBySourcePath('another-url');
     $redirect = array_shift($redirects);
     if (!empty($redirect)) {
-      $this->assertEqual($redirect->getSourceUrl(), 'another-url?key1=val1');
-      $this->assertEqual($redirect->getSourceOption('query'), array('key1' => 'val1'));
+      $this->assertEqual($redirect->getSourceUrl(), '/another-url?key1=val1');
     }
     else {
       $this->fail(t('Failed to find redirect by source path.'));

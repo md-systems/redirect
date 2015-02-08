@@ -26,15 +26,16 @@ class RedirectListBuilder extends EntityListBuilder {
   }
 
   public function buildRow(EntityInterface $redirect) {
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $row['redirect_source']['data'] = $redirect->getSourceUrl();
-    if ($redirect->getRedirectUrl()) {
-      $row['redirect_redirect']['data'] = \Drupal::l($redirect->getRedirectUrl(), Url::fromUri('base://' . $redirect->getRedirectUrl()));
+    if ($url = $redirect->getRedirectUrl()) {
+      $row['redirect_redirect']['data'] = \Drupal::l($url->toString(), $url);
     }
     else {
       $row['redirect_redirect']['data'] = '';
     }
     $row['status_code']['data'] = $redirect->getStatusCode();
-    $row['language']['data'] = $redirect->getLanguage();
+    $row['language']['data'] = $redirect->language()->getName();
     $row['count']['data'] = $redirect->getCount();
 
     if ($redirect->getLastAccessed()) {

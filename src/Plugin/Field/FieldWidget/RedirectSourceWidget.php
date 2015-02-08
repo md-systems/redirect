@@ -2,13 +2,14 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Plugin\Field\FieldWidget\RedirectSourceLinkWidget
+ * Contains \Drupal\redirect\Plugin\Field\FieldWidget\RedirectSourceWidget
  */
 
 namespace Drupal\redirect\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\WidgetBase;
 use Drupal\link\Plugin\Field\FieldWidget\LinkWidget;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
@@ -21,8 +22,8 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
  * entity as it drops validation for non existing paths.
  *
  * @FieldWidget(
- *   id = "redirect_link",
- *   label = @Translation("Redirect link"),
+ *   id = "redirect_source",
+ *   label = @Translation("Redirect source"),
  *   field_types = {
  *     "link"
  *   },
@@ -32,61 +33,25 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
  *   }
  * )
  */
-class RedirectSourceLinkWidget extends LinkWidget {
+class RedirectSourceWidget extends WidgetBase {
 
   /**
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
-    $default_url_value = NULL;
-    if (isset($items[$delta]->url)) {
-      try {
-        $url = Url::fromUri('base://' . $items[$delta]->url);
-        $url->setOptions($items[$delta]->options);
-        $default_url_value = ltrim($url->toString(), '/');
-      }
-      // If the path has no matching route reconstruct it manually.
-      catch (ResourceNotFoundException $e) {
-        $default_url_value = $items[$delta]->url;
-        if (isset($items[$delta]->options['query']) && is_array($items[$delta]->options['query'])) {
-          $default_url_value .= '?';
-          $i = 0;
-          foreach ($items[$delta]->options['query'] as $key => $value) {
-            if ($i > 0) {
-              $default_url_value .= '&';
-            }
-            $default_url_value .= "$key=$value";
-            $i++;
-          }
-        }
-      }
+    $default_url_value = $items[$delta]->path;
+    if ($items[$delta]->query) {
+      $default_url_value .= '?' . http_build_query($items[$delta]->query);
     }
-    $element['url'] = array(
+    $element['path'] = array(
       '#type' => 'textfield',
-      '#title' => $this->t('URL'),
+      '#title' => $this->t('Path'),
       '#placeholder' => $this->getSetting('placeholder_url'),
       '#default_value' => $default_url_value,
       '#maxlength' => 2048,
       '#required' => $element['#required'],
       '#field_prefix' => \Drupal::url('<front>', array(), array('absolute' => TRUE)),
     );
-
-    // Exposing the attributes array in the widget is left for alternate and more
-    // advanced field widgets.
-    $element['attributes'] = array(
-      '#type' => 'value',
-      '#tree' => TRUE,
-      '#value' => !empty($items[$delta]->options['attributes']) ? $items[$delta]->options['attributes'] : array(),
-      '#attributes' => array('class' => array('link-field-widget-attributes')),
-    );
-
-    // If cardinality is 1, ensure a label is output for the field by wrapping it
-    // in a details element.
-    if ($this->fieldDefinition->getCardinality() == 1) {
-      $element += array(
-        '#type' => 'fieldset',
-      );
-    }
 
     // If creating new URL add checks.
     if ($items->getEntity()->isNew()) {
@@ -95,22 +60,24 @@ class RedirectSourceLinkWidget extends LinkWidget {
         '#suffix' => '</div>',
       );
 
-      if ($form_state->hasValue(array('redirect_source', 0, 'url'))) {
+      $source_path = $form_state->getValue(array('redirect_source', 0, 'path'));
+      if ($source_path) {
+        $source_path = trim($source_path);
 
         // Warning about creating a redirect from a valid path.
         // @todo - Hmm... exception driven logic. Find a better way how to
         //   determine if we have a valid path.
         try {
-          \Drupal::service('router')->match('/' . $form_state->getValue(array('redirect_source', 0, 'url')));
+          \Drupal::service('router')->match('/' . $form_state->getValue(array('redirect_source', 0, 'path')));
           $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The source path %path is likely a valid path. It is preferred to <a href="@url-alias">create URL aliases</a> for existing paths rather than redirects.',
-              array('%path' => $form_state->getValue(array('redirect_source', 0, 'url')), '@url-alias' => Url::fromRoute('path.admin_add')->toString())) . '</div>';
+              array('%path' => $source_path, '@url-alias' => Url::fromRoute('path.admin_add')->toString())) . '</div>';
         }
         catch (ResourceNotFoundException $e) {
           // Do nothing, expected behaviour.
         }
 
         // Warning about the path being already redirected.
-        $parsed_url = UrlHelper::parse(trim($form_state->getValue(array('redirect_source', 0, 'url'))));
+        $parsed_url = UrlHelper::parse($source_path);
         $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
         if (!empty($path)) {
           /** @var \Drupal\redirect\RedirectRepository $repository */
@@ -118,12 +85,12 @@ class RedirectSourceLinkWidget extends LinkWidget {
           $redirects = $repository->findBySourcePath($path);
           if (!empty($redirects)) {
             $redirect = array_shift($redirects);
-            $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $redirect->getSourceUrl(), '@edit-page' => $redirect->url('edit-form'))) . '</div>';
+            $element['status_box'][]['#markup'] = '<div class="messages messages--warning">' . t('The base source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?', array('%source' => $source_path, '@edit-page' => $redirect->url('edit-form'))) . '</div>';
           }
         }
       }
 
-      $element['url']['#ajax'] = array(
+      $element['path']['#ajax'] = array(
         'callback' => 'redirect_source_link_get_status_messages',
         'wrapper' => 'redirect-link-status',
       );
@@ -141,20 +108,13 @@ class RedirectSourceLinkWidget extends LinkWidget {
     // so the logic in the parent method did not set any defaults. Just run
     // through all url values and add defaults.
     foreach ($values as &$value) {
-      if (!empty($value['url'])) {
+      if (!empty($value['path'])) {
         // In case we have query process the url.
-        if (strpos($value['url'], '?') !== FALSE) {
-          $url = UrlHelper::parse($value['url']);
-          $value['url'] = $url['path'];
-          $value['options']['query'] = $url['query'];
+        if (strpos($value['path'], '?') !== FALSE) {
+          $url = UrlHelper::parse($value['path']);
+          $value['path'] = $url['path'];
+          $value['query'] = $url['query'];
         }
-        $value += array(
-          'route_name' => NULL,
-          'route_parameters' => array(),
-          'options' => array(
-            'attributes' => array(),
-          ),
-        );
       }
     }
     return $values;

@@ -70,7 +70,8 @@ function redirect_cron() {
  */
 function redirect_entity_delete(EntityInterface $entity) {
   if (redirect_entity_has_path_field($entity)) {
-    redirect_delete_by_path($entity->url());
+    redirect_delete_by_path('user-path:/' . $entity->urlInfo()->getInternalPath());
+    redirect_delete_by_path('entity:' . $entity->getEntityTypeId() . '/' . $entity->id());
   }
 }
 
@@ -91,7 +92,7 @@ function redirect_path_update(array $path) {
     if (!redirect_repository()->findMatchingRedirect($original_path['alias'], array(), $original_path['langcode'])) {
       $redirect = Redirect::create();
       $redirect->setSource($original_path['alias']);
-      $redirect->setRedirect($path['alias']);
+      $redirect->setRedirect($path['source']);
       $redirect->setLanguage($original_path['langcode']);
       $redirect->setStatusCode(\Drupal::config('redirect.settings')->get('default_status_code'));
       $redirect->save();
@@ -240,11 +241,11 @@ function redirect_delete_by_path($path, $langcode = NULL, $match_subpaths_and_re
   $query = db_select('redirect');
   $query->addField('redirect', 'rid');
   $query_or = db_or();
-  $query_or->condition('redirect_source__url', db_like($path), 'LIKE');
+  $query_or->condition('redirect_source__path', db_like($path), 'LIKE');
   if ($match_subpaths_and_redirect) {
-    $query_or->condition('redirect_source__url', db_like($path . '/') . '%', 'LIKE');
-    $query_or->condition('redirect_redirect__url', db_like($path), 'LIKE');
-    $query_or->condition('redirect_redirect__url', db_like($path . '/') . '%', 'LIKE');
+    $query_or->condition('redirect_source__path', db_like($path . '/') . '%', 'LIKE');
+    $query_or->condition('redirect_redirect__uri', db_like($path), 'LIKE');
+    $query_or->condition('redirect_redirect__uri', db_like($path . '/') . '%', 'LIKE');
   }
 
   if ($langcode) {

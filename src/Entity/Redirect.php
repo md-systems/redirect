@@ -13,7 +13,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
 /**
@@ -38,7 +37,8 @@ use Drupal\link\LinkItemInterface;
  *     "id" = "rid",
  *     "label" = "source",
  *     "uuid" = "uuid",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "langcode" = "language",
  *   },
  *   links = {
  *     "delete-form" = "/admin/config/search/redirect/delete/{redirect}",
@@ -77,13 +77,6 @@ class Redirect extends ContentEntityBase {
   /**
    * {@inheritdoc}
    */
-  public function id() {
-    return $this->get('rid')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
     $values += array(
       'type' => 'redirect',
@@ -94,8 +87,7 @@ class Redirect extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageInterface $storage_controller) {
-    $source = $this->getSource();
-    $this->set('hash', Redirect::generateHash($source['url'], $this->getSourceOption('query', array()), $this->getLanguage()));
+    $this->set('hash', Redirect::generateHash($this->redirect_source->path, (array) $this->redirect_source->query, $this->language()->getId()));
   }
 
   /**
@@ -104,15 +96,12 @@ class Redirect extends ContentEntityBase {
    * @todo - here we unserialize the options fields for source and redirect.
    *   Shouldn't this be done automatically?
    */
-  public static function postLoad(EntityStorageInterface $storage_controller, array &$entities) {
+  public static function blapostLoad(EntityStorageInterface $storage_controller, array &$entities) {
     foreach ($entities as $entity) {
       $i = 0;
       foreach ($entity->get('redirect_source') as $source) {
         if (is_string($source->options)) {
           $entity->redirect_source->get($i)->options = unserialize($source->options);
-        }
-        if (is_string($source->route_parameters)) {
-          $entity->redirect_source->get($i)->route_parameters = unserialize($source->route_parameters);
         }
         $i++;
       }
@@ -124,35 +113,9 @@ class Redirect extends ContentEntityBase {
         else {
           $entity->redirect_redirect->get($i)->options = array();
         }
-        if (is_string($redirect->route_parameters)) {
-          $entity->redirect_redirect->get($i)->route_parameters = unserialize($redirect->route_parameters);
-        }
-        else {
-          $entity->redirect_redirect->get($i)->route_parameters = array();
-        }
         $i++;
       }
     }
-  }
-
-  /**
-   * Sets the redirect entity bundle.
-   *
-   * @param string $type
-   *   Redirect entity bundle.
-   */
-  public function setType($type) {
-    $this->set('type', $type);
-  }
-
-  /**
-   * Gets the redirect entity bundle.
-   *
-   * @return string
-   *   The redirect entity budnle.
-   */
-  public function getType() {
-    return $this->get('type')->value;
   }
 
   /**
@@ -163,16 +126,6 @@ class Redirect extends ContentEntityBase {
    */
   public function setLanguage($language) {
     $this->set('language', $language);
-  }
-
-  /**
-   * Gets the redirect language.
-   *
-   * @return string
-   *   The redirect language.
-   */
-  public function getLanguage() {
-    return $this->get('language')->value;
   }
 
   /**
@@ -198,51 +151,13 @@ class Redirect extends ContentEntityBase {
   /**
    * Sets the source URL data.
    *
-   * @param string $url
+   * @param string $path
    *   The base url of the source.
-   * @param array $options
-   *   The source url options.
+   * @param array $query
+   *   Query arguments.
    */
-  public function setSource($url, array $options = array()) {
-    $value = array();
-    try {
-      $parsed_url = UrlHelper::parse($url);
-
-      $url = Url::fromUri('base://' . $parsed_url['path']);
-      if (!empty($parsed_url['query'])) {
-        $url->setOption('query', $parsed_url['query']);
-      }
-      if (!empty($parsed_url['fragment'])) {
-        $url->setOption('fragment', $parsed_url['fragment']);
-      }
-
-      $value += $url->toArray();
-      // Reset the URL value to contain only the path.
-      $value['url'] = $parsed_url['path'];
-    }
-    // We have invalid URL - for the source process anyway.
-    catch (\Exception $e) {
-      // In case we have query process the url.
-      if (strpos($url, '?') !== FALSE) {
-        $url = UrlHelper::parse($value['url']);
-        $value['url'] = $url['path'];
-        $value['options']['query'] = $url['query'];
-      }
-      else {
-        $value['url'] = $url;
-      }
-      $value += array(
-        'route_name' => NULL,
-        'route_parameters' => array(),
-        'options' => array(
-          'attributes' => array(),
-        ),
-      );
-    }
-
-    $value['options'] += $options;
-
-    $this->redirect_source->set(0, $value);
+  public function setSource($path, array $query = array()) {
+    $this->redirect_source->set(0, ['path' => $path, 'query' => $query]);
   }
 
   /**
@@ -260,16 +175,7 @@ class Redirect extends ContentEntityBase {
    * @return string
    */
   public function getSourceUrl() {
-    $query_string = '';
-    $i = 0;
-    foreach ($this->getSourceOption('query', array()) as $key => $value) {
-      if ($i > 0) {
-        $query_string .= '&';
-      }
-      $query_string .= "$key=$value";
-      $i++;
-    }
-    return $this->get('redirect_source')->url . (!empty($query_string) ? '?' . $query_string : '');
+    return $this->get('redirect_source')->get(0)->getUrl()->toString();
   }
 
   /**
@@ -287,82 +193,24 @@ class Redirect extends ContentEntityBase {
    *
    * @param string $url
    *   The base url of the redirect destination.
+   * @param array $query
+   *   Query arguments.
    * @param array $options
    *   The source url options.
    */
-  public function setRedirect($url, array $options = array()) {
-    $parsed_url = UrlHelper::parse($url);
-    $url = \Drupal::pathValidator()->getUrlIfValid($parsed_url['path']);
-    if (!$url) {
-      $url = Url::fromUri('base://' . $parsed_url['path']);
-    }
-    if (!empty($options['query'])) {
-      $url->setOption('query', $options['query']);
-    }
-    if (!empty($options['fragment'])) {
-      $url->setOption('fragment', $options['fragment']);
-    }
-
-    $value = $url->toArray();
-    // Reset the URL value to contain only the path.
-    if (isset($value['path'])) {
-      $value['url'] = $value['path'];
-    }
-    else {
-      // @todo Core requires the url to be not empty or the values are filtered
-      //   out.
-      $value['url'] = $url->toString();
-    }
-
-
-    $value['options'] += $options;
-
-    $this->redirect_redirect->set(0, $value);
+  public function setRedirect($url, array $query = array(), array $options = array()) {
+    $uri = $url . ($query ? '?' . UrlHelper::buildQuery($query) : '');
+    $this->redirect_redirect->set(0, ['uri' => 'user-path:/' . $uri, 'options' => $options]);
   }
 
   /**
    * Gets the redirect URL.
    *
-   * @return string
+   * @return \Drupal\Core\Url
    *   The redirect URL.
    */
   public function getRedirectUrl() {
-    $query_string = '';
-    $i = 0;
-    foreach ($this->getRedirectOption('query', array()) as $key => $value) {
-      if ($i > 0) {
-        $query_string .= '&';
-      }
-      $query_string .= "$key=$value";
-      $i++;
-    }
-    return $this->get('redirect_redirect')->url . (!empty($query_string) ? '?' . $query_string : '');
-  }
-
-  /**
-   * Gets the source URL options.
-   *
-   * @return array
-   *   The source URL options.
-   */
-  public function getSourceOptions() {
-    return $this->get('redirect_source')->options;
-  }
-
-  /**
-   * Gets a specific source URL option.
-   *
-   * @param string $key
-   *   Option key.
-   * @param mixed $default
-   *   Default value used in case option does not exist.
-   *
-   * @return mixed
-   *   The option value.
-   */
-  public function getSourceOption($key, $default = NULL) {
-    $options = $this->getSourceOptions();
-    return isset($options[$key]) ? $options[$key] : $default;
+    return $this->get('redirect_redirect')->get(0)->getUrl();
   }
 
   /**
@@ -389,14 +237,6 @@ class Redirect extends ContentEntityBase {
   public function getRedirectOption($key, $default = NULL) {
     $options = $this->getRedirectOptions();
     return isset($options[$key]) ? $options[$key] : $default;
-  }
-
-  public function getRedirectRouteName() {
-    return $this->get('redirect_redirect')->route_name;
-  }
-
-  public function getRedirectRouteParameters() {
-    return $this->get('redirect_redirect')->route_parameters;
   }
 
   /**
@@ -479,21 +319,11 @@ class Redirect extends ContentEntityBase {
         'target_type' => 'user',
       ));
 
-    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source_link')
+    $fields['redirect_source'] = BaseFieldDefinition::create('redirect_source')
       ->setLabel(t('From'))
       ->setDescription(t("Enter an internal Drupal path or path alias to redirect (e.g. %example1 or %example2). Fragment anchors (e.g. %anchor) are <strong>not</strong> allowed.", array('%example1' => 'node/123', '%example2' => 'taxonomy/term/123', '%anchor' => '#anchor')))
       ->setRequired(TRUE)
       ->setTranslatable(FALSE)
-      ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 560,
-        'link_type' => LinkItemInterface::LINK_INTERNAL,
-      ))
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'redirect_link',
-        'weight' => -5,
-      ))
       ->setDisplayOptions('form', array(
         'type' => 'redirect_link',
         'weight' => -5,
@@ -505,14 +335,7 @@ class Redirect extends ContentEntityBase {
       ->setRequired(TRUE)
       ->setTranslatable(FALSE)
       ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 560,
         'link_type' => LinkItemInterface::LINK_GENERIC,
-      ))
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'link',
-        'weight' => -4,
       ))
       ->setDisplayOptions('form', array(
         'type' => 'link',
