@@ -72,12 +72,12 @@ class RedirectUITest extends WebTestBase {
       'redirect_options' => array('query' => array('key' => 'val', 'key1' => 'val1')),
     )));
     $this->assertFieldByName('redirect_source[0][path]', 'non-existing?key=val&key1=val1');
-    $this->assertFieldByName('redirect_redirect[0][uri]', 'node?key=val&key1=val1');
+    $this->assertFieldByName('redirect_redirect[0][uri]', '/node?key=val&key1=val1');
 
     // Test creating a new redirect via UI.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'non-existing',
-      'redirect_redirect[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => '/node',
     ), t('Save'));
 
     // Try to find the redirect we just created.
@@ -100,7 +100,7 @@ class RedirectUITest extends WebTestBase {
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
     $this->assertFieldByName('redirect_source[0][path]', 'non-existing');
-    $this->assertFieldByName('redirect_redirect[0][uri]', 'node');
+    $this->assertFieldByName('redirect_redirect[0][uri]', '/node');
     $this->assertFieldByName('status_code', $redirect->getStatusCode());
 
     // Append a query string to see if we handle query data properly.
@@ -140,7 +140,7 @@ class RedirectUITest extends WebTestBase {
     // Duplicate redirect.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'non-existing?key=value',
-      'redirect_redirect[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => '/node',
     ), t('Save'));
     $this->assertRaw(t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
       array('%source' => 'non-existing?key=value', '@edit-page' => $redirect->url('edit-form'))));
@@ -148,21 +148,21 @@ class RedirectUITest extends WebTestBase {
     // Redirecting to itself.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'node',
-      'redirect_redirect[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => '/node',
     ), t('Save'));
     $this->assertRaw(t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
 
     // Redirecting the front page.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => '<front>',
-      'redirect_redirect[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => '/node',
     ), t('Save'));
     $this->assertRaw(t('It is not allowed to create a redirect from the front page.'));
 
     // Redirecting a url with fragment.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'page-to-redirect#content',
-      'redirect_redirect[0][uri]' => 'node',
+      'redirect_redirect[0][uri]' => '/node',
     ), t('Save'));
     $this->assertRaw(t('The anchor fragments are not allowed.'));
 
@@ -196,7 +196,7 @@ class RedirectUITest extends WebTestBase {
     $this->assertFieldByName('redirect_source[0][path]', 'non-existing');
 
     // Save the redirect.
-    $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => 'node'), t('Save'));
+    $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => '/node'), t('Save'));
     $this->assertUrl('admin/config/search/redirect/404');
 
     // Check if the redirect works as expected.
@@ -276,7 +276,7 @@ class RedirectUITest extends WebTestBase {
     // Test the automatically created redirect shows up in the form correctly.
     $this->drupalGet('admin/config/search/redirect/edit/' . $redirect->id());
     $this->assertFieldByName('redirect_source[0][path]', 'aaa_path_alias');
-    $this->assertFieldByName('redirect_redirect[0][uri]', 'node');
+    $this->assertFieldByName('redirect_redirect[0][uri]', '/node');
   }
 
   /**

@@ -116,8 +116,8 @@ class RedirectForm extends ContentEntityForm {
     }
 
     try {
-      $source_url = Url::fromUri('user-path:' . $source['path']);
-      $redirect_url = Url::fromUri('user-path:' . $redirect['uri']);
+      $source_url = Url::fromUri('user-path:/' . $source['path']);
+      $redirect_url = Url::fromUri($redirect['uri']);
 
       // It is relevant to do this comparison only in case the source path has
       // a valid route. Otherwise the validation will fail on the redirect path
