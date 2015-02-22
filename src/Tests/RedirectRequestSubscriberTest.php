@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\Event\PostResponseEvent;
  *
  * @group redirect
  *
- * @coversDefault Drupal\redirect\EventSubscriber\RedirectRequestSubscriber
+ * @coversDefaultClass Drupal\redirect\EventSubscriber\RedirectRequestSubscriber
  */
 class RedirectRequestSubscriberTest extends UnitTestCase {
 
