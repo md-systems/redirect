@@ -7,11 +7,11 @@
 
 namespace Drupal\redirect\Form;
 
-use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Request;
 
 class RedirectFix404Form extends FormBase {
 
@@ -80,13 +80,18 @@ class RedirectFix404Form extends FormBase {
     $query->condition('w.type', 'page not found');
     $query->groupBy('w.message');
     $this->filterQuery($query, array('w.message'), $search);
-    // $query->setCountQuery($count_query);
+    $query->setCountQuery($count_query);
     $results = $query->execute();
 
     $rows = array();
     foreach ($results as $result) {
+
+      // @todo Detect the language from the url.
+      $request = Request::create($result->message);
+      $path = ltrim($request->getPathInfo(), '/');
+
       $row = array();
-      $row['source'] = \Drupal::l($result->message, Url::fromUri('user-path://' . $result->message), array('query' => $destination));
+      $row['source'] = \Drupal::l($result->message, Url::fromUri('user-path:/' . $path), array('query' => $destination));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
@@ -94,7 +99,7 @@ class RedirectFix404Form extends FormBase {
       if (\Drupal::entityManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
           'title' => t('Add redirect'),
-          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $result->message) + $destination]),
+          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path) + $destination]),
         );
       }
       $row['operations'] = array(
