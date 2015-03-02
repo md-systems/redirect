@@ -116,7 +116,7 @@ class RedirectForm extends ContentEntityForm {
     }
 
     try {
-      $source_url = Url::fromUri('user-path:/' . $source['path']);
+      $source_url = Url::fromUri('internal:/' . $source['path']);
       $redirect_url = Url::fromUri($redirect['uri']);
 
       // It is relevant to do this comparison only in case the source path has
@@ -126,7 +126,7 @@ class RedirectForm extends ContentEntityForm {
         $form_state->setErrorByName('redirect_redirect', t('You are attempting to redirect the page to itself. This will result in an infinite loop.'));
       }
     }
-    catch (ResourceNotFoundException $e) {
+    catch (\InvalidArgumentException $e) {
       // Do nothing, we want to only compare the resulting URLs.
     }
 
