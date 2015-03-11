@@ -10,6 +10,9 @@ redirect.settings:
     auto_redirect:
       type: boolean
       label: 'Automatically create redirects when URL aliases are changed.'
+    disable_automatic_purge:
+      type: boolean
+      label: 'Disables the automatic purging and tracking of redirects'
     purge_inactive:
       type: boolean
       label: 'Delete redirects that have not been accessed for'
