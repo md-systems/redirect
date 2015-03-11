@@ -64,6 +64,12 @@ class RedirectSettingsForm extends ConfigFormBase {
     //   '#description' => $this->t('This feature requires <a href="@performance">Cache pages for anonymous users</a> to be enabled and the %variable variable to be TRUE.', array('@performance' => url('admin/config/development/performance'), '%variable' => "\$conf['page_cache_invoke_hooks']")),
     //   '#disabled' => !$cache_enabled || !$invoke_hooks,
     // );
+    $form['redirect_disable_automatic_purge'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Disable automatic purging?'),
+      '#description' => $this->t('Disabling automatic purging will also disable redirect-usage tracking.'),
+      '#default_value' => $config->get('disable_automatic_purge'),
+    ];
     $invoke_hooks = \Drupal::config('system.performance')->get('cache.page.invoke_hooks');
     $options = array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000);
     $form['redirect_purge_inactive'] = array(
@@ -75,6 +81,11 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#empty_value' => 0,
       '#description' => $this->t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.'),
       '#disabled' => $config->get('page_cache') && !$invoke_hooks,
+      '#states' => [
+        'visible' => [
+          ':input[name="redirect_disable_automatic_purge"]' => ['checked' => FALSE],
+        ],
+      ],
     );
 
     $form['globals'] = array(

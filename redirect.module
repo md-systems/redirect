@@ -59,6 +59,11 @@ function redirect_help($route_name, RouteMatchInterface $route_match) {
  * Implements hook_cron().
  */
 function redirect_cron() {
+  if (\Drupal::config('redirect.settings')->get('disable_automatic_purge')) {
+    // Automatic purging has been disabled.
+    return;
+  }
+
   // Purge inactive self-managed redirects from the database.
   redirect_purge_inactive_redirects();
 }

@@ -37,6 +37,10 @@ class RedirectTerminateSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onKernelTerminateLogRedirect(PostResponseEvent $event) {
+    if (\Drupal::config('redirect.settings')->get('disable_automatic_purge')) {
+      // Automatic purging and tracking has been disabled.
+      return;
+    }
     $redirect_id = $event->getResponse()->headers->get('X-Redirect-ID');
     if (!empty($redirect_id) && $redirect = $this->redirectRepository->load($redirect_id)) {
       $redirect->setLastAccessed(REQUEST_TIME);

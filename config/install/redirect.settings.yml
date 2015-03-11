@@ -1,5 +1,6 @@
 canonical: true
 auto_redirect: true
+disable_automatic_purge: false
 purge_inactive: false
 page_cache: false
 default_status_code: 301
