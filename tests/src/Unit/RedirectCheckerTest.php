@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\RedirectRequestSubscriberTest.
+ * Contains Drupal\Tests\redirect\Unit\RedirectRequestSubscriberTest.
  */
 
-namespace Drupal\redirect\Tests;
+namespace Drupal\Tests\redirect\Unit;
 
 use Drupal\redirect\RedirectChecker;
 use Drupal\Tests\UnitTestCase;
