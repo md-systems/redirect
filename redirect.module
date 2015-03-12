@@ -14,6 +14,7 @@
  */
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Form\FormStateInterface;
@@ -53,14 +54,6 @@ function redirect_help($route_name, RouteMatchInterface $route_match) {
       break;
   }
   return $output;
-}
-
-/**
- * Implements hook_cron().
- */
-function redirect_cron() {
-  // Purge inactive self-managed redirects from the database.
-  redirect_purge_inactive_redirects();
 }
 
 /**
@@ -193,30 +186,17 @@ function redirect_repository() {
 }
 
 /**
- * Implements hook_redirect_insert().
- */
-function redirect_redirect_insert($redirect) {
-  redirect_page_cache_clear($redirect);
-}
-
-/**
  * Implements hook_redirect_update().
  */
-function redirect_redirect_update($redirect) {
-  redirect_page_cache_clear($redirect);
-
-  // Clear the page cache for the original redirect as well.
-  // @todo - this is causing an infinite loop.
-//  if (!empty($redirect->original) && $redirect->original->source != $redirect->source) {
-//    redirect_page_cache_clear($redirect->original);
-//  }
+function redirect_redirect_update(EntityInterface $redirect) {
+  Cache::invalidateTags($redirect->getCacheTags());
 }
 
 /**
  * Implements hook_redirect_delete().
  */
-function redirect_redirect_delete($redirect) {
-  redirect_page_cache_clear($redirect);
+function redirect_redirect_delete(EntityInterface $redirect) {
+  Cache::invalidateTags($redirect->getCacheTags());
 }
 
 /**
@@ -259,69 +239,6 @@ function redirect_delete_by_path($path, $langcode = NULL, $match_subpaths_and_re
     foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
       $redirect->delete();
     }
-  }
-}
-
-/**
- * Purge inactive redirects from the database.
- *
- * @param $types
- *   An array of redirect types to remove. Default is only the self-managed
- *   'redirect'. If not provided all redirect types will be eligible for
- *   removal.
- * @param $interval
- *   The number of seconds to subtract from the current time and used to
- *   find the inactive redirects.
- *
- * @return
- *   An array of redirect IDs that were deleted or FALSE if none were.
- */
-function redirect_purge_inactive_redirects(array $types = array('redirect'), $interval = NULL) {
-  if (!isset($interval)) {
-    $interval = \Drupal::config('redirect.settings')->get('purge_inactive');
-  }
-
-  if (!$interval || !\Drupal::config('redirect.settings')->get('page_cache') || !\Drupal::config('system.performance')->get('cache.page.invoke_hooks')) {
-    // If serving redirects from the page cache is enabled and hooks are not
-    // executed during page caching, then we cannot track when a redirect is
-    // used. Therefore, we cannot remove unused redirects.
-    return FALSE;
-  }
-
-  $query = db_select('redirect');
-  $query->addField('redirect', 'rid');
-  if (!empty($types)) {
-    $query->condition('type', $types);
-  }
-  $query->condition('access', REQUEST_TIME - $interval, '<');
-  $query->addTag('redirect_purge');
-  $rids = $query->execute()->fetchCol();
-
-  if (count($rids)) {
-    foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
-      $redirect->delete();
-    }
-    \Drupal::logger('redirect')->notice('Removed @count inactive redirects from the database.', array('@count' => count($rids)));
-    return $rids;
-  }
-}
-
-/**
- * Clear a page from the page cache.
- */
-function redirect_page_cache_clear($redirect = NULL) {
-  if (!\Drupal::config('redirect.settings')->get('page_cache')) {
-    return;
-  }
-
-  if (isset($redirect)) {
-    $path = url($redirect->source, array('absolute' => TRUE));
-    // Use a wildcard to catch paths with query strings.
-    \Drupal::cache('cache_page')->delete($path);
-  }
-  else {
-    // Clear the entire page cache.
-    \Drupal::cache('cache_page')->deleteAll();
   }
 }
 
