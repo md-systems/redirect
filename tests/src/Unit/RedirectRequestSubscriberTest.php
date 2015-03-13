@@ -9,7 +9,6 @@ namespace Drupal\Tests\redirect\Unit;
 
 use Drupal\Core\Language\Language;
 use Drupal\redirect\EventSubscriber\RedirectRequestSubscriber;
-use Drupal\redirect\EventSubscriber\RedirectTerminateSubscriber;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Symfony\Component\HttpFoundation\ParameterBag;
@@ -113,32 +112,6 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
    * Test the redirect logging.
    */
   public function testRedirectLogging() {
-    // By providing the X-Redirect-ID we expect to trigger the logic that calls
-    // setting the access and count on the redirect logic.
-
-    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $redirect->expects($this->once())
-      ->method('setLastAccessed')
-      ->with(REQUEST_TIME);
-    $redirect->expects($this->once())
-      ->method('setCount')
-      ->with(1);
-    $redirect->expects($this->once())
-      ->method('save');
-
-    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $repository->expects($this->any())
-      ->method('load')
-      ->will($this->returnValue($redirect));
-
-    $subscriber = new RedirectTerminateSubscriber($repository);
-    $post_response_event = $this->getPostResponseEvent(array('X-Redirect-ID' => 1));
-    $subscriber->onKernelTerminateLogRedirect($post_response_event);
-
     // By not providing the the X-Redirect-ID the logging logic must not
     // trigger.
 
@@ -151,17 +124,6 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->method('setCount');
     $redirect->expects($this->never())
       ->method('save');
-
-    $repository = $this->getMockBuilder('Drupal\redirect\RedirectRepository')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $repository->expects($this->any())
-      ->method('load')
-      ->will($this->returnValue($redirect));
-
-    $subscriber = new RedirectTerminateSubscriber($repository);
-    $post_response_event = $this->getPostResponseEvent();
-    $subscriber->onKernelTerminateLogRedirect($post_response_event);
   }
 
   /**

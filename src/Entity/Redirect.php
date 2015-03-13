@@ -250,46 +250,6 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
-   * Sets the last access timestamp.
-   *
-   * @param int $access
-   *   The last access timestamp.
-   */
-  public function setLastAccessed($access) {
-    $this->set('access', $access);
-  }
-
-  /**
-   * Gets the last access timestamp.
-   *
-   * @return int
-   *   The last accessed timestamp.
-   */
-  public function getLastAccessed() {
-    return $this->get('access')->value;
-  }
-
-  /**
-   * Sets the count.
-   *
-   * @param int $count
-   *   The count.
-   */
-  public function setCount($count) {
-    $this->set('count', $count);
-  }
-
-  /**
-   * Gets the count.
-   *
-   * @return int
-   *   The count.
-   */
-  public function getCount() {
-    return $this->get('count')->value;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
@@ -351,16 +311,6 @@ class Redirect extends ContentEntityBase {
     $fields['status_code'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Status code'))
       ->setDescription(t('The redirect status code.'))
-      ->setDefaultValue(0);
-
-    $fields['count'] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Count'))
-      ->setDescription(t('The redirect count.'))
-      ->setDefaultValue(0);
-
-    $fields['access'] = BaseFieldDefinition::create('timestamp')
-      ->setLabel(t('Access timestamp'))
-      ->setDescription(t('The timestamp the redirect was last accessed.'))
       ->setDefaultValue(0);
 
     return $fields;

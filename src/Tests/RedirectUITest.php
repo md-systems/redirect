@@ -98,11 +98,6 @@ class RedirectUITest extends WebTestBase {
     $this->assertText('non-existing');
     $this->assertLink('/node');
     $this->assertText(t('Not specified'));
-    $this->assertText(t('Never'), 'Last access time is "Never"');
-    // Assert the redirect that will also update the last access time.
-    $this->assertRedirect('non-existing', 'node');
-    $this->drupalGet('admin/config/search/redirect');
-    $this->assertNoText(t('Never'), 'Last access time has been updated');
 
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
@@ -209,13 +204,6 @@ class RedirectUITest extends WebTestBase {
     // Check if the redirect works as expected.
     $this->drupalGet('non-existing');
     $this->assertUrl('node');
-
-    // Also test if the redirect has been properly logged.
-    /** @var \Drupal\redirect\RedirectRepository $repository */
-    $repository = \Drupal::service('redirect.repository');
-    $redirect = $repository->findMatchingRedirect('non-existing');
-    $this->assertEqual($redirect->getCount(), 1);
-    $this->assertTrue($redirect->getLastAccessed() > 0);
   }
 
   /**
