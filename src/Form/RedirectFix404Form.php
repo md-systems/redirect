@@ -119,7 +119,7 @@ class RedirectFix404Form extends FormBase {
       '#rows' => $rows,
       '#empty' => t('No 404 pages without redirects found.'),
     );
-    $form['redirect_404_pager'] = array('#theme' => 'pager');
+    $form['redirect_404_pager'] = array('#type' => 'pager');
     return $form;
   }
 
