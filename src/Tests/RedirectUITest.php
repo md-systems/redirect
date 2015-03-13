@@ -405,13 +405,16 @@ class RedirectUITest extends WebTestBase {
 
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $this->storage->create();
-    $redirect1->setSource('node');
-    $redirect1->setRedirect('admin');
+    $redirect1->setSource('test-redirect');
+    $redirect1->setRedirect('node');
     $redirect1->setStatusCode(301);
     $redirect1->save();
 
-    $this->drupalHead('node');
-    $this->assertCacheTag($redirect1->getCacheTags());
+    $this->assertRedirect('test-redirect', 'node');
+    $headers = $this->drupalGetHeaders(TRUE);
+    // Note, self::assertCacheTag() cannot be used here since it only looks at
+    // the final set of headers.
+    $this->assertEqual(implode(' ', $redirect1->getCacheTags()), $headers[0]['x-drupal-cache-tags'], 'Redirect cache tags properly set.');
   }
 
 }
