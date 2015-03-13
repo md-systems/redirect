@@ -109,24 +109,6 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
   }
 
   /**
-   * Test the redirect logging.
-   */
-  public function testRedirectLogging() {
-    // By not providing the the X-Redirect-ID the logging logic must not
-    // trigger.
-
-    $redirect = $this->getMockBuilder('Drupal\redirect\Entity\Redirect')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $redirect->expects($this->never())
-      ->method('setLastAccessed');
-    $redirect->expects($this->never())
-      ->method('setCount');
-    $redirect->expects($this->never())
-      ->method('save');
-  }
-
-  /**
    * Instantiates the subscriber and runs onKernelRequestCheckRedirect()
    *
    * @param $redirect
