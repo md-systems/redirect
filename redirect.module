@@ -186,20 +186,6 @@ function redirect_repository() {
 }
 
 /**
- * Implements hook_redirect_update().
- */
-function redirect_redirect_update(EntityInterface $redirect) {
-  Cache::invalidateTags($redirect->getCacheTags());
-}
-
-/**
- * Implements hook_redirect_delete().
- */
-function redirect_redirect_delete(EntityInterface $redirect) {
-  Cache::invalidateTags($redirect->getCacheTags());
-}
-
-/**
  * Delete any redirects associated with a path or any of its sub-paths.
  *
  * Given a source like 'node/1' this function will delete any redirects that
