@@ -403,6 +403,11 @@ class RedirectUITest extends WebTestBase {
     // Note, self::assertCacheTag() cannot be used here since it only looks at
     // the final set of headers.
     $this->assertEqual(implode(' ', $redirect1->getCacheTags()), $headers[0]['x-drupal-cache-tags'], 'Redirect cache tags properly set.');
+
+    // Ensure that the redirect has been cleared from cache when deleted.
+    $redirect1->delete();
+    $this->drupalGet('test-redirect');
+    $this->assertResponse(404, 'Deleted redirect properly clears the internal page cache.');
   }
 
 }
