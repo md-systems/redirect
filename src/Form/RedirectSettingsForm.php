@@ -55,28 +55,6 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#options' => redirect_status_code_options(),
       '#default_value' => $config->get('default_status_code'),
     );
-    // @todo - enable once the feature is available.
-    // $cache_enabled = \Drupal::config('system.performance')->get('cache.page.use_internal');
-    // $form['page_cache'] = array(
-    //   '#type' => 'checkbox',
-    //   '#title' => $this->t('Allow redirects to be saved into the page cache.'),
-    //   '#default_value' => $redirect_settings['page_cache'],
-    //   '#description' => $this->t('This feature requires <a href="@performance">Cache pages for anonymous users</a> to be enabled and the %variable variable to be TRUE.', array('@performance' => url('admin/config/development/performance'), '%variable' => "\$conf['page_cache_invoke_hooks']")),
-    //   '#disabled' => !$cache_enabled || !$invoke_hooks,
-    // );
-    $invoke_hooks = \Drupal::config('system.performance')->get('cache.page.invoke_hooks');
-    $options = array(604800, 1209600, 1814400, 2592000, 5184000, 7776000, 10368000, 15552000, 31536000);
-    $form['redirect_purge_inactive'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('Delete redirects that have not been accessed for'),
-      '#default_value' => $config->get('purge_inactive'),
-      '#options' => array_map(array(\Drupal::service('date.formatter'), 'formatInterval'), array_combine($options, $options)),
-      '#empty_option' => $this->t('Never (do not discard)'),
-      '#empty_value' => 0,
-      '#description' => $this->t('Only redirects managaged by the redirect module itself will be deleted. Redirects managed by other modules will be left alone.'),
-      '#disabled' => $config->get('page_cache') && !$invoke_hooks,
-    );
-
     $form['globals'] = array(
       '#type' => 'fieldset',
       '#title' => $this->t('Global redirects'),

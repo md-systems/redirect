@@ -32,11 +32,16 @@ class RedirectUITest extends WebTestBase {
   protected $repository;
 
   /**
+   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage
+   */
+   protected $storage;
+
+  /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('redirect', 'node', 'path', 'dblog', 'views', 'taxonomy');
+  public static $modules = ['redirect', 'node', 'path', 'dblog', 'views', 'taxonomy'];
 
   /**
    * {@inheritdoc}
@@ -56,6 +61,8 @@ class RedirectUITest extends WebTestBase {
     ));
 
     $this->repository = \Drupal::service('redirect.repository');
+
+    $this->storage = $this->container->get('entity.manager')->getStorage('redirect');
   }
 
   /**
@@ -91,11 +98,6 @@ class RedirectUITest extends WebTestBase {
     $this->assertText('non-existing');
     $this->assertLink('/node');
     $this->assertText(t('Not specified'));
-    $this->assertText(t('Never'), 'Last access time is "Never"');
-    // Assert the redirect that will also update the last access time.
-    $this->assertRedirect('non-existing', 'node');
-    $this->drupalGet('admin/config/search/redirect');
-    $this->assertNoText(t('Never'), 'Last access time has been updated');
 
     // Test the edit form and update action.
     $this->clickLink(t('Edit'));
@@ -116,7 +118,7 @@ class RedirectUITest extends WebTestBase {
     // The path field should not contain the query string and therefore we
     // should be able to load the redirect using only the url part without
     // query.
-    \Drupal::entityManager()->getStorage('redirect')->resetCache();
+    $this->storage->resetCache();
     $redirects = $this->repository->findBySourcePath('non-existing');
     $redirect = array_shift($redirects);
     $this->assertEqual($redirect->getSourceUrl(), '/non-existing?key=value');
@@ -176,7 +178,7 @@ class RedirectUITest extends WebTestBase {
   }
 
   /**
-   * Tests the fix 404 pages workflow.<
+   * Tests the fix 404 pages workflow.
    */
   public function testFix404Pages() {
     $this->drupalLogin($this->adminUser);
@@ -202,13 +204,6 @@ class RedirectUITest extends WebTestBase {
     // Check if the redirect works as expected.
     $this->drupalGet('non-existing');
     $this->assertUrl('node');
-
-    // Also test if the redirect has been properly logged.
-    /** @var \Drupal\redirect\RedirectRepository $repository */
-    $repository = \Drupal::service('redirect.repository');
-    $redirect = $repository->findMatchingRedirect('non-existing');
-    $this->assertEqual($redirect->getCount(), 1);
-    $this->assertTrue($redirect->getLastAccessed() > 0);
   }
 
   /**
@@ -283,17 +278,15 @@ class RedirectUITest extends WebTestBase {
    * Test the redirect loop protection and logging.
    */
   function testRedirectLoop() {
-    /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')->getStorage('redirect');
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
-    $redirect1 = $storage->create();
+    $redirect1 = $this->storage->create();
     $redirect1->setSource('node');
     $redirect1->setRedirect('admin');
     $redirect1->setStatusCode(301);
     $redirect1->save();
 
     /** @var \Drupal\redirect\Entity\Redirect $redirect2 */
-    $redirect2 = $storage->create();
+    $redirect2 = $this->storage->create();
     $redirect2->setSource('admin');
     $redirect2->setRedirect('node');
     $redirect2->setStatusCode(301);
@@ -384,6 +377,45 @@ class RedirectUITest extends WebTestBase {
     $this->assertEqual($expected_ending_url, $ending_url, $message);
 
     $this->assertEqual($headers[0][':status'], $expected_ending_status);
+  }
+
+  /**
+   * Test cache tags.
+   *
+   * @todo Not sure this belongs in a UI test, but a full web test is needed.
+   */
+  public function testCacheTags() {
+    // Enable internal page cache.
+    $this->container->get('config.factory')->getEditable('system.performance')
+      ->set('cache.page.use_internal', TRUE)
+      ->set('cache.page.max_age', 300)
+      ->save();
+
+    /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
+    $redirect1 = $this->storage->create();
+    $redirect1->setSource('test-redirect');
+    $redirect1->setRedirect('node');
+    $redirect1->setStatusCode(301);
+    $redirect1->save();
+
+    $this->assertRedirect('test-redirect', 'node');
+    $headers = $this->drupalGetHeaders(TRUE);
+    // Note, self::assertCacheTag() cannot be used here since it only looks at
+    // the final set of headers.
+    $this->assertEqual(implode(' ', $redirect1->getCacheTags()), $headers[0]['x-drupal-cache-tags'], 'Redirect cache tags properly set.');
+
+    // First request should be a cache MISS.
+    $this->assertEqual($headers[0]['x-drupal-cache'], 'MISS', 'First request to the redirect was not cached.');
+
+    // Second request should be cached.
+    $this->assertRedirect('test-redirect', 'node');
+    $headers = $this->drupalGetHeaders(TRUE);
+    $this->assertEqual($headers[0]['x-drupal-cache'], 'HIT', 'The second request to the redirect was cached.');
+
+    // Ensure that the redirect has been cleared from cache when deleted.
+    $redirect1->delete();
+    $this->drupalGet('test-redirect');
+    $this->assertResponse(404, 'Deleted redirect properly clears the internal page cache.');
   }
 
 }

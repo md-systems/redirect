@@ -10,12 +10,6 @@ redirect.settings:
     auto_redirect:
       type: boolean
       label: 'Automatically create redirects when URL aliases are changed.'
-    purge_inactive:
-      type: boolean
-      label: 'Delete redirects that have not been accessed for'
-    page_cache:
-      type: boolean
-      label: 'Allow redirects to be saved into the page cache.'
     default_status_code:
       type: string
       label: 'Default redirect status'

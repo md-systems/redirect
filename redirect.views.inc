@@ -132,34 +132,6 @@ function redirect_views_data() {
     );
   }
 
-  $data['redirect']['count'] = array(
-    'title' => t('Clicks'),
-    'help' => t('Number of times this URL redirect has been followed.'),
-    'field' => array(
-      'id' => 'numeric',
-    ),
-    'filter' => array(
-      'id' => 'numeric',
-    ),
-    'sort' => array(
-      'id' => 'standard',
-    ),
-  );
-
-  $data['redirect']['access'] = array(
-    'title' => t('Last accessed date'),
-    'help' => t('The date/time the URL redirect was last accessed.'),
-    'field' => array(
-      'id' => 'date',
-    ),
-    'sort' => array(
-      'id' => 'date',
-    ),
-    'filter' => array(
-      'id' => 'date',
-    ),
-  );
-
 //  $data['redirect']['operations'] = array(
 //    'field' => array(
 //      'title' => t('Operations'),

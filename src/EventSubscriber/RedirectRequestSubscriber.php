@@ -108,7 +108,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
       if ($this->config->get('passthrough_querystring')) {
         $url->setOption('query', (array) $url->getOption('query') + $request_query);
       }
-      $response = new RedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), array('X-Redirect-ID' => $redirect->id()));
+      $headers = [
+        'X-Redirect-ID' => $redirect->id(),
+        'X-Drupal-Cache-Tags' => implode(' ', $redirect->getCacheTags()),
+      ];
+      $response = new RedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), $headers);
       $event->setResponse($response);
     }
   }

@@ -10,8 +10,3 @@ services:
     arguments: ['@redirect.repository', '@language_manager', '@config.factory', '@redirect.checker', '@router.request_context']
     tags:
       - { name: event_subscriber }
-  redirect.terminate_subscriber:
-    class: Drupal\redirect\EventSubscriber\RedirectTerminateSubscriber
-    arguments: ['@redirect.repository']
-    tags:
-      - { name: event_subscriber }
