@@ -198,7 +198,7 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->willReturn(1);
     $redirect->expects($this->once())
       ->method('getCacheTags')
-      ->willReturn([]);
+      ->willReturn(['redirect:1']);
 
     return $redirect;
   }

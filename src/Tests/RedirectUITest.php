@@ -404,6 +404,14 @@ class RedirectUITest extends WebTestBase {
     // the final set of headers.
     $this->assertEqual(implode(' ', $redirect1->getCacheTags()), $headers[0]['x-drupal-cache-tags'], 'Redirect cache tags properly set.');
 
+    // First request should be a cache MISS.
+    $this->assertEqual($headers[0]['x-drupal-cache'], 'MISS', 'First request to the redirect was not cached.');
+
+    // Second request should be cached.
+    $this->assertRedirect('test-redirect', 'node');
+    $headers = $this->drupalGetHeaders(TRUE);
+    $this->assertEqual($headers[0]['x-drupal-cache'], 'HIT', 'The second request to the redirect was cached.');
+
     // Ensure that the redirect has been cleared from cache when deleted.
     $redirect1->delete();
     $this->drupalGet('test-redirect');
