@@ -28,7 +28,8 @@ use Drupal\link\LinkItemInterface;
  *       "default" = "Drupal\redirect\Form\RedirectForm",
  *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",
  *       "edit" = "Drupal\redirect\Form\RedirectForm"
- *     }
+ *     },
+ *     "storage_schema" = "\Drupal\redirect\RedirectStorageSchema"
  *   },
  *   base_table = "redirect",
  *   translatable = FALSE,
