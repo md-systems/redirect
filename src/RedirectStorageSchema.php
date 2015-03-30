@@ -26,7 +26,8 @@ class RedirectStorageSchema extends SqlContentEntityStorageSchema {
       'hash' => ['hash'],
     ];
     $schema['redirect']['indexes'] += [
-      'source_language' => ['redirect_source__path', 'language'],
+      // Limit length to 255 in order to support older DBs.
+      'source_language' => [['redirect_source__path', 255],'language'],
     ];
 
     return $schema;
