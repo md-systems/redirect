@@ -278,6 +278,11 @@ class RedirectUITest extends WebTestBase {
    * Test the redirect loop protection and logging.
    */
   function testRedirectLoop() {
+    // Redirect loop redirection only works when page caching is disabled.
+    $this->config('system.performance')
+      ->set('cache.page.use_internal', FALSE)
+      ->save();
+
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $this->storage->create();
     $redirect1->setSource('node');
@@ -385,12 +390,6 @@ class RedirectUITest extends WebTestBase {
    * @todo Not sure this belongs in a UI test, but a full web test is needed.
    */
   public function testCacheTags() {
-    // Enable internal page cache.
-    $this->container->get('config.factory')->getEditable('system.performance')
-      ->set('cache.page.use_internal', TRUE)
-      ->set('cache.page.max_age', 300)
-      ->save();
-
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $this->storage->create();
     $redirect1->setSource('test-redirect');
