@@ -42,8 +42,9 @@ use Drupal\link\LinkItemInterface;
  *     "langcode" = "language",
  *   },
  *   links = {
+ *     "canonical" = "/admin/config/search/redirect/edit/{redirect}",
  *     "delete-form" = "/admin/config/search/redirect/delete/{redirect}",
- *     "edit-form" = "/admin/config/search/redirect/edit/{redirect}'",
+ *     "edit-form" = "/admin/config/search/redirect/edit/{redirect}",
  *   }
  * )
  */
