@@ -12,7 +12,6 @@
  *
  * @} End of "defgroup redirect_api".
  */
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;

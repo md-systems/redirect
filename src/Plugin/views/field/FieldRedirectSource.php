@@ -7,7 +7,7 @@
 
 namespace Drupal\redirect\Plugin\views\field;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 
 class FieldRedirectSource extends FieldPluginBase {
@@ -68,7 +68,7 @@ class FieldRedirectSource extends FieldPluginBase {
       $this->options['alter']['absolute'] = $source_options['absolute'];
     }
     else {
-      $text = String::checkPlain($text);
+      $text = SafeMarkup::checkPlain($text);
     }
 
     return $text;
