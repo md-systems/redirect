@@ -41,7 +41,7 @@ class RedirectUITest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = ['redirect', 'node', 'path', 'dblog', 'views', 'taxonomy'];
+  public static $modules = ['redirect', 'node', 'path', 'dblog', 'views', 'taxonomy', 'language', 'content_translation'];
 
   /**
    * {@inheritdoc}
