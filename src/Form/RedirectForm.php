@@ -76,7 +76,7 @@ class RedirectForm extends ContentEntityForm {
         '#type' => 'language_select',
         '#title' => t('Language'),
         '#languages' => Language::STATE_ALL,
-        '#default_value' => $form['language']['#value'],
+        '#default_value' => $this->getFormLangcode($form_state),
         '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
       );
     }
