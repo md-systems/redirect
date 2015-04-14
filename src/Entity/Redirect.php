@@ -306,9 +306,12 @@ class Redirect extends ContentEntityBase {
       ->setDisplayConfigurable('form', TRUE);
 
     $fields['language'] = BaseFieldDefinition::create('language')
-      ->setLabel(t('Language code'))
-      ->setDescription(t('The node language code.'))
-      ->setDefaultValue(LanguageInterface::LANGCODE_NOT_SPECIFIED);
+      ->setLabel(t('Language'))
+      ->setDescription(t('The redirect language.'))
+      ->setDisplayOptions('form', array(
+        'type' => 'language_select',
+        'weight' => 2,
+      ));
 
     $fields['status_code'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Status code'))

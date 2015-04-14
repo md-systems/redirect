@@ -71,22 +71,6 @@ class RedirectForm extends ContentEntityForm {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
 
-    if (\Drupal::moduleHandler()->moduleExists('language')) {
-      $form['language'] = array(
-        '#type' => 'language_select',
-        '#title' => t('Language'),
-        '#languages' => Language::STATE_ALL,
-        '#default_value' => $this->getFormLangcode($form_state),
-        '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
-      );
-    }
-    else {
-      $form['language'] = array(
-        '#type' => 'value',
-        '#value' => Language::LANGCODE_NOT_SPECIFIED,
-      );
-    }
-
     $default_code = $redirect->getStatusCode() ? $redirect->getStatusCode() : \Drupal::config('redirect.settings')->get('default_status_code');
 
     $form['status_code'] = array(
