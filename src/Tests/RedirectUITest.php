@@ -7,8 +7,8 @@
 
 namespace Drupal\redirect\Tests;
 
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Url;
@@ -309,8 +309,8 @@ class RedirectUITest extends WebTestBase {
     else {
       $log = reset($log);
       $this->assertEqual($log->severity, RfcLogLevel::WARNING);
-      $this->assertEqual(String::format($log->message, unserialize($log->variables)),
-        String::format('Redirect loop identified at %path for redirect %id', array('%path' => '/admin', '%id' => $redirect2->id())));
+      $this->assertEqual(SafeMarkup::format($log->message, unserialize($log->variables)),
+        SafeMarkup::format('Redirect loop identified at %path for redirect %id', array('%path' => '/admin', '%id' => $redirect2->id())));
     }
   }
 
@@ -367,7 +367,7 @@ class RedirectUITest extends WebTestBase {
     $headers = $this->drupalGetHeaders(TRUE);
 
     $ending_url = isset($headers[0]['location']) ? $headers[0]['location'] : NULL;
-    $message = String::format('Testing redirect from %from to %to. Ending url: %url', array('%from' => $path, '%to' => $expected_ending_url, '%url' => $ending_url));
+    $message = SafeMarkup::format('Testing redirect from %from to %to. Ending url: %url', array('%from' => $path, '%to' => $expected_ending_url, '%url' => $ending_url));
 
     if ($expected_ending_url == '<front>') {
       $expected_ending_url = $GLOBALS['base_url'] . base_path();
