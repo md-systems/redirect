@@ -117,7 +117,7 @@ class RedirectForm extends ContentEntityForm {
     $parsed_url = UrlHelper::parse(trim($source['path']));
     $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
     $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
-    $hash = Redirect::generateHash($path, $query, $form_state->getValue('language'));
+    $hash = Redirect::generateHash($path, $query, $form_state->getValue('language')[0]['value']);
 
     // Search for duplicate.
     $redirects = \Drupal::entityManager()
