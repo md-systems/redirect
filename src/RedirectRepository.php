@@ -41,17 +41,22 @@ class RedirectRepository {
    * @return \Drupal\redirect\Entity\Redirect
    *   The matched redirect entity.
    */
-  public function findMatchingRedirect($source_path, array $query = array(), $language = Language::LANGCODE_NOT_SPECIFIED) {
+  public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
 
-    $hashes = array(Redirect::generateHash($source_path, $query, $language));
+    $hashes = [Redirect::generateHash($source_path, $query, $language)];
     if ($language != Language::LANGCODE_NOT_SPECIFIED) {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
     }
 
-    // Load redirects by hash.
-    $redirects = $this->manager->getStorage('redirect')->loadByProperties(array('hash' => $hashes));
-    if (!empty($redirects)) {
-      return array_shift($redirects);
+    // Load redirects by hash. A direct query is used to improve performance.
+    if (count($hashes) > 1) {
+      $rid = db_query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[])', [':hashes[]' => $hashes])->fetchField();
+    }
+    else {
+      $rid = db_query('SELECT rid FROM {redirect} WHERE hash = :hash', [':hash' => reset($hashes)])->fetchField();
+    }
+    if (!empty($rid)) {
+      return Redirect::load($rid);
     }
 
     return NULL;
