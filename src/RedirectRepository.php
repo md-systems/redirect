@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\Entity\Redirect;
@@ -19,13 +20,21 @@ class RedirectRepository {
   protected $manager;
 
   /**
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   The entity manager service.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
    */
-  public function __construct(EntityManagerInterface $manager) {
+  public function __construct(EntityManagerInterface $manager, Connection $connection) {
     $this->manager = $manager;
+    $this->connection = $connection;
   }
 
   /**
@@ -49,14 +58,10 @@ class RedirectRepository {
     }
 
     // Load redirects by hash. A direct query is used to improve performance.
-    if (count($hashes) > 1) {
-      $rid = db_query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[])', [':hashes[]' => $hashes])->fetchField();
-    }
-    else {
-      $rid = db_query('SELECT rid FROM {redirect} WHERE hash = :hash', [':hash' => reset($hashes)])->fetchField();
-    }
+    $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[])', [':hashes[]' => $hashes])->fetchField();
+
     if (!empty($rid)) {
-      return Redirect::load($rid);
+      return $this->load($rid);
     }
 
     return NULL;
