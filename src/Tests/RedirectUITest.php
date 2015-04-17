@@ -277,9 +277,7 @@ class RedirectUITest extends WebTestBase {
    */
   function testRedirectLoop() {
     // Redirect loop redirection only works when page caching is disabled.
-    $this->config('system.performance')
-      ->set('cache.page.use_internal', FALSE)
-      ->save();
+    \Drupal::service('module_installer')->uninstall(['page_cache']);
 
     /** @var \Drupal\redirect\Entity\Redirect $redirect1 */
     $redirect1 = $this->storage->create();
