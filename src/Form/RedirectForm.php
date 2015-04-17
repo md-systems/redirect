@@ -71,22 +71,6 @@ class RedirectForm extends ContentEntityForm {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->entity;
 
-    if (\Drupal::moduleHandler()->moduleExists('language')) {
-      $form['language'] = array(
-        '#type' => 'language_select',
-        '#title' => t('Language'),
-        '#languages' => Language::STATE_ALL,
-        '#default_value' => $form['language']['#value'],
-        '#description' => t('A redirect set for a specific language will always be used when requesting this page in that language, and takes precedence over redirects set for <em>All languages</em>.'),
-      );
-    }
-    else {
-      $form['language'] = array(
-        '#type' => 'value',
-        '#value' => Language::LANGCODE_NOT_SPECIFIED,
-      );
-    }
-
     $default_code = $redirect->getStatusCode() ? $redirect->getStatusCode() : \Drupal::config('redirect.settings')->get('default_status_code');
 
     $form['status_code'] = array(
@@ -133,7 +117,7 @@ class RedirectForm extends ContentEntityForm {
     $parsed_url = UrlHelper::parse(trim($source['path']));
     $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
     $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
-    $hash = Redirect::generateHash($path, $query, $form_state->getValue('language'));
+    $hash = Redirect::generateHash($path, $query, $form_state->getValue('language')[0]['value']);
 
     // Search for duplicate.
     $redirects = \Drupal::entityManager()
