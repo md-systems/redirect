@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\Entity\Redirect;
@@ -19,13 +20,21 @@ class RedirectRepository {
   protected $manager;
 
   /**
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   The entity manager service.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
    */
-  public function __construct(EntityManagerInterface $manager) {
+  public function __construct(EntityManagerInterface $manager, Connection $connection) {
     $this->manager = $manager;
+    $this->connection = $connection;
   }
 
   /**
@@ -41,17 +50,18 @@ class RedirectRepository {
    * @return \Drupal\redirect\Entity\Redirect
    *   The matched redirect entity.
    */
-  public function findMatchingRedirect($source_path, array $query = array(), $language = Language::LANGCODE_NOT_SPECIFIED) {
+  public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
 
-    $hashes = array(Redirect::generateHash($source_path, $query, $language));
+    $hashes = [Redirect::generateHash($source_path, $query, $language)];
     if ($language != Language::LANGCODE_NOT_SPECIFIED) {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
     }
 
-    // Load redirects by hash.
-    $redirects = $this->manager->getStorage('redirect')->loadByProperties(array('hash' => $hashes));
-    if (!empty($redirects)) {
-      return array_shift($redirects);
+    // Load redirects by hash. A direct query is used to improve performance.
+    $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[])', [':hashes[]' => $hashes])->fetchField();
+
+    if (!empty($rid)) {
+      return $this->load($rid);
     }
 
     return NULL;
