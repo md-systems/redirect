@@ -10,6 +10,7 @@ namespace Drupal\redirect\Tests;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
+use Drupal\redirect\Exception\RedirectLoopException;
 use Drupal\simpletest\KernelTestBase;
 
 /**
@@ -39,6 +40,7 @@ class RedirectAPITest extends KernelTestBase {
 
     $this->installEntitySchema('redirect');
     $this->installEntitySchema('user');
+    $this->installSchema('system', ['router']);
     $this->installConfig(array('redirect'));
 
     $language = ConfigurableLanguage::createFromLangcode('de');
@@ -55,6 +57,7 @@ class RedirectAPITest extends KernelTestBase {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
     $redirect->setSource('some-url', array('key' => 'val'));
+    $redirect->setRedirect('node');
 
     $redirect->save();
     $this->assertEqual(Redirect::generateHash('some-url', array('key' => 'val'), Language::LANGCODE_NOT_SPECIFIED), $redirect->getHash());
@@ -161,6 +164,49 @@ class RedirectAPITest extends KernelTestBase {
       $output = $test_case['input'];
       redirect_sort_recursive($output, $test_case['callback']);
       $this->assertIdentical($output, $test_case['expected']);
+    }
+  }
+
+  /**
+   * Test loop detection.
+   */
+  public function testLoopDetection() {
+    // Add a chained redirect that isn't a loop.
+    /** @var \Drupal\redirect\Entity\Redirect $one */
+    $one = $this->controller->create();
+    $one->setSource('my-path');
+    $one->setRedirect('node');
+    $one->save();
+    /** @var \Drupal\redirect\Entity\Redirect $two */
+    $two = $this->controller->create();
+    $two->setSource('second-path');
+    $two->setRedirect('my-path');
+    $two->save();
+    /** @var \Drupal\redirect\Entity\Redirect $three */
+    $three = $this->controller->create();
+    $three->setSource('third-path');
+    $three->setRedirect('second-path');
+    $three->save();
+
+    /** @var \Drupal\redirect\RedirectRepository $repository */
+    $repository = \Drupal::service('redirect.repository');
+    $found = $repository->findMatchingRedirect('third-path');
+    if (!empty($found)) {
+      $this->assertEqual($found->getRedirectUrl()->toString(), '/node', 'Chained redirects properly resolved in findMatchingRedirect.');
+    }
+    else {
+      $this->fail('Failed to resolve a chained redirect.');
+    }
+
+    // Create a loop.
+    $one->setRedirect('third-path');
+    $one->save();
+    try {
+      $repository->findMatchingRedirect('third-path');
+      $this->fail('Failed to detect a redirect loop.');
+    }
+    catch (RedirectLoopException $e) {
+      $this->pass('Properly detected a redirect loop.');
     }
   }
 

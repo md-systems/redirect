@@ -307,7 +307,7 @@ class RedirectUITest extends WebTestBase {
       $log = reset($log);
       $this->assertEqual($log->severity, RfcLogLevel::WARNING);
       $this->assertEqual(SafeMarkup::format($log->message, unserialize($log->variables)),
-        SafeMarkup::format('Redirect loop identified at %path for redirect %id', array('%path' => Url::fromUri('base:admin')->toString(), '%id' => $redirect2->id())));
+        SafeMarkup::format('Redirect loop identified at %path for redirect %id', array('%path' => '/node', '%id' => $redirect1->id())));
     }
   }
 

@@ -12,6 +12,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\Entity\Redirect;
+use Drupal\redirect\Exception\RedirectLoopException;
 
 class RedirectRepository {
 
@@ -29,6 +30,13 @@ class RedirectRepository {
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected $config;
+
+  /**
+   * An array of found redirect IDs to avoid recursion.
+   *
+   * @var array
+   */
+  protected $foundRedirects = [];
 
   /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
@@ -56,9 +64,10 @@ class RedirectRepository {
    *
    * @return \Drupal\redirect\Entity\Redirect
    *   The matched redirect entity.
+   *
+   * @throws \Drupal\redirect\Exception\RedirectLoopException
    */
   public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
-
     $hashes = [Redirect::generateHash($source_path, $query, $language)];
     if ($language != Language::LANGCODE_NOT_SPECIFIED) {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
@@ -76,10 +85,40 @@ class RedirectRepository {
     $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[]) ORDER BY LENGTH(redirect_source__query) DESC', [':hashes[]' => $hashes])->fetchField();
 
     if (!empty($rid)) {
-      return $this->load($rid);
+      // Check if this is a loop.
+      if (in_array($rid, $this->foundRedirects)) {
+        throw new RedirectLoopException('/' . $source_path, $rid);
+      }
+      $this->foundRedirects[] = $rid;
+
+      $redirect = $this->load($rid);
+
+      // Find chained redirects.
+      if ($recursive = $this->findByRedirect($redirect, $language)) {
+        // Reset found redirects.
+        $this->foundRedirects = [];
+        return $recursive;
+      }
+
+      return $redirect;
     }
 
     return NULL;
+  }
+
+  /**
+   * Helper function to find recursive redirects.
+   *
+   * @param \Drupal\redirect\Entity\Redirect
+   *   The redirect object.
+   * @param string $language
+   *   The language to use.
+   */
+  protected function findByRedirect(Redirect $redirect, $language) {
+    $uri = $redirect->getRedirectUrl();
+    $path = ltrim(parse_url($uri->toString(), PHP_URL_PATH), '/');
+    $query = $uri->getOption('query') ?: [];
+    return $this->findMatchingRedirect($path, $query, $language);
   }
 
   /**

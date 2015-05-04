@@ -11,6 +11,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
+use Drupal\redirect\Exception\RedirectLoopException;
 use Drupal\redirect\RedirectChecker;
 use Drupal\redirect\RedirectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -89,7 +90,18 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
     $this->context->fromRequest($request);
 
-    $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->getId());
+    try {
+      $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()
+        ->getId());
+    }
+    catch (RedirectLoopException $e) {
+      \Drupal::logger('redirect')->warning($e->getMessage());
+      $response = new Response();
+      $response->setStatusCode(503);
+      $response->setContent('Service unavailable');
+      $event->setResponse($response);
+      return;
+    }
 
     if (!empty($redirect)) {
 
