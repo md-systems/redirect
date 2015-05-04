@@ -34,10 +34,7 @@ class RedirectCheckerTest extends UnitTestCase {
       ->with('system.maintenance_mode')
       ->will($this->returnValue(FALSE));
 
-    $flood = $this->getMockBuilder('Drupal\Core\Flood\FloodInterface')
-      ->getMock();
-
-    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state, $flood);
+    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state);
 
     // All fine - we can redirect.
     $request = $this->getRequestStub('index.php', 'GET');
@@ -59,7 +56,7 @@ class RedirectCheckerTest extends UnitTestCase {
       ->with('system.maintenance_mode')
       ->will($this->returnValue(TRUE));
 
-    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state, $flood);
+    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state);
 
     $request = $this->getRequestStub('index.php', 'GET');
     $this->assertFalse($checker->canRedirect($request), 'Cannot redirect if maintenance mode is on');
@@ -72,7 +69,7 @@ class RedirectCheckerTest extends UnitTestCase {
       ->with('system.maintenance_mode')
       ->will($this->returnValue(FALSE));
 
-    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state, $flood);
+    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state);
 
     $route = $this->getMockBuilder('Symfony\Component\Routing\Route')
       ->disableOriginalConstructor()
@@ -88,38 +85,11 @@ class RedirectCheckerTest extends UnitTestCase {
 
     // We are at admin path with global_admin_paths set to TRUE.
     $config['redirect.settings']['global_admin_paths'] = TRUE;
-    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state, $flood);
+    $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state);
 
     $request = $this->getRequestStub('index.php', 'GET',
       array(RouteObjectInterface::ROUTE_OBJECT => $route));
     $this->assertTrue($checker->canRedirect($request), 'Can redirect a admin with global_admin_paths set to TRUE');
-  }
-
-  /**
-   * Tests the loop checker.
-   */
-  public function testIsLoop() {
-    $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
-      ->getMock();
-    $request = $this->getRequestStub('index.php', 'GET');
-
-    $flood = $this->getMockBuilder('Drupal\Core\Flood\FloodInterface')
-      ->getMock();
-    $flood->expects($this->any())
-      ->method('isAllowed')
-      ->will($this->returnValue(TRUE));
-
-    $checker = new RedirectChecker($this->getConfigFactoryStub(), $state, $flood);
-    $this->assertFalse($checker->isLoop($request), 'Not in a loop');
-
-    $flood = $this->getMockBuilder('Drupal\Core\Flood\FloodInterface')
-      ->getMock();
-    $flood->expects($this->any())
-      ->method('isAllowed')
-      ->will($this->returnValue(FALSE));
-
-    $checker = new RedirectChecker($this->getConfigFactoryStub(), $state, $flood);
-    $this->assertTrue($checker->isLoop($request), 'In a loop');
   }
 
   /**
@@ -149,4 +119,5 @@ class RedirectCheckerTest extends UnitTestCase {
 
     return $request;
   }
+
 }
