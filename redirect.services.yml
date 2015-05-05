@@ -1,7 +1,7 @@
 services:
   redirect.repository:
     class: Drupal\redirect\RedirectRepository
-    arguments: ['@entity.manager', '@database']
+    arguments: ['@entity.manager', '@database', '@config.factory']
     tags:
       - { name: backend_overridable }
   redirect.checker:
