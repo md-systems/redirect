@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
@@ -25,6 +26,11 @@ class RedirectRepository {
   protected $connection;
 
   /**
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $config;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $manager
@@ -32,9 +38,10 @@ class RedirectRepository {
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection.
    */
-  public function __construct(EntityManagerInterface $manager, Connection $connection) {
+  public function __construct(EntityManagerInterface $manager, Connection $connection, ConfigFactoryInterface $config_factory) {
     $this->manager = $manager;
     $this->connection = $connection;
+    $this->config = $config_factory->get('redirect.settings');
   }
 
   /**
@@ -57,8 +64,16 @@ class RedirectRepository {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
     }
 
+    // Add a hash without the query string if using passthrough querystrings.
+    if (!empty($query) && $this->config->get('passthrough_querystring')) {
+      $hashes[] = Redirect::generateHash($source_path, [], $language);
+      if ($language != Language::LANGCODE_NOT_SPECIFIED) {
+        $hashes[] = Redirect::generateHash($source_path, [], Language::LANGCODE_NOT_SPECIFIED);
+      }
+    }
+
     // Load redirects by hash. A direct query is used to improve performance.
-    $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[])', [':hashes[]' => $hashes])->fetchField();
+    $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[]) ORDER BY LENGTH(redirect_source__query) DESC', [':hashes[]' => $hashes])->fetchField();
 
     if (!empty($rid)) {
       return $this->load($rid);

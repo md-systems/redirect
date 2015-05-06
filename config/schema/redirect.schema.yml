@@ -11,7 +11,7 @@ redirect.settings:
       type: boolean
       label: 'Automatically create redirects when URL aliases are changed.'
     default_status_code:
-      type: string
+      type: integer
       label: 'Default redirect status'
     passthrough_querystring:
       type: boolean

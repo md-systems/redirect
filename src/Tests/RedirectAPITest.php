@@ -88,6 +88,7 @@ class RedirectAPITest extends KernelTestBase {
     else {
       $this->fail(t('Failed to find matching redirect.'));
     }
+
     // Load the redirect based on url.
     $redirects = $repository->findBySourcePath('another-url');
     $redirect = array_shift($redirects);
@@ -96,6 +97,31 @@ class RedirectAPITest extends KernelTestBase {
     }
     else {
       $this->fail(t('Failed to find redirect by source path.'));
+    }
+
+    // Test passthrough_querystring.
+    $redirect->setSource('a-different-url');
+    $redirect->save();
+    $redirect = $repository->findMatchingRedirect('a-different-url', ['key1' => 'val1'], 'de');
+    if (!empty($redirect)) {
+      $this->assertEqual($redirect->getSourceUrl(), '/a-different-url');
+    }
+    else {
+      $this->fail('Failed to find redirect by source path with query string.');
+    }
+
+    // Add another redirect to the same path, with a query. This should always
+    // be found before the source without a query set.
+    /** @var \Drupal\redirect\Entity\Redirect $new_redirect */
+    $new_redirect = $this->controller->create();
+    $new_redirect->setSource('a-different-url', ['foo' => 'bar']);
+    $new_redirect->save();
+    $found = $repository->findMatchingRedirect('a-different-url', ['foo' => 'bar'], 'de');
+    if (!empty($found)) {
+      $this->assertEqual($found->getSourceUrl(), '/a-different-url?foo=bar');
+    }
+    else {
+      $this->fail('Failed to find a redirect by source path with query string.');
     }
   }
 
