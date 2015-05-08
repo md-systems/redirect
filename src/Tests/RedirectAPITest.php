@@ -123,6 +123,27 @@ class RedirectAPITest extends KernelTestBase {
     else {
       $this->fail('Failed to find a redirect by source path with query string.');
     }
+
+    // Hashes should be case-insensitive since the source paths are.
+    /** @var \Drupal\redirect\Entity\Redirect $redirect */
+    $redirect = $this->controller->create();
+    $redirect->setSource('Case-Sensitive-Path');
+    $redirect->save();
+    $found = $repository->findBySourcePath('case-sensitive-path');
+    if (!empty($found)) {
+      $found = reset($found);
+      $this->assertEqual($found->getSourceUrl(), '/Case-Sensitive-Path');
+    }
+    else {
+      $this->fail('findBySourcePath is case sensitive');
+    }
+    $found = $repository->findMatchingRedirect('case-sensitive-path');
+    if (!empty($found)) {
+      $this->assertEqual($found->getSourceUrl(), '/Case-Sensitive-Path');
+    }
+    else {
+      $this->fail('findMatchingRedirect is case sensitive.');
+    }
   }
 
   /**

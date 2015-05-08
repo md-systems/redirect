@@ -65,7 +65,7 @@ class Redirect extends ContentEntityBase {
    */
   public static function generateHash($source_path, array $source_query, $language) {
     $hash = array(
-      'source' => $source_path,
+      'source' => strtolower($source_path),
       'language' => $language,
     );
 
