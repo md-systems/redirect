@@ -91,7 +91,7 @@ class RedirectFix404Form extends FormBase {
       $path = ltrim($request->getPathInfo(), '/');
 
       $row = array();
-      $row['source'] = \Drupal::l($result->message, Url::fromUri('internal:/' . $path), array('query' => $destination));
+      $row['source'] = \Drupal::l($result->message, Url::fromUri('internal:/' . $path, array('query' => $destination)));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
