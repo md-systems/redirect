@@ -267,6 +267,7 @@ class Redirect extends ContentEntityBase {
 
     $fields['hash'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Hash'))
+      ->setSetting('max_length', 64)
       ->setDescription(t('The redirect hash.'));
 
     $fields['type'] = BaseFieldDefinition::create('string')
