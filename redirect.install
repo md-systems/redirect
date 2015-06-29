@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * Update hooks for the Redirect module.
+ */
+
+use Drupal\redirect\Entity\Redirect;
+
+/**
+ * Rehash redirects to account for case insensitivity.
+ */
+function redirect_update_8100 (&$sandbox) {
+  // Loop through 100 redirects at a time.
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['current_rid'] = 0;
+    // Note, because MySQL can treat `foo = LOWER(foo)`, all records must be checked.
+    $sandbox['max'] = db_query('SELECT COUNT(1) FROM {redirect}')->fetchField();
+  }
+
+  $redirects = db_select('redirect', 'r')
+    ->fields('r', ['rid'])
+    ->condition('rid', $sandbox['current_rid'], '>')
+    ->range(0, 100)
+    ->orderBy('rid', 'ASC')
+    ->execute()
+    ->fetchCol();
+
+  /** @var \Drupal\redirect\RedirectRepository $repository */
+  $repository = \Drupal::service('redirect.repository');
+  $redirects = $repository->loadMultiple($redirects);
+  foreach ($redirects as $redirect) {
+    $source = $redirect->get('redirect_source')->get(0)->getValue();
+    $language = $redirect->get('language')->get(0)->getValue()['value'];
+    $query = $source['query'] ?: [];
+    $new_hash = Redirect::generateHash($source['path'], $query, $language);
+    if ($redirect->getHash() != $new_hash) {
+      // Do a direct query to speed things up.
+      db_update('redirect')
+        ->fields(['hash' => $new_hash])
+        ->condition('rid', $redirect->id())
+        ->execute();
+    }
+    $sandbox['progress']++;
+    $sandbox['current_rid'] = $redirect->id();
+  }
+  // Reset caches.
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+}
