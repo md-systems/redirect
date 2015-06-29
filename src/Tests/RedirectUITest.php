@@ -215,9 +215,9 @@ class RedirectUITest extends WebTestBase {
     $node = $this->drupalCreateNode(array(
       'type' => 'article',
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
-      'path' => array('alias' => 'node_test_alias'),
+      'path' => array('alias' => '/node_test_alias'),
     ));
-    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias_updated'), t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => '/node_test_alias_updated'), t('Save'));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertEqual($redirect->getRedirectUrl()->toString(), '/node_test_alias_updated');
@@ -226,7 +226,7 @@ class RedirectUITest extends WebTestBase {
 
     // Test that changing the path back deletes the first redirect, creates
     // a new one and does not result in a loop.
-    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => 'node_test_alias'), t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => '/node_test_alias'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
     $this->assertTrue(empty($redirect));
 
@@ -245,7 +245,7 @@ class RedirectUITest extends WebTestBase {
     // Create a term and update its path alias and check if we have a redirect
     // from the previous path alias to the new one.
     $term = $this->createTerm($this->createVocabulary());
-    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[0][alias]' => 'term_test_alias_updated'), t('Save'));
+    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[0][alias]' => '/term_test_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('term_test_alias');
     $this->assertEqual($redirect->getRedirectUrl()->toString(), '/term_test_alias_updated');
     // Test if the automatically created redirect works.
@@ -253,14 +253,14 @@ class RedirectUITest extends WebTestBase {
 
     // Test the path alias update via the admin path form.
     $this->drupalPostForm('admin/config/search/path/add', array(
-      'source' => 'node',
-      'alias' => 'aaa_path_alias',
+      'source' => '/node',
+      'alias' => '/aaa_path_alias',
     ), t('Save'));
     // Note that here we rely on fact that we land on the path alias list page
     // and the default sort is by the alias, which implies that the first edit
     // link leads to the edit page of the aaa_path_alias.
     $this->clickLink(t('Edit'));
-    $this->drupalPostForm(NULL, array('alias' => 'aaa_path_alias_updated'), t('Save'));
+    $this->drupalPostForm(NULL, array('alias' => '/aaa_path_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('aaa_path_alias', array(), 'en');
     $this->assertEqual($redirect->getRedirectUrl()->toString(), '/aaa_path_alias_updated');
     // Test if the automatically created redirect works.
@@ -341,7 +341,7 @@ class RedirectUITest extends WebTestBase {
       ),
       'vid' => $vocabulary->id(),
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
-      'path' => array('alias' => 'term_test_alias'),
+      'path' => array('alias' => '/term_test_alias'),
     ));
     $term->save();
     return $term;
