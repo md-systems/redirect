@@ -18,6 +18,7 @@ class RedirectListBuilder extends EntityListBuilder {
     $row['redirect_source'] = $this->t('From');
     $row['redirect_redirect'] = $this->t('To');
     $row['status_code'] = $this->t('Status');
+    $row['creation'] = $this->t('Creation');
     $row['language'] = $this->t('Language');
     $row['operations'] = $this->t('Operations');
     return $row;
@@ -33,6 +34,7 @@ class RedirectListBuilder extends EntityListBuilder {
       $row['redirect_redirect']['data'] = '';
     }
     $row['status_code']['data'] = $redirect->getStatusCode();
+    $row['creation']['data'] = format_date($redirect->getCreationDateTime(), 'short');
     $row['language']['data'] = $redirect->language()->getName();
 
     $row['operations']['data'] = $this->buildOperations($redirect);
