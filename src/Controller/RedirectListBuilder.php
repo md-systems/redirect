@@ -10,10 +10,12 @@ namespace Drupal\redirect\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
-use Drupal\Core\Url;
 
 class RedirectListBuilder extends EntityListBuilder {
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildHeader() {
     $row['redirect_source'] = $this->t('From');
     $row['redirect_redirect'] = $this->t('To');
@@ -24,6 +26,9 @@ class RedirectListBuilder extends EntityListBuilder {
     return $row;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildRow(EntityInterface $redirect) {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $row['redirect_source']['data'] = $redirect->getSourceUrl();
@@ -34,7 +39,7 @@ class RedirectListBuilder extends EntityListBuilder {
       $row['redirect_redirect']['data'] = '';
     }
     $row['status_code']['data'] = $redirect->getStatusCode();
-    $row['creation']['data'] = format_date($redirect->getCreationDateTime(), 'short');
+    $row['creation']['data'] = \Drupal::service('date.formatter')->format($redirect->getCreationDateTime(), 'short');
     $row['language']['data'] = $redirect->language()->getName();
 
     $row['operations']['data'] = $this->buildOperations($redirect);
