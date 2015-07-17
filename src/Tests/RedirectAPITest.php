@@ -103,7 +103,9 @@ class RedirectAPITest extends KernelTestBase {
     }
 
     // Test passthrough_querystring.
+    $redirect = $this->controller->create();
     $redirect->setSource('a-different-url');
+    $redirect->setRedirect('node');
     $redirect->save();
     $redirect = $repository->findMatchingRedirect('a-different-url', ['key1' => 'val1'], 'de');
     if (!empty($redirect)) {
@@ -118,6 +120,7 @@ class RedirectAPITest extends KernelTestBase {
     /** @var \Drupal\redirect\Entity\Redirect $new_redirect */
     $new_redirect = $this->controller->create();
     $new_redirect->setSource('a-different-url', ['foo' => 'bar']);
+    $new_redirect->setRedirect('node');
     $new_redirect->save();
     $found = $repository->findMatchingRedirect('a-different-url', ['foo' => 'bar'], 'de');
     if (!empty($found)) {
@@ -131,6 +134,7 @@ class RedirectAPITest extends KernelTestBase {
     /** @var \Drupal\redirect\Entity\Redirect $redirect */
     $redirect = $this->controller->create();
     $redirect->setSource('Case-Sensitive-Path');
+    $redirect->setRedirect('node');
     $redirect->save();
     $found = $repository->findBySourcePath('case-sensitive-path');
     if (!empty($found)) {
