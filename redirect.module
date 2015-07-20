@@ -88,7 +88,6 @@ function redirect_path_update(array $path) {
       $redirect->setRedirect($path['source']);
       $redirect->setLanguage($original_path['langcode']);
       $redirect->setStatusCode(\Drupal::config('redirect.settings')->get('default_status_code'));
-      $redirect->setCreationDateTime(REQUEST_TIME);
       $redirect->save();
     }
   }
