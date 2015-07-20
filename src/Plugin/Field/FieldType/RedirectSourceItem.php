@@ -23,7 +23,7 @@ use Drupal\Core\Url;
  *   label = @Translation("Redirect source"),
  *   description = @Translation("Stores a redirect source"),
  *   default_widget = "redirect_source",
- *   default_formatter = "link",
+ *   default_formatter = "redirect_source"
  * )
  */
 class RedirectSourceItem extends FieldItemBase {
