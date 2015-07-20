@@ -30,6 +30,7 @@ use Drupal\link\LinkItemInterface;
  *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",
  *       "edit" = "Drupal\redirect\Form\RedirectForm"
  *     },
+ *     "views_data" = "Drupal\views\EntityViewsData",
  *     "storage_schema" = "\Drupal\redirect\RedirectStorageSchema"
  *   },
  *   base_table = "redirect",

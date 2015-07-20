@@ -8,7 +8,7 @@
 /**
  * Implements hook_views_data().
  */
-function redirect_views_data() {
+function redirect_testing_views_data() {
   // Basic table information.
   $data['redirect']['table']['group'] = t('Redirect');
 
