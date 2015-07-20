@@ -343,7 +343,6 @@ class Redirect extends ContentEntityBase {
     $fields['creation'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Creation date'))
       ->setDescription(t('The redirect creation date.'));
-
     return $fields;
   }
 
