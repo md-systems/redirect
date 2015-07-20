@@ -60,6 +60,7 @@ class RedirectForm extends ContentEntityForm {
       }
 
       $redirect->setLanguage($this->getRequest()->get('language') ? $this->getRequest()->get('language') : Language::LANGCODE_NOT_SPECIFIED);
+      $redirect->setCreationDateTime(REQUEST_TIME);
     }
   }
 
