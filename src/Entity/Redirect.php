@@ -24,7 +24,7 @@ use Drupal\link\LinkItemInterface;
  *   label = @Translation("Redirect"),
  *   bundle_label = @Translation("Redirect type"),
  *   handlers = {
- *     "list_builder" = "Drupal\redirect\Controller\RedirectListBuilder",
+ *     "list_builder" = "Drupal\Core\Entity\EntityListBuilder",
  *     "form" = {
  *       "default" = "Drupal\redirect\Form\RedirectForm",
  *       "delete" = "Drupal\redirect\Form\RedirectDeleteForm",
