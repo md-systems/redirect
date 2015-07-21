@@ -30,7 +30,7 @@ class RedirectAPITest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('redirect', 'link', 'field', 'system', 'user', 'language');
+  public static $modules = array('redirect', 'link', 'field', 'system', 'user', 'language', 'views');
 
   /**
    * {@inheritdoc}

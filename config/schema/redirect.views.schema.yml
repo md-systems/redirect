@@ -7,3 +7,9 @@ views.field.redirect_type:
     machine_name:
       type: string
       label: 'Output machine name'
+
+# Schema for the formatter of Redirect Source
+field.formatter.settings.redirect_source:
+  type: mapping
+  label: 'Redirect Source formatter'
+  mapping: { }
