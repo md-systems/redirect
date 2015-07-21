@@ -32,7 +32,7 @@ class RedirectSourceFormatter extends FormatterBase {
 
     foreach ($items as $delta => $item) {
       $elements[$delta] = array(
-        '#markup' => $item->path
+        '#markup' => $item->getUrl()->toString(),
       );
     }
 
