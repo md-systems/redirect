@@ -166,6 +166,26 @@ class RedirectUITest extends WebTestBase {
     ), t('Save'));
     $this->assertRaw(t('The anchor fragments are not allowed.'));
 
+    // Test filters.
+    // Filter  with other value.
+    $this->drupalGet('admin/config/search/redirect', array('query' => array(
+      'status_code' => '401',
+    )));
+
+    $rows = $this->xpath('//tbody/tr');
+    // Check if the list has no rows.
+    $this->assertTrue(count($rows) == 0);
+
+    // Filter with the same values.
+    $this->drupalGet('admin/config/search/redirect', array('query' => array(
+      'redirect_source__path' => 'non-existing',
+      'status_code' => '301'
+    )));
+
+    $rows = $this->xpath('//tbody/tr');
+    // Check if the list has 1 row.
+    $this->assertTrue(count($rows) == 1);
+
     // Finally test the delete action.
     $this->drupalGet('admin/config/search/redirect');
     $this->clickLink(t('Delete'));
