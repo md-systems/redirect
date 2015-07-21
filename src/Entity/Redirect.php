@@ -152,23 +152,23 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
-   * Sets the redirect creation datetime.
+   * Sets the redirect created datetime.
    *
    * @param int $datetime
-   *   The redirect creation datetime.
+   *   The redirect created datetime.
    */
-  public function setCreationDateTime($datetime) {
-    $this->set('creation', $datetime);
+  public function setCreated($datetime) {
+    $this->set('created', $datetime);
   }
 
   /**
-   * Gets the redirect creation datetime.
+   * Gets the redirect created datetime.
    *
    * @return int
-   *   The redirect creation datetime.
+   *   The redirect created datetime.
    */
-  public function getCreationDateTime() {
-    return $this->get('creation')->value;
+  public function getCreated() {
+    return $this->get('created')->value;
   }
 
   /**
@@ -340,9 +340,9 @@ class Redirect extends ContentEntityBase {
       ->setDescription(t('The redirect status code.'))
       ->setDefaultValue(0);
 
-    $fields['creation'] = BaseFieldDefinition::create('created')
-      ->setLabel(t('Creation date'))
-      ->setDescription(t('The redirect creation date.'));
+    $fields['created'] = BaseFieldDefinition::create('created')
+      ->setLabel(t('Created'))
+      ->setDescription(t('The date when the redirect was created.'));
     return $fields;
   }
 
