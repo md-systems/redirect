@@ -173,7 +173,7 @@ class RedirectUITest extends WebTestBase {
       array('%source' => Url::fromUri('base:non-existing', ['query' => ['key' => 'value']])->toString(), '%redirect' => Url::fromUri('base:node')->toString())));
     $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertUrl('admin/config/search/redirect');
-    $this->assertText(t('There is no @label yet.', array('@label' => 'Redirect')));
+    $this->assertText(t('There is no @label yet.', array('@label' => 'redirect')));
   }
 
   /**
