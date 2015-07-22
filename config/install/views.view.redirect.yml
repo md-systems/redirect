@@ -209,12 +209,6 @@ display:
           entity_type: redirect
           entity_field: language
           plugin_id: field
-        operations:
-          id: operations
-          table: redirect
-          field: operations
-          entity_type: redirect
-          plugin_id: entity_operations
         created:
           id: created
           table: redirect
@@ -269,6 +263,12 @@ display:
           entity_type: redirect
           entity_field: created
           plugin_id: date
+        operations:
+          id: operations
+          table: redirect
+          field: operations
+          entity_type: redirect
+          plugin_id: entity_operations
       filters:
         redirect_source__path:
           id: redirect_source__path
@@ -378,18 +378,67 @@ display:
               authenticated: authenticated
               anonymous: '0'
               administrator: '0'
-          is_grouped: false
+          is_grouped: true
           group_info:
-            label: ''
+            label: 'Status code'
             description: ''
-            identifier: ''
+            identifier: status_code
             optional: true
             widget: select
             multiple: false
             remember: false
             default_group: All
             default_group_multiple: {  }
-            group_items: {  }
+            group_items:
+              1:
+                title: '300 Multiple Choices'
+                operator: '='
+                value:
+                  value: '300'
+                  min: ''
+                  max: ''
+              2:
+                title: '301 Moved Permanently'
+                operator: '='
+                value:
+                  value: '301'
+                  min: ''
+                  max: ''
+              3:
+                title: '302 Found'
+                operator: '='
+                value:
+                  value: '302'
+                  min: ''
+                  max: ''
+              4:
+                title: '303 See Other'
+                operator: '='
+                value:
+                  value: '303'
+                  min: ''
+                  max: ''
+              5:
+                title: '304 Not Modified'
+                operator: '='
+                value:
+                  value: '304'
+                  min: ''
+                  max: ''
+              6:
+                title: '305 Use Proxy'
+                operator: '='
+                value:
+                  value: '305'
+                  min: ''
+                  max: ''
+              7:
+                title: '307 Temporary Redirect'
+                operator: '='
+                value:
+                  value: '307'
+                  min: ''
+                  max: ''
           entity_type: redirect
           entity_field: status_code
           plugin_id: numeric
@@ -439,19 +488,17 @@ display:
       header: {  }
       footer: {  }
       empty:
-        area:
-          id: area
+        area_text_custom:
+          id: area_text_custom
           table: views
-          field: area
+          field: area_text_custom
           relationship: none
           group_type: group
           admin_label: ''
           empty: true
           tokenize: false
-          content:
-            value: 'There is no redirect yet.'
-            format: basic_html
-          plugin_id: text
+          content: 'There is no redirect yet.'
+          plugin_id: text_custom
       relationships: {  }
       arguments: {  }
       display_extenders: {  }

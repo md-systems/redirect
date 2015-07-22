@@ -169,7 +169,7 @@ class RedirectUITest extends WebTestBase {
     // Test filters.
     // Filter  with other value.
     $this->drupalGet('admin/config/search/redirect', array('query' => array(
-      'status_code' => '304',
+      'status_code' => '3',
     )));
 
     $rows = $this->xpath('//tbody/tr');
@@ -179,7 +179,7 @@ class RedirectUITest extends WebTestBase {
     // Filter with the same values.
     $this->drupalGet('admin/config/search/redirect', array('query' => array(
       'redirect_source__path' => 'non-existing',
-      'status_code' => '301'
+      'status_code' => '2'
     )));
 
     $rows = $this->xpath('//tbody/tr');
