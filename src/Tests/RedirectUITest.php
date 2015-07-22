@@ -169,7 +169,7 @@ class RedirectUITest extends WebTestBase {
     // Test filters.
     // Filter  with other value.
     $this->drupalGet('admin/config/search/redirect', array('query' => array(
-      'status_code' => '401',
+      'status_code' => '304',
     )));
 
     $rows = $this->xpath('//tbody/tr');
@@ -193,7 +193,7 @@ class RedirectUITest extends WebTestBase {
       array('%source' => Url::fromUri('base:non-existing', ['query' => ['key' => 'value']])->toString(), '%redirect' => Url::fromUri('base:node')->toString())));
     $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertUrl('admin/config/search/redirect');
-    $this->assertText(t('There is no @label yet.', array('@label' => 'redirect')));
+    $this->assertText(t('There is no redirect yet.'));
   }
 
   /**
