@@ -367,10 +367,10 @@ class RedirectUITest extends WebTestBase {
     $message = SafeMarkup::format('Testing redirect from %from to %to. Ending url: %url', array('%from' => $path, '%to' => $expected_ending_url, '%url' => $ending_url));
 
     if ($expected_ending_url == '<front>') {
-      $expected_ending_url = $GLOBALS['base_url'];
+      $expected_ending_url = Url::fromUri('base:')->setAbsolute()->toString();
     }
     elseif (!empty($expected_ending_url)) {
-      $expected_ending_url = $GLOBALS['base_url'] . '/' . $expected_ending_url;
+      $expected_ending_url = Url::fromUri('base:' . $expected_ending_url)->setAbsolute()->toString();
     }
     else {
       $expected_ending_url = NULL;
