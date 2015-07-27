@@ -87,14 +87,14 @@ class RedirectUITest extends WebTestBase {
 
     // Try to find the redirect we just created.
     $redirect = $this->repository->findMatchingRedirect('non-existing');
-    $this->assertEqual($redirect->getSourceUrl(), '/non-existing');
-    $this->assertEqual($redirect->getRedirectUrl()->toString(), '/node');
+    $this->assertEqual($redirect->getSourceUrl(), Url::fromUri('base:non-existing')->toString());
+    $this->assertEqual($redirect->getRedirectUrl()->toString(), Url::fromUri('base:node')->toString());
 
     // After adding the redirect we should end up in the list. Check if the
     // redirect is listed.
     $this->assertUrl('admin/config/search/redirect');
     $this->assertText('non-existing');
-    $this->assertLink('/node');
+    $this->assertLink(Url::fromUri('base:node')->toString());
     $this->assertText(t('Not specified'));
 
     // Test the edit form and update action.
@@ -119,7 +119,7 @@ class RedirectUITest extends WebTestBase {
     $this->storage->resetCache();
     $redirects = $this->repository->findBySourcePath('non-existing');
     $redirect = array_shift($redirects);
-    $this->assertEqual($redirect->getSourceUrl(), '/non-existing?key=value');
+    $this->assertEqual($redirect->getSourceUrl(), Url::fromUri('base:non-existing', ['query' => ['key' => 'value']])->toString());
 
     // Test the source url hints.
     // The hint about an existing base path.
@@ -169,7 +169,8 @@ class RedirectUITest extends WebTestBase {
     // Finally test the delete action.
     $this->drupalGet('admin/config/search/redirect');
     $this->clickLink(t('Delete'));
-    $this->assertRaw(t('Are you sure you want to delete the URL redirect from %source to %redirect?', array('%source' => '/non-existing?key=value', '%redirect' => '/node')));
+    $this->assertRaw(t('Are you sure you want to delete the URL redirect from %source to %redirect?',
+      array('%source' => Url::fromUri('base:non-existing', ['query' => ['key' => 'value']])->toString(), '%redirect' => Url::fromUri('base:node')->toString())));
     $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertUrl('admin/config/search/redirect');
     $this->assertText(t('There is no @label yet.', array('@label' => 'Redirect')));
@@ -192,15 +193,15 @@ class RedirectUITest extends WebTestBase {
     // Check if we generate correct Add redirect url and if the form is
     // pre-filled.
     $destination = Url::fromUri('base:admin/config/search/redirect/404')->toString();
-    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'non-existing', 'destination' => $destination]]);
-    $this->assertFieldByName('redirect_source[0][path]', 'non-existing');
+    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => ltrim(Url::fromUri('base:non-existing')->toString(), '/'), 'destination' => $destination]]);
+    $this->assertFieldByName('redirect_source[0][path]', ltrim(Url::fromUri('base:non-existing')->toString(), '/'));
 
     // Save the redirect.
     $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => '/node'), t('Save'));
     $this->assertUrl('admin/config/search/redirect/404');
 
     // Check if the redirect works as expected.
-    $this->drupalGet('non-existing');
+    $this->drupalGet(Url::fromUri('base:non-existing')->toString());
     $this->assertUrl('node');
   }
 
@@ -220,7 +221,7 @@ class RedirectUITest extends WebTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', array('path[0][alias]' => '/node_test_alias_updated'), t('Save'));
 
     $redirect = $this->repository->findMatchingRedirect('node_test_alias', array(), Language::LANGCODE_NOT_SPECIFIED);
-    $this->assertEqual($redirect->getRedirectUrl()->toString(), '/node_test_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl()->toString(), Url::fromUri('base:node_test_alias_updated')->toString());
     // Test if the automatically created redirect works.
     $this->assertRedirect('node_test_alias', 'node_test_alias_updated');
 
@@ -233,7 +234,7 @@ class RedirectUITest extends WebTestBase {
     \Drupal::service('path.alias_manager')->cacheClear();
     $redirect = $this->repository->findMatchingRedirect('node_test_alias_updated', array(), Language::LANGCODE_NOT_SPECIFIED);
 
-    $this->assertEqual($redirect->getRedirectUrl()->toString(), '/node_test_alias');
+    $this->assertEqual($redirect->getRedirectUrl()->toString(), Url::fromUri('base:node_test_alias')->toString());
     // Test if the automatically created redirect works.
     $this->assertRedirect('node_test_alias_updated', 'node_test_alias');
 
@@ -247,7 +248,7 @@ class RedirectUITest extends WebTestBase {
     $term = $this->createTerm($this->createVocabulary());
     $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', array('path[0][alias]' => '/term_test_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('term_test_alias');
-    $this->assertEqual($redirect->getRedirectUrl()->toString(), '/term_test_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl()->toString(), Url::fromUri('base:term_test_alias_updated')->toString());
     // Test if the automatically created redirect works.
     $this->assertRedirect('term_test_alias', 'term_test_alias_updated');
 
@@ -262,7 +263,7 @@ class RedirectUITest extends WebTestBase {
     $this->clickLink(t('Edit'));
     $this->drupalPostForm(NULL, array('alias' => '/aaa_path_alias_updated'), t('Save'));
     $redirect = $this->repository->findMatchingRedirect('aaa_path_alias', array(), 'en');
-    $this->assertEqual($redirect->getRedirectUrl()->toString(), '/aaa_path_alias_updated');
+    $this->assertEqual($redirect->getRedirectUrl()->toString(), Url::fromUri('base:aaa_path_alias_updated')->toString());
     // Test if the automatically created redirect works.
     $this->assertRedirect('aaa_path_alias', 'aaa_path_alias_updated');
 
@@ -306,7 +307,7 @@ class RedirectUITest extends WebTestBase {
       $log = reset($log);
       $this->assertEqual($log->severity, RfcLogLevel::WARNING);
       $this->assertEqual(SafeMarkup::format($log->message, unserialize($log->variables)),
-        SafeMarkup::format('Redirect loop identified at %path for redirect %id', array('%path' => '/admin', '%id' => $redirect2->id())));
+        SafeMarkup::format('Redirect loop identified at %path for redirect %id', array('%path' => Url::fromUri('base:admin')->toString(), '%id' => $redirect2->id())));
     }
   }
 
@@ -366,10 +367,10 @@ class RedirectUITest extends WebTestBase {
     $message = SafeMarkup::format('Testing redirect from %from to %to. Ending url: %url', array('%from' => $path, '%to' => $expected_ending_url, '%url' => $ending_url));
 
     if ($expected_ending_url == '<front>') {
-      $expected_ending_url = $GLOBALS['base_url'] . base_path();
+      $expected_ending_url = Url::fromUri('base:')->setAbsolute()->toString();
     }
     elseif (!empty($expected_ending_url)) {
-      $expected_ending_url = $GLOBALS['base_url'] . base_path() . $expected_ending_url;
+      $expected_ending_url = Url::fromUri('base:' . $expected_ending_url)->setAbsolute()->toString();
     }
     else {
       $expected_ending_url = NULL;
