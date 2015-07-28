@@ -20,7 +20,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * Validation constraint for links receiving data allowed by its settings.
  *
- * @Plugin(
+ * @Constraint(
  *   id = "RedirectSourceLinkType",
  *   label = @Translation("Link data valid for redirect source link type.", context = "Validation"),
  * )
