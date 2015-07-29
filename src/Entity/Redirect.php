@@ -39,7 +39,6 @@ use Drupal\link\LinkItemInterface;
  *     "id" = "rid",
  *     "label" = "source",
  *     "uuid" = "uuid",
- *     "bundle" = "type",
  *     "langcode" = "language",
  *   },
  *   links = {
