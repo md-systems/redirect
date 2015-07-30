@@ -12,3 +12,16 @@ services:
     arguments: ['@redirect.repository', '@language_manager', '@config.factory', '@redirect.checker', '@router.request_context']
     tags:
       - { name: event_subscriber }
+  globalredirect.subscriber:
+      class: Drupal\redirect\EventSubscriber\GlobalredirectSubscriber
+      arguments: ['@config.factory', '@path.alias_manager', '@language_manager', '@module_handler', '@entity.manager', '@globalredirect.checker', '@router.request_context']
+      tags:
+        - { name: event_subscriber }
+  globalredirect.checker:
+      class: Drupal\redirect\GlobalRedirectChecker
+      arguments: ['@config.factory', '@access_manager', '@current_user', '@router.route_provider']
+  globalredirect.settings_cache_tag:
+        class: Drupal\redirect\EventSubscriber\GlobalredirectSettingsCacheTag
+        arguments: ['@cache_tags.invalidator']
+        tags:
+          - { name: event_subscriber }
