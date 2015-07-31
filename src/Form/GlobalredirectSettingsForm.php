@@ -27,7 +27,7 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
-    return ['globalredirect.settings'];
+    return ['redirect.settings'];
   }
 
   /**
@@ -36,25 +36,25 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
 
     // Get all settings
-    $config = $this->config('globalredirect.settings');
+    $config = $this->config('redirect.settings');
     $settings = $config->get();
 
     $form['settings'] = array(
       '#tree' => TRUE,
     );
 
-    $form['settings']['deslash'] = array(
+    $form['settings']['global_deslash'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Deslash'),
       '#description' => $this->t('If enabled, this option will remove the trailing slash from requests. This stops requests such as <code>example.com/node/1/</code> failing to match the corresponding alias and can cause duplicate content. On the other hand, if you require certain requests to have a trailing slash, this feature can cause problems so may need to be disabled.'),
-      '#default_value' => $settings['deslash'],
+      '#default_value' => $settings['global_deslash'],
     );
 
-    $form['settings']['nonclean_to_clean'] = array(
+    $form['settings']['global_clean'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Non-clean to Clean'),
       '#description' => $this->t('If enabled, this option will redirect from non-clean to clean URL (if Clean URL\'s are enabled). This will stop, for example, node 1  existing on both <code>example.com/node/1</code> AND <code>example.com/index.php/node/1</code>.'),
-      '#default_value' => $settings['nonclean_to_clean'],
+      '#default_value' => $settings['global_clean'],
     );
 
     $form['settings']['access_check'] = array(
@@ -94,22 +94,22 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
       '#default_value' => $settings['term_path_handler'],
     );
 
-    $form['settings']['frontpage_redirect'] = array(
+    $form['settings']['global_home'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Frontpage Redirect Handler'),
       '#description' => $this->t('If enabled, any request to the frontpage path will redirect to the site root.<br />
                            Whatever you set as the path of the front page on the !link settings page will redirect to the site root (e.g. "node" or "node/1" and also its alias (e.g. in case you have set "node/1" as your home page but that page also has an alias "home")).', array(
         '!link' => $this->l($this->t('Site Information'), Url::fromRoute('system.site_information_settings')),
       )),
-      '#default_value' => $settings['frontpage_redirect'],
+      '#default_value' => $settings['global_home'],
     );
 
-    $form['settings']['ignore_admin_path'] = array(
+    $form['settings']['global_admin_paths'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Ignore Admin Path'),
       '#description' => $this->t('If enabled, any request to the admin section of the site will be ignored by Global Redirect.<br />
                            This is useful if you are experiencing problems with Global Redirect and want to protect the admin section of your website. NOTE: This may not be desirable if you are using path aliases for certain admin URLs.'),
-      '#default_value' => $settings['ignore_admin_path'],
+      '#default_value' => $settings['global_admin_paths'],
     );
 
     $form['buttons']['reset'] = array(
@@ -127,19 +127,19 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     // Get config factory
-    $config = $this->config('globalredirect.settings');
+    $config = $this->config('redirect.settings');
     $form_values = $form_state->getValue(['settings']);
 
     $config
-      ->set('deslash', $form_values['deslash'])
-      ->set('nonclean_to_clean', $form_values['nonclean_to_clean'])
+      ->set('global_deslash', $form_values['global_deslash'])
+      ->set('global_clean', $form_values['global_clean'])
       ->set('access_check', $form_values['access_check'])
       ->set('normalize_aliases', $form_values['normalize_aliases'])
       ->set('canonical', $form_values['canonical'])
       ->set('content_location_header', $form_values['content_location_header'])
       ->set('term_path_handler', $form_values['term_path_handler'])
-      ->set('frontpage_redirect', $form_values['frontpage_redirect'])
-      ->set('ignore_admin_path', $form_values['ignore_admin_path'])
+      ->set('global_home', $form_values['global_home'])
+      ->set('global_admin_paths', $form_values['global_admin_paths'])
       ->save();
 
     parent::submitForm($form, $form_state);
@@ -149,21 +149,21 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
    * Clears the caches.
    */
   public function submitResetDefaults(array &$form, FormStateInterface $form_state) {
-    $config = $this->config('globalredirect.settings');
+    $config = $this->config('redirect.settings');
 
     // Get config factory
     $settingsDefault = $this->getDefaultSettings();
 
     $config
-      ->set('deslash', $settingsDefault['deslash'])
-      ->set('nonclean_to_clean', $settingsDefault['nonclean_to_clean'])
+      ->set('global_deslash', $settingsDefault['global_deslash'])
+      ->set('global_clean', $settingsDefault['global_clean'])
       ->set('access_check', $settingsDefault['access_check'])
       ->set('normalize_aliases', $settingsDefault['normalize_aliases'])
       ->set('canonical', $settingsDefault['canonical'])
       ->set('content_location_header', $settingsDefault['content_location_header'])
       ->set('term_path_handler', $settingsDefault['term_path_handler'])
-      ->set('frontpage_redirect', $settingsDefault['frontpage_redirect'])
-      ->set('ignore_admin_path', $settingsDefault['ignore_admin_path'])
+      ->set('global_home', $settingsDefault['global_home'])
+      ->set('global_admin_paths', $settingsDefault['global_admin_paths'])
       ->save();
 
     parent::submitForm($form, $form_state);
@@ -176,15 +176,15 @@ class GlobalredirectSettingsForm extends ConfigFormBase {
   public function getDefaultSettings() {
 
     $defaults = array(
-      'deslash' => 1,
-      'nonclean_to_clean' => 1,
+      'global_deslash' => 1,
+      'global_clean' => 1,
       'access_check' => 0,
       'normalize_aliases' => 1,
       'canonical' => 0,
       'content_location_header' => 0,
       'term_path_handler' => 1,
-      'frontpage_redirect' => 1,
-      'ignore_admin_path' => 1,
+      'global_home' => 1,
+      'global_admin_paths' => 1,
     );
 
     return $defaults;

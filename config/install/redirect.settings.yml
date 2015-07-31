@@ -7,3 +7,7 @@ global_clean: true
 global_admin_paths: false
 global_home: true
 global_deslash: false
+access_check: false
+normalize_aliases: true
+content_location_header: false
+term_path_handler: true

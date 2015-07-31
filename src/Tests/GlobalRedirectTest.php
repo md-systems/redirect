@@ -22,7 +22,7 @@ class GlobalRedirectTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('path', 'node', 'globalredirect', 'taxonomy', 'forum', 'views');
+  public static $modules = array('path', 'node', 'redirect', 'taxonomy', 'forum', 'views');
 
   /**
    * @var \Drupal\Core\Session\AccountInterface
@@ -57,10 +57,10 @@ class GlobalRedirectTest extends WebTestBase {
   /**
    * {@inheritdoc}
    */
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
-    $this->config = $this->config('globalredirect.settings');
+    $this->config = $this->config('redirect.settings');
 
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Page']);
     $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
@@ -85,7 +85,8 @@ class GlobalRedirectTest extends WebTestBase {
       'language' => Language::LANGCODE_NOT_SPECIFIED,
     ]);
 
-    // Create an alias for the create story path - this is used in the "redirect with permissions testing" test.
+    // Create an alias for the create story path - this is used in the
+    // "redirect with permissions testing" test.
     \Drupal::service('path.alias_storage')->save('/admin/config/system/site-information', '/site-info');
 
     // Create a taxonomy term for the forum.
@@ -121,7 +122,6 @@ class GlobalRedirectTest extends WebTestBase {
   public function testRedirects() {
 
     // Test alias normalization.
-
     $this->config->set('normalize_aliases', TRUE)->save();
     $this->assertRedirect('node/' . $this->node->id(), 'test-node');
     $this->assertRedirect('Test-node', 'test-node');
@@ -131,16 +131,14 @@ class GlobalRedirectTest extends WebTestBase {
     $this->assertRedirect('Test-node', NULL, 'HTTP/1.1 200 OK');
 
     // Test deslashing.
-
-    $this->config->set('deslash', TRUE)->save();
+    $this->config->set('global_deslash', TRUE)->save();
     $this->assertRedirect('test-node/', 'test-node');
 
-    $this->config->set('deslash', FALSE)->save();
+    $this->config->set('global_deslash', FALSE)->save();
     $this->assertRedirect('test-node/', NULL, 'HTTP/1.1 200 OK');
 
     // Test front page redirects.
-
-    $this->config->set('frontpage_redirect', TRUE)->save();
+    $this->config->set('global_home', TRUE)->save();
     $this->config('system.site')->set('page.front', '/node')->save();
     $this->assertRedirect('node', '<front>');
 
@@ -148,7 +146,7 @@ class GlobalRedirectTest extends WebTestBase {
     \Drupal::service('path.alias_storage')->save('/node', '/node-alias');
     $this->assertRedirect('node-alias', '<front>');
 
-    $this->config->set('frontpage_redirect', FALSE)->save();
+    $this->config->set('global_home', FALSE)->save();
 
     $this->assertRedirect('node', NULL, 'HTTP/1.1 200 OK');
     $this->assertRedirect('node-alias', NULL, 'HTTP/1.1 200 OK');
@@ -160,7 +158,6 @@ class GlobalRedirectTest extends WebTestBase {
     $this->assertEqual(basename($this->getUrl()), 'Test-node');
 
     // Test the access checking.
-
     $this->config->set('normalize_aliases', TRUE)->save();
     $this->config->set('access_check', TRUE)->save();
     $this->assertRedirect('admin/config/system/site-information', NULL, 'HTTP/1.1 403 Forbidden');
@@ -174,11 +171,10 @@ class GlobalRedirectTest extends WebTestBase {
     $this->drupalLogin($this->adminUser);
 
     // Test ignoring admin paths.
-
-    $this->config->set('ignore_admin_path', FALSE)->save();
+    $this->config->set('global_admin_paths', FALSE)->save();
     $this->assertRedirect('admin/config/system/site-information', 'site-info');
 
-    $this->config->set('ignore_admin_path', TRUE)->save();
+    $this->config->set('global_admin_paths', TRUE)->save();
     $this->assertRedirect('admin/config/system/site-information', NULL, 'HTTP/1.1 200 OK');
   }
 
@@ -215,7 +211,7 @@ class GlobalRedirectTest extends WebTestBase {
       $expected_ending_url = NULL;
     }
 
-    $this->assertEqual($expected_ending_url, $ending_url, $message);
+    $this->assertEqual($expected_ending_url, $ending_url);
 
     $this->assertEqual($headers[0][':status'], $expected_ending_status);
   }

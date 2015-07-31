@@ -47,7 +47,7 @@ class GlobalRedirectChecker {
    *   The route provider service.
    */
   public function __construct(ConfigFactoryInterface $config, AccessManager $access_manager, AccountInterface $account, RouteProviderInterface $route_provider) {
-    $this->config = $config->get('globalredirect.settings');
+    $this->config = $config->get('redirect.settings');
     $this->accessManager = $access_manager;
     $this->account = $account;
     $this->routeProvider = $route_provider;
@@ -74,13 +74,13 @@ class GlobalRedirectChecker {
       $do_redirect &= $this->accessManager->check($route, $request, $this->account);
     }
 
-    if ($this->config->get('ignore_admin_path')) {
+    if ($this->config->get('global_admin_paths')) {
       $do_redirect &= !(bool) $route->getOption('_admin_route');
     }
 
     // Do not redirect if is not a GET request.
     if (!($request->isMethod('GET') || $request->isMethod('HEAD'))) {
-        $do_redirect = FALSE;
+      $do_redirect = FALSE;
     }
 
     return $do_redirect;
