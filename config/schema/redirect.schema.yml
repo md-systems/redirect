@@ -31,3 +31,18 @@ redirect.settings:
     global_deslash:
       type: boolean
       label: 'Remove trailing slashes from paths.'
+    trailing_zero:
+      type: integer
+      label: 'Remove Trailing Zero Argument'
+    access_check:
+      type: boolean
+      label: 'Menu Access Checking'
+    normalize_aliases:
+      type: boolean
+      label: 'Case Sensitive URL Checking'
+    content_location_header:
+      type: boolean
+      label: 'Set Content Location Header'
+    term_path_handler:
+      type: boolean
+      label: 'Taxonomy Term Path Handler'
