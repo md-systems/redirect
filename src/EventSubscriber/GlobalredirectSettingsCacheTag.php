@@ -36,7 +36,7 @@ class GlobalredirectSettingsCacheTag implements EventSubscriberInterface {
   public function onSave(ConfigCrudEvent $event) {
     // Changing the Global Redirect settings means that any cached page might
     // result in a different response, so we need to invalidate them all.
-    if ($event->getConfig()->getName() === 'globalredirect.settings') {
+    if ($event->getConfig()->getName() === 'redirect.settings') {
       $this->cacheTagsInvalidator->invalidateTags(['rendered']);
     }
   }

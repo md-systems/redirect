@@ -87,7 +87,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
    *   Request context.
    */
   public function __construct(ConfigFactoryInterface $config_factory, AliasManager $alias_manager, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, GlobalRedirectChecker $redirect_checker, RequestContext $context) {
-    $this->config = $config_factory->get('globalredirect.settings');
+    $this->config = $config_factory->get('redirect.settings');
     $this->aliasManager = $alias_manager;
     $this->languageManager = $language_manager;
     $this->moduleHandler = $module_handler;
@@ -103,7 +103,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
    *   The Event to process.
    */
   public function globalredirectCleanUrls(GetResponseEvent $event) {
-    if (!$this->config->get('nonclean_to_clean') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
+    if (!$this->config->get('global_clean') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
       return;
     }
 
@@ -121,7 +121,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    */
   public function globalredirectDeslash(GetResponseEvent $event) {
-    if (!$this->config->get('deslash') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
+    if (!$this->config->get('global_deslash') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
       return;
     }
 
@@ -145,7 +145,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    */
   public function globalredirectFrontPage(GetResponseEvent $event) {
-    if (!$this->config->get('frontpage_redirect') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
+    if (!$this->config->get('global_home') || $event->getRequestType() != HttpKernelInterface::MASTER_REQUEST) {
       return;
     }
 
@@ -262,7 +262,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
 
     // Since deslash runs after the front page redirect, check and deslash here
     // if enabled.
-    if ($this->config->get('deslash')) {
+    if ($this->config->get('global_deslash')) {
       $path = rtrim($path, '/');
     }
 
