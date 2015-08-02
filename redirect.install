@@ -9,7 +9,7 @@ use Drupal\redirect\Entity\Redirect;
 /**
  * Rehash redirects to account for case insensitivity.
  */
-function redirect_update_8100 (&$sandbox) {
+function redirect_update_8100(&$sandbox) {
   // Loop through 100 redirects at a time.
   if (!isset($sandbox['progress'])) {
     $sandbox['progress'] = 0;
@@ -18,31 +18,26 @@ function redirect_update_8100 (&$sandbox) {
     $sandbox['max'] = db_query('SELECT COUNT(1) FROM {redirect}')->fetchField();
   }
 
-  $redirects = db_select('redirect', 'r')
-    ->fields('r', ['rid'])
+  $result = db_select('redirect', 'r')
+    ->fields('r', ['rid', 'redirect_source__path', 'redirect_source__query', 'language', 'hash'])
     ->condition('rid', $sandbox['current_rid'], '>')
     ->range(0, 100)
     ->orderBy('rid', 'ASC')
     ->execute()
     ->fetchCol();
 
-  /** @var \Drupal\redirect\RedirectRepository $repository */
-  $repository = \Drupal::service('redirect.repository');
-  $redirects = $repository->loadMultiple($redirects);
-  foreach ($redirects as $redirect) {
-    $source = $redirect->get('redirect_source')->get(0)->getValue();
-    $language = $redirect->get('language')->get(0)->getValue()['value'];
-    $query = $source['query'] ?: [];
-    $new_hash = Redirect::generateHash($source['path'], $query, $language);
-    if ($redirect->getHash() != $new_hash) {
+  foreach ($result as $row) {
+    $query = !empty($row->redirect_source__query) ? unserialize($row->redirect_source__query): [];
+    $new_hash = Redirect::generateHash($row->redirect_source__path, $query, $row->language);
+    if ($row->hash != $new_hash) {
       // Do a direct query to speed things up.
       db_update('redirect')
         ->fields(['hash' => $new_hash])
-        ->condition('rid', $redirect->id())
+        ->condition('rid', $row->rid)
         ->execute();
     }
     $sandbox['progress']++;
-    $sandbox['current_rid'] = $redirect->id();
+    $sandbox['current_rid'] = $row->rid;
   }
   // Reset caches.
   $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
