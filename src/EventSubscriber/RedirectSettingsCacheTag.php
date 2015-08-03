@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\redirect\EventSubscriber\GlobalredirectSettingsCacheTag.
+ * Contains \Drupal\redirect\EventSubscriber\RedirectSettingsCacheTag.
  */
 namespace Drupal\redirect\EventSubscriber;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -9,9 +9,9 @@ use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
- * A subscriber invalidating the 'rendered' cache tag when saving globalredirect settings.
+ * A subscriber invalidating the 'rendered' cache tag when saving redirect settings.
  */
-class GlobalredirectSettingsCacheTag implements EventSubscriberInterface {
+class RedirectSettingsCacheTag implements EventSubscriberInterface {
   /**
    * The cache tags invalidator.
    *
@@ -19,7 +19,7 @@ class GlobalredirectSettingsCacheTag implements EventSubscriberInterface {
    */
   protected $cacheTagsInvalidator;
   /**
-   * Constructs a GlobalredirectSettingsCacheTag object.
+   * Constructs a RedirectSettingsCacheTag object.
    *
    * @param \Drupal\Core\Cache\CacheTagsInvalidatorInterface $cache_tags_invalidator
    *   The cache tags invalidator.
@@ -34,7 +34,7 @@ class GlobalredirectSettingsCacheTag implements EventSubscriberInterface {
    *   The Event to process.
    */
   public function onSave(ConfigCrudEvent $event) {
-    // Changing the Global Redirect settings means that any cached page might
+    // Changing the Redirect settings means that any cached page might
     // result in a different response, so we need to invalidate them all.
     if ($event->getConfig()->getName() === 'redirect.settings') {
       $this->cacheTagsInvalidator->invalidateTags(['rendered']);

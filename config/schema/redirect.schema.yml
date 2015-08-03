@@ -19,16 +19,16 @@ redirect.settings:
     warning:
       type: boolean
       label: 'Display a warning message to users when they are redirected.'
-    global_clean:
+    nonclean_to_clean:
       type: boolean
       label: 'Redirect from non-clean URLs to clean URLs.'
-    global_admin_paths:
+    ignore_admin_path:
       type: boolean
       label: 'Allow redirections on admin paths.'
-    global_home:
+    frontpage_redirect:
       type: boolean
       label: 'Redirect from paths like index.php and /node to the root directory.'
-    global_deslash:
+    deslash:
       type: boolean
       label: 'Remove trailing slashes from paths.'
     trailing_zero:

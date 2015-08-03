@@ -74,7 +74,7 @@ class GlobalRedirectChecker {
       $do_redirect &= $this->accessManager->check($route, $request, $this->account);
     }
 
-    if ($this->config->get('global_admin_paths')) {
+    if ($this->config->get('ignore_admin_path')) {
       $do_redirect &= !(bool) $route->getOption('_admin_route');
     }
 

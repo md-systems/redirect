@@ -55,14 +55,6 @@ redirect.fix_404:
     _module_dependencies: 'dblog'
     _permission: 'administer redirects'
 
-globalredirect.settings:
-  path: '/admin/config/system/globalredirect'
-  defaults:
-    _form: 'Drupal\redirect\Form\GlobalredirectSettingsForm'
-    _title: 'Global Redirect'
-  requirements:
-    _permission: 'administer site configuration'
-
 #redirect.devel_generate:
 #  requirements:
 #    _module_dependencies: 'devel'
