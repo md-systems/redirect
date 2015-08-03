@@ -13,7 +13,7 @@ use Drupal\simpletest\WebTestBase;
 /**
  * Global redirect test cases.
  *
- * @group globalredirect
+ * @group redirect
  */
 class GlobalRedirectTest extends WebTestBase {
 
@@ -131,14 +131,14 @@ class GlobalRedirectTest extends WebTestBase {
     $this->assertRedirect('Test-node', NULL, 'HTTP/1.1 200 OK');
 
     // Test deslashing.
-    $this->config->set('global_deslash', TRUE)->save();
+    $this->config->set('deslash', TRUE)->save();
     $this->assertRedirect('test-node/', 'test-node');
 
-    $this->config->set('global_deslash', FALSE)->save();
+    $this->config->set('deslash', FALSE)->save();
     $this->assertRedirect('test-node/', NULL, 'HTTP/1.1 200 OK');
 
     // Test front page redirects.
-    $this->config->set('global_home', TRUE)->save();
+    $this->config->set('frontpage_redirect', TRUE)->save();
     $this->config('system.site')->set('page.front', '/node')->save();
     $this->assertRedirect('node', '<front>');
 
@@ -146,7 +146,7 @@ class GlobalRedirectTest extends WebTestBase {
     \Drupal::service('path.alias_storage')->save('/node', '/node-alias');
     $this->assertRedirect('node-alias', '<front>');
 
-    $this->config->set('global_home', FALSE)->save();
+    $this->config->set('frontpage_redirect', FALSE)->save();
 
     $this->assertRedirect('node', NULL, 'HTTP/1.1 200 OK');
     $this->assertRedirect('node-alias', NULL, 'HTTP/1.1 200 OK');
@@ -171,10 +171,10 @@ class GlobalRedirectTest extends WebTestBase {
     $this->drupalLogin($this->adminUser);
 
     // Test ignoring admin paths.
-    $this->config->set('global_admin_paths', FALSE)->save();
+    $this->config->set('ignore_admin_path', FALSE)->save();
     $this->assertRedirect('admin/config/system/site-information', 'site-info');
 
-    $this->config->set('global_admin_paths', TRUE)->save();
+    $this->config->set('ignore_admin_path', TRUE)->save();
     $this->assertRedirect('admin/config/system/site-information', NULL, 'HTTP/1.1 200 OK');
   }
 

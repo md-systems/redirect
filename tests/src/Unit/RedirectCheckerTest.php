@@ -25,7 +25,7 @@ class RedirectCheckerTest extends UnitTestCase {
    */
   public function testCanRedirect() {
 
-    $config = array('redirect.settings' => array('global_admin_paths' => FALSE));
+    $config = array('redirect.settings' => array('ignore_admin_path' => FALSE));
 
     $state = $this->getMockBuilder('Drupal\Core\State\StateInterface')
       ->getMock();
@@ -86,13 +86,13 @@ class RedirectCheckerTest extends UnitTestCase {
       array(RouteObjectInterface::ROUTE_OBJECT => $route));
     $this->assertFalse($checker->canRedirect($request), 'Cannot redirect if we are requesting a admin path');
 
-    // We are at admin path with global_admin_paths set to TRUE.
-    $config['redirect.settings']['global_admin_paths'] = TRUE;
+    // We are at admin path with ignore_admin_path set to TRUE.
+    $config['redirect.settings']['ignore_admin_path'] = TRUE;
     $checker = new RedirectChecker($this->getConfigFactoryStub($config), $state, $flood);
 
     $request = $this->getRequestStub('index.php', 'GET',
       array(RouteObjectInterface::ROUTE_OBJECT => $route));
-    $this->assertTrue($checker->canRedirect($request), 'Can redirect a admin with global_admin_paths set to TRUE');
+    $this->assertTrue($checker->canRedirect($request), 'Can redirect a admin with ignore_admin_path set to TRUE');
   }
 
   /**
