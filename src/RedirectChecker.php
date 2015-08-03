@@ -60,7 +60,7 @@ class RedirectChecker {
       // Do not redirect in offline or maintenance mode.
       $can_redirect = FALSE;
     }
-    elseif (!$this->config->get('global_admin_paths') && !empty($is_admin)) {
+    elseif (!$this->config->get('ignore_admin_path') && !empty($is_admin)) {
       // Do not redirect on admin paths.
       $can_redirect = FALSE;
     }

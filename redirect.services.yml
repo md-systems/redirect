@@ -20,8 +20,8 @@ services:
   globalredirect.checker:
       class: Drupal\redirect\GlobalRedirectChecker
       arguments: ['@config.factory', '@access_manager', '@current_user', '@router.route_provider']
-  globalredirect.settings_cache_tag:
-        class: Drupal\redirect\EventSubscriber\GlobalredirectSettingsCacheTag
+  redirect.settings_cache_tag:
+        class: Drupal\redirect\EventSubscriber\RedirectSettingsCacheTag
         arguments: ['@cache_tags.invalidator']
         tags:
           - { name: event_subscriber }

@@ -32,13 +32,6 @@ redirect.goto_fix_404:
   description: 'Fix 404 pages with URL redirects.'
   menu_name: admin
 
-globalredirect.settings:
-  title: 'Global Redirect'
-  parent: system.admin_config_system
-  description: 'Choose which features you would like enabled for Global Redirect.'
-  route_name: globalredirect.settings
-  menu_name: admin
-
 #redirect.devel_generate:
 #  title: 'Generate redirects'
 #  parent: dblog.page_not_found
