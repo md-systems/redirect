@@ -7,7 +7,6 @@
 namespace Drupal\redirect;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\State\StateInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,15 +26,9 @@ class RedirectChecker {
    */
   protected $state;
 
-  /**
-   * @var \Drupal\Core\Flood\FloodInterface
-   */
-  protected $flood;
-
-  public function __construct(ConfigFactoryInterface $config, StateInterface $state, FloodInterface $flood) {
+  public function __construct(ConfigFactoryInterface $config, StateInterface $state) {
     $this->config = $config->get('redirect.settings');
     $this->state = $state;
-    $this->flood = $flood;
   }
 
   /**
@@ -75,22 +68,4 @@ class RedirectChecker {
     return $can_redirect;
   }
 
-  /**
-   * Checks if for the current session we are not in a loop.
-   *
-   * @param Request $request
-   *   Current request object.
-   *
-   * @return bool
-   *   TRUE if a redirect loop has been identified.
-   */
-  public function isLoop(Request $request) {
-    if ($this->flood->isAllowed('redirection', 5, 15)) {
-      $this->flood->register('redirection', 60);
-      return FALSE;
-    }
-    else {
-      return TRUE;
-    }
-  }
 }
