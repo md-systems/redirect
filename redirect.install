@@ -5,6 +5,7 @@
  */
 
 use Drupal\redirect\Entity\Redirect;
+use Drupal\Core\Database\Database;
 
 /**
  * Rehash redirects to account for case insensitivity.
@@ -41,4 +42,32 @@ function redirect_update_8100(&$sandbox) {
   }
   // Reset caches.
   $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+}
+
+
+/**
+ * Update the {redirect} table.
+ */
+function redirect_update_8101() {
+  // Get the current schema, change the length.
+  $key_value_store_schema = \Drupal::keyValue('entity.storage_schema.sql');
+  $schema = $key_value_store_schema->get('redirect.field_schema_data.hash');
+  $schema['redirect']['fields']['hash']['length'] = 64;
+
+  // Set the max_length of the hash column to 64 characters.
+  Database::getConnection()
+    ->schema()
+    ->changeField('redirect', 'hash', 'hash', $schema['redirect']['fields']['hash']);
+
+  // Update the last installed field definition and field schema.
+  /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value_store */
+  \Drupal::entityManager()->clearCachedFieldDefinitions();
+  $key_value_store_definition = \Drupal::keyValue('entity.definitions.installed');
+  $storage_definitions = $key_value_store_definition->get('redirect.field_storage_definitions');
+  $storage_definitions['hash'] = $storage_definition = \Drupal::entityManager()
+    ->getFieldStorageDefinitions('redirect')['hash'];
+  $key_value_store_definition->set('redirect.field_storage_definitions', $storage_definitions);
+
+  // Update the stored schema.
+  $key_value_store_schema->set('redirect.field_schema_data.hash', $schema);
 }
