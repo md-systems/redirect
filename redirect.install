@@ -24,8 +24,7 @@ function redirect_update_8100(&$sandbox) {
     ->condition('rid', $sandbox['current_rid'], '>')
     ->range(0, 100)
     ->orderBy('rid', 'ASC')
-    ->execute()
-    ->fetchCol();
+    ->execute();
 
   foreach ($result as $row) {
     $query = !empty($row->redirect_source__query) ? unserialize($row->redirect_source__query): [];
