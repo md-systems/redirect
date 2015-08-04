@@ -116,7 +116,7 @@ class RedirectRepository {
    */
   protected function findByRedirect(Redirect $redirect, $language) {
     $uri = $redirect->getRedirectUrl();
-    $path = parse_url($uri->getInternalPath(), PHP_URL_PATH);
+    $path = basename(parse_url($uri->toString(), PHP_URL_PATH));
     $query = $uri->getOption('query') ?: [];
     return $this->findMatchingRedirect($path, $query, $language);
   }
