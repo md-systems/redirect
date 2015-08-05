@@ -116,7 +116,8 @@ class RedirectRepository {
    */
   protected function findByRedirect(Redirect $redirect, $language) {
     $uri = $redirect->getRedirectUrl();
-    $path = ltrim(parse_url($uri->toString(), PHP_URL_PATH), '/');
+    $baseUrl = \Drupal::request()->getBaseUrl();
+    $path = ltrim(substr($uri->toString(), strlen($baseUrl)), '/');
     $query = $uri->getOption('query') ?: [];
     return $this->findMatchingRedirect($path, $query, $language);
   }
