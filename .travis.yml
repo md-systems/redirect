@@ -23,6 +23,14 @@ matrix:
     - php: hhvm
 
 env:
+  matrix:
+    # [[[ SELECT ANY OR MORE OPTIONS ]]]
+    #- DRUPAL_TI_RUNNERS="phpunit"
+    #- DRUPAL_TI_RUNNERS="simpletest"
+    #- DRUPAL_TI_RUNNERS="behat"
+    - SUBDIR=""
+    - SUBDIR="subdir"
+
   global:
     # add composer's global bin directory to the path
     # see: https://github.com/drush-ops/drush#install---composer
@@ -86,14 +94,6 @@ env:
     # Set the test runner
     - DRUPAL_TI_RUNNERS="phpunit-core simpletest"
 
-  matrix:
-    # [[[ SELECT ANY OR MORE OPTIONS ]]]
-    #- DRUPAL_TI_RUNNERS="phpunit"
-    #- DRUPAL_TI_RUNNERS="simpletest"
-    #- DRUPAL_TI_RUNNERS="behat"
-    - SUBDIR=""
-    - SUBDIR="subdir"
-
 mysql:
   database: drupal_travis_db
   username: root
@@ -115,4 +115,5 @@ script:
   - drupal-ti script
 
 after_script:
+  - drupal-ti --include .travis-after-script.sh
   - drupal-ti after_script
