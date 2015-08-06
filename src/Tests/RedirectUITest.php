@@ -193,15 +193,15 @@ class RedirectUITest extends WebTestBase {
     // Check if we generate correct Add redirect url and if the form is
     // pre-filled.
     $destination = Url::fromUri('base:admin/config/search/redirect/404')->toString();
-    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => ltrim(Url::fromUri('base:non-existing')->toString(), '/'), 'destination' => $destination]]);
-    $this->assertFieldByName('redirect_source[0][path]', ltrim(Url::fromUri('base:non-existing')->toString(), '/'));
+    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'non-existing', 'destination' => $destination]]);
+    $this->assertFieldByName('redirect_source[0][path]', 'non-existing');
 
     // Save the redirect.
     $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => '/node'), t('Save'));
     $this->assertUrl('admin/config/search/redirect/404');
 
     // Check if the redirect works as expected.
-    $this->drupalGet(Url::fromUri('base:non-existing')->toString());
+    $this->drupalGet('non-existing');
     $this->assertUrl('node');
   }
 

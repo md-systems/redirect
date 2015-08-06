@@ -87,11 +87,11 @@ class RedirectFix404Form extends FormBase {
     foreach ($results as $result) {
 
       // @todo Detect the language from the url.
-      $request = Request::create($result->message);
+      $request = Request::create($result->message, 'GET', [], [], [], \Drupal::request()->server->all());
       $path = ltrim($request->getPathInfo(), '/');
 
       $row = array();
-      $row['source'] = \Drupal::l($result->message, Url::fromUri('internal:/' . $path, array('query' => $destination)));
+      $row['source'] = \Drupal::l($result->message, Url::fromUri('base:' . $path, array('query' => $destination)));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
