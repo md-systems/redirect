@@ -14,7 +14,7 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\AliasManager;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
-use Drupal\redirect\GlobalRedirectChecker;
+use Drupal\redirect\RedirectChecker;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -54,7 +54,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
   protected $entityManager;
 
   /**
-   * @var \Drupal\redirect\GlobalRedirectChecker
+   * @var \Drupal\redirect\RedirectChecker
    */
   protected $redirectChecker;
 
@@ -81,12 +81,12 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
    *   The module handler service.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager service.
-   * @param \Drupal\redirect\GlobalRedirectChecker $redirect_checker
+   * @param \Drupal\redirect\RedirectChecker $redirect_checker
    *   The redirect checker service.
    * @param \Symfony\Component\Routing\RequestContext
    *   Request context.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, AliasManager $alias_manager, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, GlobalRedirectChecker $redirect_checker, RequestContext $context) {
+  public function __construct(ConfigFactoryInterface $config_factory, AliasManager $alias_manager, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, RedirectChecker $redirect_checker, RequestContext $context) {
     $this->config = $config_factory->get('redirect.settings');
     $this->aliasManager = $alias_manager;
     $this->languageManager = $language_manager;
@@ -218,7 +218,7 @@ class GlobalredirectSubscriber implements EventSubscriberInterface {
     $url->setAbsolute(TRUE);
 
     // We can only check access for routed URLs.
-    if (!$url->isRouted() || $this->redirectChecker->canRedirect($url->getRouteName(), $request)) {
+    if (!$url->isRouted() || $this->redirectChecker->canRedirect($request, $url->getRouteName())) {
       // Add the 'rendered' cache tag, so that we can invalidate all responses
       // when settings are changed.
       $headers = [
