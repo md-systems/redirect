@@ -112,8 +112,8 @@ before_script:
 
 script:
   - export DRUPAL_TI_SIMPLETEST_ARGS="--verbose --color --concurrency 4 --url $DRUPAL_TI_WEBSERVER_URL:$DRUPAL_TI_WEBSERVER_PORT/$SUBDIR"
+  - drupal-ti --include .travis-after-before-script.sh
   - drupal-ti script
 
 after_script:
-  - drupal-ti --include .travis-after-script.sh
   - drupal-ti after_script
