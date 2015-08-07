@@ -138,7 +138,7 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
     $alias_manager = $this->getMockBuilder('Drupal\Core\Path\AliasManager')
       ->disableOriginalConstructor()
       ->getMock();
-    $module_handler = $this->getMockBuilder('Drupal\Core\Extension\ModuleHandlerInterface ')
+    $module_handler = $this->getMockBuilder('Drupal\Core\Extension\ModuleHandlerInterface')
       ->getMock();
     $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManagerInterface')
       ->getMock();
