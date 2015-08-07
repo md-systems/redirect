@@ -135,10 +135,21 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
 
     $context = $this->getMock('Symfony\Component\Routing\RequestContext');
 
+    $alias_manager = $this->getMockBuilder('Drupal\Core\Path\AliasManager')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $module_handler = $this->getMockBuilder('Drupal\Core\Extension\ModuleHandlerInterface')
+      ->getMock();
+    $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManagerInterface')
+      ->getMock();
+
     $subscriber = new RedirectRequestSubscriber(
       $this->getRedirectRepositoryStub('findMatchingRedirect', $redirect),
       $this->getLanguageManagerStub(),
       $this->getConfigFactoryStub(array('redirect.settings' => array('passthrough_querystring' => $retain_query))),
+      $alias_manager,
+      $module_handler,
+      $entity_manager,
       $checker,
       $context
     );
