@@ -9,14 +9,9 @@ services:
     arguments: ['@config.factory', '@state', '@access_manager', '@current_user', '@router.route_provider']
   redirect.request_subscriber:
     class: Drupal\redirect\EventSubscriber\RedirectRequestSubscriber
-    arguments: ['@redirect.repository', '@language_manager', '@config.factory', '@redirect.checker', '@router.request_context']
+    arguments: ['@redirect.repository', '@language_manager', '@config.factory', '@path.alias_manager', '@module_handler', '@entity.manager', '@redirect.checker', '@router.request_context']
     tags:
       - { name: event_subscriber }
-  globalredirect.subscriber:
-      class: Drupal\redirect\EventSubscriber\GlobalredirectSubscriber
-      arguments: ['@config.factory', '@path.alias_manager', '@language_manager', '@module_handler', '@entity.manager', '@redirect.checker', '@router.request_context']
-      tags:
-        - { name: event_subscriber }
   redirect.settings_cache_tag:
         class: Drupal\redirect\EventSubscriber\RedirectSettingsCacheTag
         arguments: ['@cache_tags.invalidator']
