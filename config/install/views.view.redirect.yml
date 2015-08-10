@@ -82,31 +82,39 @@ display:
             redirect_redirect__uri: redirect_redirect__uri
             status_code: status_code
             language: language
+            created: created
             operations: operations
           info:
             redirect_source__path:
-              sortable: false
+              sortable: true
               default_sort_order: asc
               align: ''
               separator: ''
               empty_column: false
               responsive: ''
             redirect_redirect__uri:
-              sortable: false
+              sortable: true
               default_sort_order: asc
               align: ''
               separator: ''
               empty_column: false
               responsive: ''
             status_code:
-              sortable: false
+              sortable: true
               default_sort_order: asc
               align: ''
               separator: ''
               empty_column: false
               responsive: ''
             language:
-              sortable: false
+              sortable: true
+              default_sort_order: asc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+            created:
+              sortable: true
               default_sort_order: asc
               align: ''
               separator: ''
@@ -119,7 +127,7 @@ display:
               separator: ''
               empty_column: false
               responsive: ''
-          default: '-1'
+          default: created
           empty_table: false
       row:
         type: fields
@@ -277,7 +285,7 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
-          operator: '='
+          operator: contains
           value: ''
           group: 1
           exposed: true
@@ -317,7 +325,7 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
-          operator: '='
+          operator: contains
           value: ''
           group: 1
           exposed: true
@@ -511,7 +519,7 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
-        - 'url.query_args.pagers:0'
+        - url.query_args
         - user.permissions
       cacheable: false
   page_1:
@@ -527,6 +535,6 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
-        - 'url.query_args.pagers:0'
+        - url.query_args
         - user.permissions
       cacheable: false
