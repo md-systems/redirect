@@ -1,7 +1,7 @@
 # Schema for the configuration files of the Redirect module.
 
 redirect.settings:
-  type: mapping
+  type: config_entity
   label: 'Redirect settings'
   mapping:
     canonical:
