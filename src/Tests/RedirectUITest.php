@@ -166,14 +166,59 @@ class RedirectUITest extends WebTestBase {
     ), t('Save'));
     $this->assertRaw(t('The anchor fragments are not allowed.'));
 
+    // Test filters.
+    // Add a new redirect.
+    $this->drupalPostForm('admin/config/search/redirect/add', array(
+      'redirect_source[0][path]' => 'test27',
+      'redirect_redirect[0][uri]' => '/node',
+    ), t('Save'));
+
+    // Filter  with non existing value.
+    $this->drupalGet('admin/config/search/redirect', array(
+      'query' => array(
+        'status_code' => '3',
+      ),
+    ));
+
+    $rows = $this->xpath('//tbody/tr');
+    // Check if the list has no rows.
+    $this->assertTrue(count($rows) == 0);
+
+    // Filter with existing values.
+    $this->drupalGet('admin/config/search/redirect', array(
+      'query' => array(
+        'redirect_source__path' => 'test',
+        'status_code' => '2',
+      ),
+    ));
+
+    $rows = $this->xpath('//tbody/tr');
+    // Check if the list has 1 row.
+    $this->assertTrue(count($rows) == 1);
+
+    $this->drupalGet('admin/config/search/redirect', array(
+      'query' => array(
+        'redirect_redirect__uri' => 'nod',
+      ),
+    ));
+
+    $rows = $this->xpath('//tbody/tr');
+    // Check if the list has 2 rows.
+    $this->assertTrue(count($rows) == 2);
+
     // Finally test the delete action.
     $this->drupalGet('admin/config/search/redirect');
     $this->clickLink(t('Delete'));
     $this->assertRaw(t('Are you sure you want to delete the URL redirect from %source to %redirect?',
       array('%source' => Url::fromUri('base:non-existing', ['query' => ['key' => 'value']])->toString(), '%redirect' => Url::fromUri('base:node')->toString())));
     $this->drupalPostForm(NULL, array(), t('Delete'));
+
+    // Delete the other redirect.
+    $this->clickLink(t('Delete'));
+    $this->drupalPostForm(NULL, array(), t('Delete'));
+
     $this->assertUrl('admin/config/search/redirect');
-    $this->assertText(t('There is no @label yet.', array('@label' => 'Redirect')));
+    $this->assertText(t('There is no redirect yet.'));
   }
 
   /**
