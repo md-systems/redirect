@@ -87,11 +87,16 @@ function redirect_update_8102() {
   $deslash = $redirect_settings->get('global_deslash');
 
   // If Globalredirect module exist default settings are taken.
-  if (\Drupal::moduleHandler()->moduleExists('globalredirect')) {
+  if ((!$globalredirect_settings->isNew())) {
     $access_check = $globalredirect_settings->get('access_check');
     $normalize_aliases = $globalredirect_settings->get('normalize_aliases');
     $content_location_header = $globalredirect_settings->get('content_location_header');
     $term_path_handler = $globalredirect_settings->get('term_path_handler');
+    $globalredirect_settings->delete();
+
+    // Remove Globalredirect module.
+    \Drupal::configFactory()->getEditable('core.extension')->clear('module.globalredirect')->save();
+
     $redirect->set('access_check', $access_check);
     $redirect->set('normalize_aliases', $normalize_aliases);
     $redirect->set('content_location_header', $content_location_header);
@@ -103,7 +108,7 @@ function redirect_update_8102() {
     $redirect->set('content_location_header', FALSE);
     $redirect->set('term_path_handler', TRUE);
   }
-  
+
   // Update  new redirect settings names.
   $redirect->set('nonclean_to_clean', $nonclean_to_clean);
   $redirect->set('admin_path', $admin_path);
@@ -117,10 +122,4 @@ function redirect_update_8102() {
   $redirect->clear('global_deslash');
 
   $redirect->save();
-
-  // Remove Globalredirect module.
-  if (\Drupal::moduleHandler()->moduleExists('globalredirect')) {
-    $config_factory = \Drupal::configFactory()->getEditable('core.extension');
-    $config_factory->clear('module.globalredirect')->save();
-  }
 }
