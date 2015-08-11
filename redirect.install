@@ -71,3 +71,45 @@ function redirect_update_8101() {
   // Update the stored schema.
   $key_value_store_schema->set('redirect.field_schema_data.hash', $schema);
 }
+
+/**
+ * Update settings based on existing settings and Globalredirect settings.
+ */
+function redirect_update_8102() {
+  $redirect_settings = \Drupal::config('redirect.settings');
+  $globalredirect_settings = \Drupal::config('globalredirect.settings');
+  $nonclean_to_clean = $redirect_settings->get('global_clean');
+  $admin_path = $redirect_settings->get('global_admin_paths');
+  $frontpage_redirect = $redirect_settings->get('global_home');
+  $deslash = $redirect_settings->get('global_deslash');
+  if (\Drupal::moduleHandler()->moduleExists('globalredirect')) {
+    $access_check = $globalredirect_settings->get('access_check');
+    $normalize_aliases = $globalredirect_settings->get('normalize_aliases');
+    $content_location_header = $globalredirect_settings->get('content_location_header');
+    $term_path_handler = $globalredirect_settings->get('term_path_handler');
+    $redirect_settings->clear('global_clean');
+    $redirect_settings->clear('global_admin_paths');
+    $redirect_settings->clear('global_home');
+    $redirect_settings->clear('global_deslash');
+    $redirect_settings->set('access_check', $access_check);
+    $redirect_settings->set('normalize_aliases', $normalize_aliases);
+    $redirect_settings->set('content_location_header', $content_location_header);
+    $redirect_settings->set('term_path_handler', $term_path_handler);
+  }
+  else {
+    $redirect_settings->set('access_check', FALSE);
+    $redirect_settings->set('normalize_aliases', TRUE);
+    $redirect_settings->set('content_location_header', FALSE);
+    $redirect_settings->set('term_path_handler', TRUE);
+  }
+  $redirect_settings->set('nonclean_to_clean', $nonclean_to_clean);
+  $redirect_settings->set('admin_path', $admin_path);
+  $redirect_settings->set('frontpage_redirect', $frontpage_redirect);
+  $redirect_settings->set('deslash', $deslash);
+  $redirect_settings->save();
+
+  if (\Drupal::moduleHandler()->moduleExists('globalredirect')) {
+    $config_factory = \Drupal::configFactory()->getEditable('core.extension');
+    $config_factory->clear('module.globalredirect');
+  }
+}
