@@ -112,6 +112,6 @@ function redirect_update_8102() {
 
   if (\Drupal::moduleHandler()->moduleExists('globalredirect')) {
     $config_factory = \Drupal::configFactory()->getEditable('core.extension');
-    $config_factory->clear('module.globalredirect');
+    $config_factory->clear('module.globalredirect')->save();
   }
 }
