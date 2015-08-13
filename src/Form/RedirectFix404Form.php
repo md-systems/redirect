@@ -66,54 +66,62 @@ class RedirectFix404Form extends FormBase {
       );
     }
 
+    $languages = \Drupal::languageManager()->getLanguages();
+    $multilanguage = count($languages) > 1;
+
     $header = array(
       array('data' => t('Page'), 'field' => 'message'),
       array('data' => t('Count'), 'field' => 'count', 'sort' => 'desc'),
       array('data' => t('Last accessed'), 'field' => 'timestamp'),
-      array('data' => t('Operations')),
     );
+    if ($multilanguage) {
+      $header[] = array('data' => t('Language'), 'field' => 'language');
+    }
+    $header[] = array('data' => t('Operations'));
 
-    $count_query = db_select('watchdog', 'w');
-    $count_query->addExpression('COUNT(DISTINCT(w.message))');
-    $count_query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
-    $count_query->condition('w.type', 'page not found');
+    $count_query = db_select('redirect_error', 're');
+    $count_query->addExpression('COUNT(DISTINCT(re.source))');
+    $count_query->leftJoin('redirect', 'r', 're.source = r.redirect_source__path');
     $count_query->isNull('r.rid');
-    $this->filterQuery($count_query, array('w.message'), $search);
+    $this->filterQuery($count_query, array('re.source'), $search);
 
-    $query = db_select('watchdog', 'w')
+    $query = db_select('redirect_error', 're')
       ->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header)
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
-    $query->fields('w', array('message', 'variables'));
-    $query->addExpression('COUNT(wid)', 'count');
+    $query->fields('re', array('source', 'language'));
+    $query->addExpression('COUNT(reid)', 'count');
     $query->addExpression('MAX(timestamp)', 'timestamp');
-    $query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
+    $query->leftJoin('redirect', 'r', 're.source = r.redirect_source__path');
     $query->isNull('r.rid');
-    $query->condition('w.type', 'page not found');
-    $query->groupBy('w.message');
-    $query->groupBy('w.variables');
-    $this->filterQuery($query, array('w.message'), $search);
+    $query->groupBy('re.source, re.language');
+    $this->filterQuery($query, array('re.source'), $search);
     $query->setCountQuery($count_query);
     $results = $query->execute();
 
     $rows = array();
     foreach ($results as $result) {
-
-      // @todo Detect the language from the url.
-      $url = SafeMarkup::format($result->message, unserialize($result->variables));
-
-      $request = Request::create($url, 'GET', [], [], [], \Drupal::request()->server->all());
+      $request = Request::create($result->source, 'GET', [], [], [], \Drupal::request()->server->all());
       $path = ltrim($request->getPathInfo(), '/');
 
       $row = array();
-      $row['source'] = \Drupal::l($url, Url::fromUri('base:' . $path, array('query' => $destination)));
+      $row['source'] = \Drupal::l($result->source, Url::fromUri('base:' . $path, array('query' => $destination)));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
+      if ($multilanguage) {
+        $row['language'] = $result->language;
+        if ($result->language == '' || isset($languages[$result->language])) {
+          $row['language'] = $result->language == '' ? t('Language neutral') : t('@lang_name', array('@lang_name' => $languages[$result->language]->getName()));
+        }
+        else {
+          $row['language'] = t('Undefined language (@langcode)', array('@langcode' => $result->language));
+        }
+      }
 
       $operations = array();
       if (\Drupal::entityManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
           'title' => t('Add redirect'),
-          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path) + $destination]),
+          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path, 'language' => $result->language) + $destination]),
         );
       }
       $row['operations'] = array(
