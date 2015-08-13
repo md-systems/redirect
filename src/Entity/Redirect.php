@@ -133,6 +133,19 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
+   * Sets the redirect status to enabled.
+   */
+  public function setEnabled() {
+    $this->set('status', TRUE);
+  }
+
+  /**
+   * Sets the redirect status to disabled.
+   */
+  public function setDisabled() {
+    $this->set('status', FALSE);
+  }
+  /**
    * Sets the redirect status code.
    *
    * @param int $status_code
@@ -274,6 +287,16 @@ class Redirect extends ContentEntityBase {
   }
 
   /**
+   * Gets whether the redirect is enabled.
+   *
+   * @return bool
+   *   TRUE for enabled, FALSE for disabled.
+   */
+  public function isEnabled() {
+    return $this->get('status')->value;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
@@ -335,6 +358,20 @@ class Redirect extends ContentEntityBase {
         'type' => 'language_select',
         'weight' => 2,
       ));
+
+    $fields['status'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Enabled'))
+      ->setDescription(t('The status of the redirect, i.e. enabled or disabled.'))
+      ->setTranslatable(FALSE)
+      ->setDefaultValue(TRUE)
+      ->setDisplayOptions('form', array(
+        'type' => 'boolean_checkbox',
+        'settings' => array(
+          'display_label' => TRUE,
+        ),
+        'weight' => 3,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['status_code'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Status code'))

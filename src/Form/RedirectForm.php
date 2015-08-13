@@ -127,7 +127,7 @@ class RedirectForm extends ContentEntityForm {
     if (!empty($redirects)) {
       $redirect = array_shift($redirects);
       if ($this->entity->isNew() || $redirect->id() != $this->entity->id()) {
-        $form_state->setErrorByName('redirect_source', t('The source path %source is already being redirected. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
+        $form_state->setErrorByName('redirect_source', t('A redirect already exists for the source path %source. Do you want to <a href="@edit-page">edit the existing redirect</a>?',
           array(
             '%source' => $source['path'],
             '@edit-page' => $redirect->url('edit-form'))));
