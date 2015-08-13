@@ -88,7 +88,10 @@ class RedirectUILanguageTest extends RedirectUITest {
 
 
   public function testFix404RedirectList() {
-    $this->drupalLogin($this->adminUser);
+    $this->drupalLogin($this->drupalCreateUser(array(
+      'administer redirects',
+      'administer languages',
+    )));
 
     // Add predefined language.
     $this->drupalPostForm('admin/config/regional/language/add', array('predefined_langcode' => 'fr'), t('Add language'));

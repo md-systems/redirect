@@ -56,7 +56,6 @@ class RedirectUITest extends WebTestBase {
       'create url aliases',
       'administer taxonomy',
       'administer url aliases',
-      'administer languages',
     ));
 
     $this->repository = \Drupal::service('redirect.repository');
