@@ -56,6 +56,7 @@ class RedirectUITest extends WebTestBase {
       'create url aliases',
       'administer taxonomy',
       'administer url aliases',
+      'administer languages',
     ));
 
     $this->repository = \Drupal::service('redirect.repository');
@@ -227,7 +228,7 @@ class RedirectUITest extends WebTestBase {
   public function testFix404Pages() {
     $this->drupalLogin($this->adminUser);
 
-    // Visit a non existing page to have the 404 watchdog entry.
+    // Visit a non existing page to have the 404 redirect_error entry.
     $this->drupalGet('non-existing');
 
     // Go to the "fix 404" page and check the listing.
@@ -238,7 +239,7 @@ class RedirectUITest extends WebTestBase {
     // Check if we generate correct Add redirect url and if the form is
     // pre-filled.
     $destination = Url::fromUri('base:admin/config/search/redirect/404')->toString();
-    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'non-existing', 'destination' => $destination]]);
+    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'non-existing', 'language' => 'en', 'destination' => $destination]]);
     $this->assertFieldByName('redirect_source[0][path]', 'non-existing');
 
     // Save the redirect.
