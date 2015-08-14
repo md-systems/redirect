@@ -136,7 +136,7 @@ function redirect_update_8102() {
 function redirect_update_8103() {
   $message = NULL;
 
-  // Only create if the view doesn't exist and views is enabled.
+  // Only create if the redirect view doesn't exist and views is enabled.
   if (!View::load('redirect') && \Drupal::moduleHandler()->moduleExists('views')) {
     $config_path = drupal_get_path('module', 'redirect') . '/config/install/views.view.redirect.yml';
     $data = Yaml::parse($config_path);
