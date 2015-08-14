@@ -134,14 +134,17 @@ function redirect_update_8102() {
  * Creates the new default redirect view.
  */
 function redirect_update_8103() {
+  $message = NULL;
 
   // Only create if the view doesn't exist and views is enabled.
   if (!View::load('redirect') && \Drupal::moduleHandler()->moduleExists('views')) {
     $config_path = drupal_get_path('module', 'redirect') . '/config/install/views.view.redirect.yml';
     $data = Yaml::parse($config_path);
     \Drupal::configFactory()->getEditable('views.view.redirect')->setData($data)->save(TRUE);
+    $message = 'The new redirect view has been created.';
   }
   else {
-    drupal_set_message('Not creating views.view.redirect since it already exists.');
+    $message = 'Not creating a redirect view since it already exists.';
   }
+  return $message;
 }
