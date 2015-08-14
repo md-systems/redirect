@@ -6,6 +6,8 @@
 
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Database\Database;
+  use Drupal\views\Entity\View;
+  use Symfony\Component\Yaml\Yaml;
 
 /**
  * Rehash redirects to account for case insensitivity.
@@ -126,4 +128,20 @@ function redirect_update_8102() {
   $redirect->save();
 
   return $message;
+}
+
+/**
+ * Creates the new default redirect view.
+ */
+function redirect_update_8103() {
+
+  // Only create if the view doesn't exist and views is enabled.
+  if (!View::load('redirect') && \Drupal::moduleHandler()->moduleExists('views')) {
+    $config_path = drupal_get_path('module', 'redirect') . '/config/install/views.view.redirect.yml';
+    $data = Yaml::parse($config_path);
+    \Drupal::configFactory()->getEditable('views.view.redirect')->setData($data)->save(TRUE);
+  }
+  else {
+    drupal_set_message('Not creating views.view.redirect since it already exists.');
+  }
 }
