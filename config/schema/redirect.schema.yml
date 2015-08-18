@@ -48,4 +48,4 @@ redirect.settings:
       label: 'Taxonomy Term Path Handler'
     error_log:
        type: boolean
-       label: 'Error logs'
+       label: 'Log 404 errors'
