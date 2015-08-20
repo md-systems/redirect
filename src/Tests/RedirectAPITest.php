@@ -229,4 +229,49 @@ class RedirectAPITest extends KernelTestBase {
     //  $this->assertIdentical($output, $test_case['expected']);
     //}
   }
+
+  public function testMultilanguageCases() {
+    // Add a redirect for english.
+    /** @var \Drupal\redirect\Entity\Redirect $en_redirect */
+    $en_redirect = $this->controller->create();
+    $en_redirect->setSource('langpath');
+    $en_redirect->setRedirect('/about');
+    $en_redirect->setLanguage('en');
+    $en_redirect->save();
+
+    // Add a redirect for germany.
+    /** @var \Drupal\redirect\Entity\Redirect $en_redirect */
+    $en_redirect = $this->controller->create();
+    $en_redirect->setSource('langpath');
+    $en_redirect->setRedirect('node');
+    $en_redirect->setLanguage('de');
+    $en_redirect->save();
+
+    // Check redirect for english.
+    /** @var \Drupal\redirect\RedirectRepository $repository */
+    $repository = \Drupal::service('redirect.repository');
+
+    $found = $repository->findBySourcePath('langpath');
+    if (!empty($found)) {
+      $this->assertEqual($found[1]->getRedirectUrl()->toString(), '/about', 'Multilingual redirect resolved properly.');
+      $this->assertEqual($found[1]->get('language')[0]->value, 'en', 'Multilingual redirect resolved properly.');
+    }
+    else {
+      $this->fail('Failed to resolve the multilingual redirect.');
+    }
+
+    // Check redirect for germany.
+    \Drupal::configFactory()->getEditable('system.site')->set('default_langcode', 'de')->save();
+    /** @var \Drupal\redirect\RedirectRepository $repository */
+    $repository = \Drupal::service('redirect.repository');
+    $found = $repository->findBySourcePath('langpath');
+    if (!empty($found)) {
+      $this->assertEqual($found[2]->getRedirectUrl()->toString(), '/node', 'Multilingual redirect resolved properly.');
+      $this->assertEqual($found[2]->get('language')[0]->value, 'de', 'Multilingual redirect resolved properly.');
+    }
+    else {
+      $this->fail('Failed to resolve the multilingual redirect.');
+    }
+  }
+
 }
