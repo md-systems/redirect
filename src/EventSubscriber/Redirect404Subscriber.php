@@ -21,7 +21,7 @@ class Redirect404Subscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    $events[KernelEvents::EXCEPTION][] = array('onKernelException');
+    $events[KernelEvents::EXCEPTION][] = 'onKernelException';
     return $events;
   }
 
@@ -38,8 +38,7 @@ class Redirect404Subscriber implements EventSubscriberInterface {
     // Log 404 exceptions.
     if ($event->getException() instanceof NotFoundHttpException) {
       $user = \Drupal::currentUser();
-      $language = \Drupal::languageManager()->getCurrentLanguage();
-      $langcode = $language->getId();
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
       $request = $event->getRequest();
       $now = new \DateTime();
 
