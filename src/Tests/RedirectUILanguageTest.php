@@ -41,7 +41,7 @@ class RedirectUILanguageTest extends RedirectUITest {
     // Add a redirect for english.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'langpath',
-      'redirect_redirect[0][uri]' => '/about',
+      'redirect_redirect[0][uri]' => '/user',
       'language[0][value]' => 'en',
     ), t('Save'));
 
@@ -53,7 +53,7 @@ class RedirectUILanguageTest extends RedirectUITest {
     ), t('Save'));
 
     // Check redirect for english.
-    $this->assertRedirect('en/langpath', '/about', 'HTTP/1.1 301 Moved Permanently');
+    $this->assertRedirect('langpath', '/user', 'HTTP/1.1 301 Moved Permanently');
 
     // Check redirect for germany.
     $this->assertRedirect('de/langpath', '/de', 'HTTP/1.1 301 Moved Permanently');
@@ -68,15 +68,15 @@ class RedirectUILanguageTest extends RedirectUITest {
     // Add a redirect for english.
     $this->drupalPostForm('admin/config/search/redirect/add', array(
       'redirect_source[0][path]' => 'langpath',
-      'redirect_redirect[0][uri]' => '/about',
+      'redirect_redirect[0][uri]' => '/user',
       'language[0][value]' => 'und',
     ), t('Save'));
 
     // Check redirect for english.
-    $this->assertRedirect('en/langpath', '/about', 'HTTP/1.1 301 Moved Permanently');
+    $this->assertRedirect('langpath', '/user', 'HTTP/1.1 301 Moved Permanently');
 
     // Check no redirect for spanish.
-    $this->assertRedirect('es/langpath', '/es/about', 'HTTP/1.1 301 Moved Permanently');
+    $this->assertRedirect('es/langpath', '/es/user', 'HTTP/1.1 301 Moved Permanently');
   }
 
 }
