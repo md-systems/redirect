@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\AliasManager;
+use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Url;
 use Drupal\redirect\Exception\RedirectLoopException;
@@ -69,6 +70,13 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
   protected $context;
 
   /**
+   * A path processor manager for resolving the system path.
+   *
+   * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface
+   */
+  protected $pathProcessor;
+
+  /**
    * Constructs a \Drupal\redirect\EventSubscriber\RedirectRequestSubscriber object.
    *
    * @param \Drupal\redirect\RedirectRepository $redirect_repository
@@ -88,7 +96,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\Routing\RequestContext
    *   Request context.
    */
-  public function __construct(RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, AliasManager $alias_manager, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, RedirectChecker $checker, RequestContext $context) {
+  public function __construct(RedirectRepository $redirect_repository, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config, AliasManager $alias_manager, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, RedirectChecker $checker, RequestContext $context, InboundPathProcessorInterface $path_processor) {
     $this->redirectRepository = $redirect_repository;
     $this->languageManager = $language_manager;
     $this->config = $config->get('redirect.settings');
@@ -97,6 +105,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     $this->entityManager = $entity_manager;
     $this->checker = $checker;
     $this->context = $context;
+    $this->pathProcessor = $path_processor;
   }
 
   /**
@@ -114,7 +123,11 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
     // Get URL info and process it to be used for hash generation.
     parse_str($request->getQueryString(), $request_query);
-    $path = ltrim($request->getPathInfo(), '/');
+
+    // Do the inbound processing so that for example language prefixes are
+    // removed.
+    $path = $this->pathProcessor->processInbound($request->getPathInfo(), $request);
+    $path = ltrim($path, '/');
 
     $this->context->fromRequest($request);
 
