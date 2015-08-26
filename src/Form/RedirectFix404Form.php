@@ -110,10 +110,10 @@ class RedirectFix404Form extends FormBase {
       if ($multilanguage) {
         $row['language'] = $result->language;
         if ($result->language == '' || isset($languages[$result->language])) {
-          $row['language'] = $result->language == '' ? t('Language neutral') : t('@lang_name', array('@lang_name' => $languages[$result->language]->getName()));
+          $row['language'] = $result->language == '' ? t('Language neutral') : $languages[$result->language]->getName();
         }
         else {
-          $row['language'] = t('Undefined language (@langcode)', array('@langcode' => $result->language));
+          $row['language'] = t('Undefined (@langcode)', array('@langcode' => $result->language));
         }
       }
 
