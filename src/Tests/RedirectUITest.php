@@ -415,7 +415,10 @@ class RedirectUITest extends WebTestBase {
       $expected_ending_url = Url::fromUri('base:')->setAbsolute()->toString();
     }
     elseif (!empty($expected_ending_url)) {
-      $expected_ending_url = Url::fromUri('base:' . $expected_ending_url)->setAbsolute()->toString();
+      // Check for absolute/external urls.
+      if (!parse_url($expected_ending_url, PHP_URL_SCHEME)) {
+        $expected_ending_url = Url::fromUri('base:' . $expected_ending_url)->setAbsolute()->toString();
+      }
     }
     else {
       $expected_ending_url = NULL;
@@ -457,6 +460,19 @@ class RedirectUITest extends WebTestBase {
     $redirect1->delete();
     $this->drupalGet('test-redirect');
     $this->assertResponse(404, 'Deleted redirect properly clears the internal page cache.');
+  }
+
+  /**
+   * Test external destinations.
+   */
+  public function testExternal() {
+    $redirect = $this->storage->create();
+    $redirect->setSource('a-path');
+    // @todo Redirect::setRedirect() assumes that all redirects are internal.
+    $redirect->redirect_redirect->set(0, ['uri' => 'https://www.example.org']);
+    $redirect->setStatusCode(301);
+    $redirect->save();
+    $this->assertRedirect('a-path', 'https://www.example.org');
   }
 
 }
