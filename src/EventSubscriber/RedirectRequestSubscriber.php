@@ -13,6 +13,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\AliasManager;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Drupal\redirect\Exception\RedirectLoopException;
 use Drupal\redirect\RedirectChecker;
@@ -141,7 +142,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
         'X-Redirect-ID' => $redirect->id(),
         'X-Drupal-Cache-Tags' => implode(' ', $redirect->getCacheTags()),
       ];
-      $response = new RedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), $headers);
+      $response = new TrustedRedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), $headers);
       $event->setResponse($response);
     }
   }
