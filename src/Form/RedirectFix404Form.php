@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect\Form;
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -72,13 +73,14 @@ class RedirectFix404Form extends FormBase {
     $query = db_select('watchdog', 'w')
       ->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header)
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
-    $query->fields('w', array('message'));
+    $query->fields('w', array('message', 'variables'));
     $query->addExpression('COUNT(wid)', 'count');
     $query->addExpression('MAX(timestamp)', 'timestamp');
     $query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
     $query->isNull('r.rid');
     $query->condition('w.type', 'page not found');
     $query->groupBy('w.message');
+    $query->groupBy('w.variables');
     $this->filterQuery($query, array('w.message'), $search);
     $query->setCountQuery($count_query);
     $results = $query->execute();
@@ -87,11 +89,13 @@ class RedirectFix404Form extends FormBase {
     foreach ($results as $result) {
 
       // @todo Detect the language from the url.
-      $request = Request::create($result->message, 'GET', [], [], [], \Drupal::request()->server->all());
+      $url = SafeMarkup::format($result->message, unserialize($result->variables));
+
+      $request = Request::create($url, 'GET', [], [], [], \Drupal::request()->server->all());
       $path = ltrim($request->getPathInfo(), '/');
 
       $row = array();
-      $row['source'] = \Drupal::l($result->message, Url::fromUri('base:' . $path, array('query' => $destination)));
+      $row['source'] = \Drupal::l($url, Url::fromUri('base:' . $path, array('query' => $destination)));
       $row['count'] = $result->count;
       $row['timestamp'] = format_date($result->timestamp, 'short');
 
