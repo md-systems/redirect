@@ -52,7 +52,6 @@ redirect.fix_404:
     _title: 'Fix 404 pages'
     _form: '\Drupal\redirect\Form\RedirectFix404Form'
   requirements:
-    _module_dependencies: 'dblog'
     _permission: 'administer redirects'
 
 #redirect.devel_generate:

@@ -31,6 +31,16 @@ class RedirectFix404Form extends FormBase {
 
     $search = $this->getRequest()->get('search');
     $form['#attributes'] = array('class' => array('search-form'));
+
+    // The following requires the dblog module. If it's not available, provide a message.
+    if (! \Drupal::moduleHandler()->moduleExists('dblog')) {
+      $form['message'] = [
+        '#type' => 'markup',
+        '#markup' => t('This page requires the Database Logging (dblog) module, which is currently not installed.'),
+      ];
+      return $form;
+    }
+
     $form['basic'] = array(
       '#type' => 'fieldset',
       '#title' => t('Filter 404s'),
