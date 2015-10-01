@@ -44,7 +44,7 @@ redirect.settings:
     _form: '\Drupal\redirect\Form\RedirectSettingsForm'
     _title: 'Settings'
   requirements:
-    _permission: 'administer redirects'
+    _permission: 'change redirect settings'
 
 redirect.fix_404:
   path: '/admin/config/search/redirect/404'
@@ -52,7 +52,7 @@ redirect.fix_404:
     _title: 'Fix 404 pages'
     _form: '\Drupal\redirect\Form\RedirectFix404Form'
   requirements:
-    _permission: 'administer redirects'
+    _permission: 'change redirect settings'
 
 #redirect.devel_generate:
 #  requirements:
