@@ -178,10 +178,10 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
     $path_info = $event->getRequest()->getPathInfo();
     if (($path_info !== '/') && (substr($path_info, -1, 1) === '/')) {
-      $path_info = trim($path_info, '/');
+      $path_info = rtrim($path_info, '/');
       try {
         $path_info = $this->aliasManager->getPathByAlias($path_info);
-        $this->setResponse($event, Url::fromUri('base:' . $path_info));
+        $this->setResponse($event, Url::fromUri('internal:' . $path_info));
       }
       catch (MatchingRouteNotFoundException $e) {
         // Do nothing here as it is not our responsibility to handle this.
