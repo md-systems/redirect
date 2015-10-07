@@ -30,7 +30,7 @@ function redirect_update_8100(&$sandbox) {
 
   foreach ($result as $row) {
     $query = !empty($row->redirect_source__query) ? unserialize($row->redirect_source__query): [];
-    $new_hash = Redirect::generateHash($row->redirect_source__path, $query, $row->language);
+    $new_hash = Redirect::generateHash($row->redirect_source__path, (array) $query, $row->language);
     if ($row->hash != $new_hash) {
       // Do a direct query to speed things up.
       db_update('redirect')
