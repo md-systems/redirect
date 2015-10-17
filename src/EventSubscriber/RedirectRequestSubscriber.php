@@ -140,9 +140,9 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
       }
       $headers = [
         'X-Redirect-ID' => $redirect->id(),
-        'X-Drupal-Cache-Tags' => implode(' ', $redirect->getCacheTags()),
       ];
       $response = new TrustedRedirectResponse($url->setAbsolute()->toString(), $redirect->getStatusCode(), $headers);
+      $response->addCacheableDependency($redirect);
       $event->setResponse($response);
     }
   }
