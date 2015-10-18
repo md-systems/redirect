@@ -123,6 +123,9 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
    */
   protected function callOnKernelRequestCheckRedirect($redirect, $request_query, $retain_query) {
 
+    $event = $this->getGetResponseEventStub('non-existing', http_build_query($request_query));
+    $request = $event->getRequest();
+
     $checker = $this->getMockBuilder('Drupal\redirect\RedirectChecker')
       ->disableOriginalConstructor()
       ->getMock();
@@ -134,6 +137,14 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->will($this->returnValue(FALSE));
 
     $context = $this->getMock('Symfony\Component\Routing\RequestContext');
+
+    $inbound_path_processor = $this->getMockBuilder('Drupal\Core\PathProcessor\InboundPathProcessorInterface')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $inbound_path_processor->expects($this->any())
+      ->method('processInbound')
+      ->with($request->getPathInfo(), $request)
+      ->will($this->returnValue($request->getPathInfo()));
 
     $alias_manager = $this->getMockBuilder('Drupal\Core\Path\AliasManager')
       ->disableOriginalConstructor()
@@ -151,11 +162,11 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       $module_handler,
       $entity_manager,
       $checker,
-      $context
+      $context,
+      $inbound_path_processor
     );
 
     // Run the main redirect method.
-    $event = $this->getGetResponseEventStub('non-existing', http_build_query($request_query));
     $subscriber->onKernelRequestCheckRedirect($event);
     return $event;
   }
