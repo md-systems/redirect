@@ -35,7 +35,10 @@ class RedirectUILanguageTest extends RedirectUITest {
     $language->save();
   }
 
-  public function testMultilanguageCases() {
+  /**
+   * Test multilingual scenarios.
+   */
+  public function testLanguageSpecificRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Add a redirect for english.
@@ -62,7 +65,10 @@ class RedirectUILanguageTest extends RedirectUITest {
     $this->assertRedirect('es/langpath', NULL, 'HTTP/1.1 404 Not Found');
   }
 
-  public function testUndefinedLanguageCases() {
+  /**
+   * Test non-language specific redirect.
+   */
+  public function testUndefinedLangugageRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Add a redirect for english.
@@ -75,7 +81,7 @@ class RedirectUILanguageTest extends RedirectUITest {
     // Check redirect for english.
     $this->assertRedirect('langpath', '/user', 'HTTP/1.1 301 Moved Permanently');
 
-    // Check no redirect for spanish.
+    // Check redirect for spanish.
     $this->assertRedirect('es/langpath', '/es/user', 'HTTP/1.1 301 Moved Permanently');
   }
 

@@ -230,6 +230,9 @@ class RedirectAPITest extends KernelTestBase {
     //}
   }
 
+  /**
+   * Test multilingual redirects.
+   */
   public function testMultilanguageCases() {
     // Add a redirect for english.
     /** @var \Drupal\redirect\Entity\Redirect $en_redirect */
