@@ -39,7 +39,7 @@ class RedirectUILanguageTest extends RedirectUITest {
   /**
    * Test multilingual scenarios.
    */
-  public function dtestLanguageSpecificRedirects() {
+  public function testLanguageSpecificRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Add a redirect for english.
@@ -69,7 +69,7 @@ class RedirectUILanguageTest extends RedirectUITest {
   /**
    * Test non-language specific redirect.
    */
-  public function dtestUndefinedLangugageRedirects() {
+  public function testUndefinedLangugageRedirects() {
     $this->drupalLogin($this->adminUser);
 
     // Add a redirect for english.
