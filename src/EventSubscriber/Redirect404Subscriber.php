@@ -44,7 +44,7 @@ class Redirect404Subscriber implements EventSubscriberInterface {
 
       // Write record.
       $record = array(
-        'source' => ltrim($request->getPathInfo(), '/'),
+        'source' => \Drupal::service('path.current')->getPath(),
         'uid' => $user->id(),
         'language' => $langcode,
         'timestamp' => $now->getTimestamp(),

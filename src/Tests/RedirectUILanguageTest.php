@@ -100,22 +100,22 @@ class RedirectUILanguageTest extends RedirectUITest {
     // Visit a non existing page to have the 404 redirect_error entry.
     $this->drupalGet('fr/testing');
 
-    $redirect = db_select('redirect_error')->fields('redirect_error')->condition('source', 'fr/testing')->execute()->fetchAll();
+    $redirect = db_select('redirect_error')->fields('redirect_error')->condition('source', 'testing')->execute()->fetchAll();
     if (count($redirect) == 0) {
       $this->fail('No record was added');
     }
 
     // Go to the "fix 404" page and check the listing.
     $this->drupalGet('admin/config/search/redirect/404');
-    $this->assertText('fr/testing');
+    $this->assertText('testing');
     $this->assertText('French');
     $this->clickLink(t('Add redirect'));
 
     // Check if we generate correct Add redirect url and if the form is
     // pre-filled.
     $destination = Url::fromUri('base:admin/config/search/redirect/404')->toString();
-    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'fr/testing', 'language' => 'fr', 'destination' => $destination]]);
-    $this->assertFieldByName('redirect_source[0][path]', 'fr/testing');
+    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'testing', 'language' => 'fr', 'destination' => $destination]]);
+    $this->assertFieldByName('redirect_source[0][path]', 'testing');
     $this->assertOptionSelected('edit-language-0-value', 'fr');
 
     // Save the redirect.
@@ -123,9 +123,7 @@ class RedirectUILanguageTest extends RedirectUITest {
     $this->assertUrl('admin/config/search/redirect/404');
 
     // Check if the redirect works as expected.
-    $this->drupalGet('admin/config/search/redirect');
-    $this->drupalGet('fr/testing');
-    $this->assertUrl('fr/node');
+    $this->assertRedirect('fr/testing', 'fr/node', 'HTTP/1.1 301 Moved Permanently');
   }
 
 }
