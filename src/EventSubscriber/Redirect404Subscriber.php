@@ -39,12 +39,11 @@ class Redirect404Subscriber implements EventSubscriberInterface {
     if ($event->getException() instanceof NotFoundHttpException) {
       $user = \Drupal::currentUser();
       $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
-      $request = $event->getRequest();
       $now = new \DateTime();
 
       // Write record.
       $record = array(
-        'source' => \Drupal::service('path.current')->getPath(),
+        'source' => ltrim(\Drupal::service('path.current')->getPath(), '/'),
         'uid' => $user->id(),
         'language' => $langcode,
         'timestamp' => $now->getTimestamp(),
