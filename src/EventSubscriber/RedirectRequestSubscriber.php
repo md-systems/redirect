@@ -7,6 +7,7 @@
 
 namespace Drupal\redirect\EventSubscriber;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -175,7 +176,9 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     $uri = $request->getUri();
     if (strpos($uri, 'index.php')) {
       $url = str_replace('/index.php', '', $uri);
-      $event->setResponse(new RedirectResponse($url, 301));
+      $response = new TrustedRedirectResponse($url, 301);
+      $response->addCacheableDependency(CacheableMetadata::createFromRenderArray([])->addCacheTags(['rendered']));
+      $event->setResponse($response);
     }
   }
 
@@ -285,10 +288,9 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     if (!$url->isRouted() || $this->checker->canRedirect($request, $url->getRouteName())) {
       // Add the 'rendered' cache tag, so that we can invalidate all responses
       // when settings are changed.
-      $headers = [
-        'X-Drupal-Cache-Tags' => 'rendered',
-      ];
-      $event->setResponse(new RedirectResponse($url->toString(), 301, $headers));
+      $response = new TrustedRedirectResponse($url->toString(), 301);
+      $response->addCacheableDependency(CacheableMetadata::createFromRenderArray([])->addCacheTags(['rendered']));
+      $event->setResponse($response);
     }
   }
 
