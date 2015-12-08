@@ -398,5 +398,5 @@ function redirect_redirect_operations() {
  * Ajax callback for the redirect link widget.
  */
 function redirect_source_link_get_status_messages(array $form, FormStateInterface $form_state) {
-  return $form['redirect_source']['widget'][0]['status_box'];
+  return !empty($form['redirect_source']['widget'][0]['status_box'][0]['#markup']) ? $form['redirect_source']['widget'][0]['status_box'] : [];
 }
