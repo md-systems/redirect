@@ -22,7 +22,7 @@ class PathRedirect extends DrupalSqlBase {
    * {@inheritdoc}
    */
   public function query() {
-    // Select node in its last revision.
+    // Select path redirects.
     $query = $this->select('path_redirect', 'p')
       ->fields('p', array(
         'rid',
