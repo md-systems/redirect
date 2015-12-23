@@ -8,15 +8,10 @@ process:
   rid: rid
   redirect_source: source
   redirect_redirect:
-    -
-      plugin: callback
-      source:
+    plugin: d6_path_redirect
+    source:
         - redirect
         - query
-      callable: array_filter
-    -
-      plugin: concat
-      delimiter: ?
   language:
     plugin: default_value
     source: language
