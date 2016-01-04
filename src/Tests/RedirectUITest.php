@@ -219,6 +219,7 @@ class RedirectUITest extends WebTestBase {
 
     $this->assertUrl('admin/config/search/redirect');
     $this->assertText(t('There is no redirect yet.'));
+
   }
 
   /**
@@ -473,6 +474,10 @@ class RedirectUITest extends WebTestBase {
     $redirect->setStatusCode(301);
     $redirect->save();
     $this->assertRedirect('a-path', 'https://www.example.org');
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPostForm('admin/config/search/redirect/settings', ['redirect_deslash' => 1], t('Save configuration'));
+    $this->drupalGet('/2015/10/10/');
+    $this->assertResponse(404);
   }
 
 }
