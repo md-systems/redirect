@@ -201,16 +201,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
         $path_info = $this->aliasManager->getPathByAlias($path_info);
         $this->setResponse($event, Url::fromUri('internal:' . $path_info));
       } catch (\Exception $e) {
-        switch (get_class($e)) {
-          case 'InvalidArgumentException':
-            watchdog_exception('redirect', $e, $e->getMessage(), [], RfcLogLevel::WARNING);
-            break;
-          case 'MatchingRouteNotFoundException':
-            // Do nothing here as it is not our responsibility to handle this.
-          default:
-            throw $e;
-        }
-
+        watchdog_exception('redirect', $e, $e->getMessage(), [], RfcLogLevel::WARNING);
       }
     }
   }
