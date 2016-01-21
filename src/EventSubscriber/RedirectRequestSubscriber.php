@@ -11,6 +11,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Path\AliasManager;
@@ -238,7 +239,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
 
 
     $system_path = $this->aliasManager->getPathByAlias($path);
-    $alias = $this->aliasManager->getAliasByPath($system_path, $this->languageManager->getCurrentLanguage()
+    $alias = $this->aliasManager->getAliasByPath($system_path, $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)
       ->getId());
     // If the alias defined in the system is not the same as the one via which
     // the page has been accessed do a redirect to the one defined in the
