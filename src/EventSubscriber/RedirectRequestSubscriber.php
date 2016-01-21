@@ -119,7 +119,8 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onKernelRequestCheckRedirect(GetResponseEvent $event) {
-    $request = $event->getRequest();
+    // Get a clone of the request as it might be altered during inbound processing.
+    $request = clone $event->getRequest();
 
     if (!$this->checker->canRedirect($request)) {
       return;
