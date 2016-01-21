@@ -273,7 +273,12 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->with('GET')
       ->will($this->returnValue(TRUE));
 
+    $request->query = new ParameterBag();
     $request->attributes = new ParameterBag();
+    $request->cookies = new ParameterBag();
+    $request->files = new FileBag();
+    $request->server = new ServerBag();
+    $request->headers = new HeaderBag();
 
     $http_kernel = $this->getMockBuilder('\Symfony\Component\HttpKernel\HttpKernelInterface')
       ->getMock();
