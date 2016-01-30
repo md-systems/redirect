@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Form\RedirectFormController
+ * Contains \Drupal\redirect\Form\RedirectForm.
  */
 
 namespace Drupal\redirect\Form;

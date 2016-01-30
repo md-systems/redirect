@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Tests\redirect\Unit\RedirectRequestSubscriberTest.
+ * Contains Drupal\Tests\redirect\Unit\RedirectCheckerTest.
  */
 
 namespace Drupal\Tests\redirect\Unit;
