@@ -11,9 +11,12 @@ use Drupal\Core\Language\Language;
 use Drupal\redirect\EventSubscriber\RedirectRequestSubscriber;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit_Framework_MockObject_MockObject;
+use Symfony\Component\HttpFoundation\FileBag;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ServerBag;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 
@@ -273,7 +276,12 @@ class RedirectRequestSubscriberTest extends UnitTestCase {
       ->with('GET')
       ->will($this->returnValue(TRUE));
 
+    $request->query = new ParameterBag();
     $request->attributes = new ParameterBag();
+    $request->cookies = new ParameterBag();
+    $request->files = new FileBag();
+    $request->server = new ServerBag();
+    $request->headers = new HeaderBag();
 
     $http_kernel = $this->getMockBuilder('\Symfony\Component\HttpKernel\HttpKernelInterface')
       ->getMock();
