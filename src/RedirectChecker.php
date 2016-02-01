@@ -70,7 +70,7 @@ class RedirectChecker {
       $route = $this->routeProvider->getRouteByName($route_name);
       if ($this->config->get('access_check')) {
         // Do not redirect if is a protected page.
-        $can_redirect &= $this->accessManager->checkNamedRoute($route_name, [], $this->account);
+        $can_redirect = $this->accessManager->checkNamedRoute($route_name, [], $this->account);
       }
     }
     else {
