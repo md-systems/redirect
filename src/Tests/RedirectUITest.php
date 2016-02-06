@@ -22,6 +22,11 @@ use Drupal\simpletest\WebTestBase;
 class RedirectUITest extends WebTestBase {
 
   /**
+   * @var array
+   */
+  protected $userPermissions;
+
+  /**
    * @var \Drupal\Core\Session\AccountInterface
    */
   protected $adminUser;
@@ -48,7 +53,7 @@ class RedirectUITest extends WebTestBase {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
-    $this->adminUser = $this->drupalCreateUser(array(
+    $this->userPermissions = [
       'administer redirects',
       'access site reports',
       'access content',
@@ -56,7 +61,8 @@ class RedirectUITest extends WebTestBase {
       'create url aliases',
       'administer taxonomy',
       'administer url aliases',
-    ));
+    ];
+    $this->adminUser = $this->drupalCreateUser($this->userPermissions);
 
     $this->repository = \Drupal::service('redirect.repository');
 
@@ -228,6 +234,18 @@ class RedirectUITest extends WebTestBase {
   public function testFix404Pages() {
     $this->drupalLogin($this->adminUser);
 
+    // Test the permission "Change Redirect settings".
+    $this->drupalGet('admin/config/search/redirect/404');
+    $this->assertResponse(403);
+
+    // Now create and log in a user with the proper permissions.
+    $adminUser = $this->drupalCreateUser(array_merge($this->userPermissions, ['change redirect settings']));
+    $this->drupalLogin($adminUser);
+
+    // Test access again.
+    $this->drupalGet('admin/config/search/redirect/404');
+    $this->assertResponse(200);
+
     // Visit a non existing page to have the 404 watchdog entry.
     $this->drupalGet('non-existing');
 
@@ -249,6 +267,25 @@ class RedirectUITest extends WebTestBase {
     // Check if the redirect works as expected.
     $this->drupalGet('non-existing');
     $this->assertUrl('node');
+  }
+
+  /**
+   * Tests the Settings page.
+   */
+  public function testSettingsPage() {
+    $this->drupalLogin($this->adminUser);
+
+    // Test the permission "Change Redirect settings".
+    $this->drupalGet('admin/config/search/redirect/settings');
+    $this->assertResponse(403);
+
+    // Now create and log in a user with the proper permissions.
+    $adminUser = $this->drupalCreateUser(array_merge($this->userPermissions, ['change redirect settings']));
+    $this->drupalLogin($adminUser);
+
+    // Test access again.
+    $this->drupalGet('admin/config/search/redirect/settings');
+    $this->assertResponse(200);
   }
 
   /**
@@ -474,7 +511,8 @@ class RedirectUITest extends WebTestBase {
     $redirect->setStatusCode(301);
     $redirect->save();
     $this->assertRedirect('a-path', 'https://www.example.org');
-    $this->drupalLogin($this->adminUser);
+    $adminUser = $this->drupalCreateUser(array_merge($this->userPermissions, ['change redirect settings']));
+    $this->drupalLogin($adminUser);
     $this->drupalPostForm('admin/config/search/redirect/settings', ['redirect_deslash' => 1], t('Save configuration'));
     $this->drupalGet('/2015/10/10/');
     $this->assertResponse(404);
