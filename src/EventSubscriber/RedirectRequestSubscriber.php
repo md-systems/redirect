@@ -242,7 +242,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
       return;
     }
 
-
+    $path = $this->cleanPathFromLanguagePrefix($path);
     $system_path = $this->aliasManager->getPathByAlias($path);
     $alias = $this->aliasManager->getAliasByPath($system_path, $this->languageManager->getCurrentLanguage()
       ->getId());
@@ -254,6 +254,23 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
         $this->setResponse($event, $url);
       }
     }
+  }
+
+  public function cleanPathFromLanguagePrefix($path) {
+    $config = \Drupal::config('language.negotiation')->get('url');
+    $parts = explode('/', trim($path, '/'));
+    $prefix = array_shift($parts);
+
+    // Search prefix within added languages.
+    foreach (\Drupal::languageManager()->getLanguages() as $language) {
+      if (isset($config['prefixes'][$language->getId()]) && $config['prefixes'][$language->getId()] == $prefix) {
+        // Rebuild $path with the language removed.
+        $path = '/' . implode('/', $parts);
+        break;
+      }
+    }
+
+    return $path;
   }
 
   /**
