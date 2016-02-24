@@ -111,7 +111,9 @@ class RedirectSourceItem extends FieldItemBase {
    * {@inheritdoc}
    */
   public function getUrl() {
-    return Url::fromUri('base:' . $this->path, ['query' => $this->query]);
+    // Core expects urls to start with / but the hash needs to be generated
+    // without the / as the Request path doesn't have this.
+    return Url::fromUri('base:/' . $this->path, ['query' => $this->query]);
   }
 
 }
