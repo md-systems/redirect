@@ -38,7 +38,7 @@ use Drupal\link\LinkItemInterface;
  *   admin_permission = "administer redirects",
  *   entity_keys = {
  *     "id" = "rid",
- *     "label" = "source",
+ *     "label" = "redirect_source",
  *     "uuid" = "uuid",
  *     "bundle" = "type",
  *     "langcode" = "language",
