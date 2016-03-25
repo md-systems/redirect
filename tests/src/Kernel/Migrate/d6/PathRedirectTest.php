@@ -5,7 +5,7 @@
  * Contains \Drupal\Tests\redirect\Kernel\Migrate\d6\PathRedirectTest.
  */
 
-namespace Drupal\Tests\redirect\Tests\Migrate\d6;
+namespace Drupal\Tests\redirect\Kernel\Migrate\d6;
 
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
@@ -30,7 +30,7 @@ class PathRedirectTest extends MigrateDrupalTestBase {
     parent::setUp();
     $this->installSchema('system', array('router'));
     $this->installEntitySchema('redirect');
-    $this->loadFixture( __DIR__ . '/../../../../tests/fixtures/drupal6.php');
+    $this->loadFixture( __DIR__ . '/../../../../../tests/fixtures/drupal6.php');
 
     $this->executeMigrations(['d6_path_redirect']);
   }
