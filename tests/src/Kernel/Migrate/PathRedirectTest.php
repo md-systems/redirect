@@ -5,11 +5,12 @@
  * Contains \Drupal\redirect\Tests\Migrate\d6\PathRedirectTest.
  */
 
-namespace Drupal\redirect\Tests\Migrate\d6;
+namespace Drupal\Tests\redirect\Tests\Migrate\d6;
 
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\migrate\Entity\Migration;
+use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
 
 
 /**
@@ -32,22 +33,8 @@ class PathRedirectTest extends MigrateDrupalTestBase {
     $this->installSchema('system', array('router'));
     $this->installEntitySchema('redirect');
     $this->loadFixture( __DIR__ . '/../../../../tests/fixtures/drupal6.php');
-    $template = \Drupal::service('migrate.template_storage')->getTemplateByName('d6_path_redirect');
-    $migrations = \Drupal::service('migrate.migration_builder')->createMigrations([$template]);
 
-    foreach ($migrations as $migration) {
-      try {
-        $migration->save();
-      }
-      catch (PluginNotFoundException $e) {
-        // Migrations requiring modules not enabled will throw an exception.
-        // Ignoring this exception is equivalent to placing config in the
-        // optional subdirectory - the migrations we require for the test will
-        // be successfully saved.
-      }
-    }
-
-    $this->executeMigration('d6_path_redirect');
+    $this->executeMigrations(['d6_path_redirect']);
   }
 
   /**
@@ -57,7 +44,7 @@ class PathRedirectTest extends MigrateDrupalTestBase {
 
     /** @var Redirect $redirect */
     $redirect = Redirect::load(5);
-    $this->assertIdentical(Migration::load('d6_path_redirect')
+    $this->assertIdentical($this->getMigration('d6_path_redirect')
       ->getIdMap()
       ->lookupDestinationID(array(5)), array($redirect->id()));
     $this->assertIdentical("/test/source/url", $redirect->getSourceUrl());
