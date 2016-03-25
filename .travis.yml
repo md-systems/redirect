@@ -47,6 +47,7 @@ env:
 
     # The environment to use, supported are: drupal-7, drupal-8
     - DRUPAL_TI_ENVIRONMENT="drupal-8"
+    - DRUPAL_TI_CORE_BRANCH="8.1.x"
 
     # Drupal specific variables.
     - DRUPAL_TI_DB="drupal_travis_db"
@@ -101,7 +102,7 @@ mysql:
 
 before_install:
   - composer self-update
-  - composer global require "lionsad/drupal_ti:1.*"
+  - composer global require "lionsad/drupal_ti:dev-master#cd2d6516d87fe0f4a62eec1814ae2342817b8af3"
   - drupal-ti before_install
 
 install:
