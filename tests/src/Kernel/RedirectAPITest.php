@@ -2,16 +2,16 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\RedirectAPITest.
+ * Contains \Drupal\Tests\redirect\Kernel\RedirectAPITest.
  */
 
-namespace Drupal\redirect\Tests;
+namespace Drupal\Tests\redirect\Kernel;
 
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\Exception\RedirectLoopException;
-use Drupal\simpletest\KernelTestBase;
+use Drupal\KernelTests\KernelTestBase;
 
 /**
  * Redirect entity and redirect API test coverage.
