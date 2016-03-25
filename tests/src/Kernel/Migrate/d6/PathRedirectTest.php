@@ -2,14 +2,12 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\Migrate\d6\PathRedirectTest.
+ * Contains \Drupal\Tests\redirect\Kernel\Migrate\d6\PathRedirectTest.
  */
 
 namespace Drupal\Tests\redirect\Tests\Migrate\d6;
 
-use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\redirect\Entity\Redirect;
-use Drupal\migrate\Entity\Migration;
 use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
 
 
@@ -23,7 +21,7 @@ class PathRedirectTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('redirect','link');
+  public static $modules = array('redirect', 'link');
 
   /**
    * {@inheritdoc}
@@ -44,14 +42,14 @@ class PathRedirectTest extends MigrateDrupalTestBase {
 
     /** @var Redirect $redirect */
     $redirect = Redirect::load(5);
-    $this->assertIdentical($this->getMigration('d6_path_redirect')
+    $this->assertSame($this->getMigration('d6_path_redirect')
       ->getIdMap()
       ->lookupDestinationID(array(5)), array($redirect->id()));
-    $this->assertIdentical("/test/source/url", $redirect->getSourceUrl());
-    $this->assertIdentical("base:test/redirect/url", $redirect->getRedirectUrl()->toUriString());
+    $this->assertSame("/test/source/url", $redirect->getSourceUrl());
+    $this->assertSame("base:test/redirect/url", $redirect->getRedirectUrl()->toUriString());
 
     $redirect = Redirect::load(7);
-    $this->assertIdentical("/test/source/url2", $redirect->getSourceUrl());
-    $this->assertIdentical("http://test/external/redirect/url?foo=bar&biz=buz", $redirect->getRedirectUrl()->toUriString());
+    $this->assertSame("/test/source/url2", $redirect->getSourceUrl());
+    $this->assertSame("http://test/external/redirect/url?foo=bar&biz=buz", $redirect->getRedirectUrl()->toUriString());
   }
 }
