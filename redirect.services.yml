@@ -17,3 +17,7 @@ services:
         arguments: ['@cache_tags.invalidator']
         tags:
           - { name: event_subscriber }
+  redirect.404_subscriber:
+    class: Drupal\redirect\EventSubscriber\Redirect404Subscriber
+    tags:
+      - {name: event_subscriber}
