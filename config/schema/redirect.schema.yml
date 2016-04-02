@@ -46,6 +46,6 @@ redirect.settings:
     term_path_handler:
       type: boolean
       label: 'Taxonomy Term Path Handler'
-    error_log:
+    log_404:
        type: boolean
        label: 'Log 404 errors'

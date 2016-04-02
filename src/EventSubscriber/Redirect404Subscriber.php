@@ -32,23 +32,24 @@ class Redirect404Subscriber implements EventSubscriberInterface {
    *   Is given by the event dispatcher.
    */
   public function onKernelException(GetResponseForExceptionEvent $event) {
-    if (!\Drupal::config('redirect.settings')->get('error_log')) {
-      return;
-    }
-    // Log 404 exceptions.
+    // Log 404 only exceptions.
     if ($event->getException() instanceof NotFoundHttpException) {
-      $user = \Drupal::currentUser();
+      if (!\Drupal::config('redirect.settings')->get('log_404')) {
+        return;
+      }
       $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
-      $now = new \DateTime();
 
       // Write record.
-      $record = array(
-        'source' => ltrim(\Drupal::service('path.current')->getPath(), '/'),
-        'uid' => $user->id(),
-        'language' => $langcode,
-        'timestamp' => $now->getTimestamp(),
-      );
-      Database::getConnection()->insert('redirect_error')->fields($record)->execute();
+      Database::getConnection()->merge('redirect_404')
+        ->key('path', \Drupal::service('path.current')->getPath())
+        ->key('langcode', $langcode)
+        ->expression('count', 'count + 1')
+        ->fields([
+          'timestamp' => REQUEST_TIME,
+          'count' => 1,
+        ])
+        ->execute();
+
     }
   }
 
