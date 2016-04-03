@@ -84,23 +84,22 @@ class RedirectFix404Form extends FormBase {
       $wildcard = '%' . trim(preg_replace('!\*+!', '%', \Drupal::database()->escapeLike($search)), '%') . '%';
       $query->condition('path', $wildcard, 'LIKE');
     }
-    $result = $query->execute();
+    $results = $query->execute();
 
     $rows = array();
-    foreach ($result as $row) {
-      $request = Request::create($row->path, 'GET', [], [], [], \Drupal::request()->server->all());
-      $path = ltrim($request->getPathInfo(), '/');
+    foreach ($results as $result) {
+      $path = ltrim($result->path, '/');
 
       $row = array();
-      $row['source'] = Link::fromTextAndUrl($row->path, Url::fromUri('base:' . $path, array('query' => $destination)));
-      $row['count'] = $row->count;
-      $row['timestamp'] = \Drupal::service('date.formatter')->format($row->timestamp, 'short');
+      $row['source'] = Link::fromTextAndUrl($result->path, Url::fromUri('base:' . $path, array('query' => $destination)));
+      $row['count'] = $result->count;
+      $row['timestamp'] = \Drupal::service('date.formatter')->format($result->timestamp, 'short');
       if ($multilingual) {
-        if (isset($languages[$row->langcode])) {
-          $row['language'] =$languages[$row->langcode]->getName();
+        if (isset($languages[$result->langcode])) {
+          $row['language'] =$languages[$result->langcode]->getName();
         }
         else {
-          $row['language'] =$this->t('Undefined @langcode', array('@langcode' => $row->langcode));
+          $row['language'] =$this->t('Undefined @langcode', array('@langcode' => $result->langcode));
         }
       }
 
@@ -108,12 +107,12 @@ class RedirectFix404Form extends FormBase {
       if (\Drupal::entityTypeManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
           'title' =>$this->t('Add redirect'),
-          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path, 'language' => $row->langcode) + $destination]),
+          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path, 'language' => $result->langcode) + $destination]),
         );
       }
       $row['operations'] = array(
         'data' => array(
-          '#theme' => 'operations',
+          '#type' => 'operations',
           '#links' => $operations,
         ),
       );

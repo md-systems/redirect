@@ -19,7 +19,7 @@ function redirect_schema() {
     'fields' => [
       'path' => [
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 191,
         'not null' => TRUE,
         'description' => 'The path of the request',
       ],
@@ -199,7 +199,7 @@ function redirect_update_8104() {
     'fields' => [
       'path' => [
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 191,
         'not null' => TRUE,
         'description' => 'The path of the request',
       ],
