@@ -59,7 +59,7 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => t('Log 404 errors.'),
       '#default_value' => $config->get('log_404'),
-      '#description' => t('In case you directly import 404 errors from the webserver, you need to disable logging to avoid duplicates.'),
+      '#description' => t('Logging 404 error allows to easily create redirects for often requested but missing pages.'),
     );
     $form['globals'] = array(
       '#type' => 'fieldset',
