@@ -124,7 +124,7 @@ class RedirectFix404Form extends FormBase {
       '#theme' => 'table',
       '#header' => $header,
       '#rows' => $rows,
-      '#empty' =>$this->t('No 404 pages without redirects found.'),
+      '#empty' => $this->config('redirect.settings')->get('log_404') ? $this->t('No 404 pages without redirects found.') : $this->t('404 requests are currently not logged, enable it in the Settings.'),
     );
     $form['redirect_404_pager'] = array('#type' => 'pager');
     return $form;
