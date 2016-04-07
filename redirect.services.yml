@@ -21,3 +21,5 @@ services:
     class: Drupal\redirect\EventSubscriber\Redirect404Subscriber
     tags:
       - {name: event_subscriber}
+  redirect.not_found_storage:
+    class: Drupal\redirect\RedirectNotFoundStorage

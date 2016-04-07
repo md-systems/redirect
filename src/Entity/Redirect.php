@@ -31,7 +31,8 @@ use Drupal\link\LinkItemInterface;
  *       "edit" = "Drupal\redirect\Form\RedirectForm"
  *     },
  *     "views_data" = "Drupal\views\EntityViewsData",
- *     "storage_schema" = "\Drupal\redirect\RedirectStorageSchema"
+ *     "storage_schema" = "\Drupal\redirect\RedirectStorageSchema",
+ *     "storage_not_found" = "\Drupal\redirect\RedirectNotFoundStorage",
  *   },
  *   base_table = "redirect",
  *   translatable = FALSE,
