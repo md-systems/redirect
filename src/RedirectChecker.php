@@ -77,7 +77,7 @@ class RedirectChecker {
       $route = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT);
     }
 
-    if (strpos($request->getScriptName(), 'index.php') === FALSE) {
+    if (!preg_match('/index\.php$/', $request->getScriptName())) {
       // Do not redirect if the root script is not /index.php.
       $can_redirect = FALSE;
     }
