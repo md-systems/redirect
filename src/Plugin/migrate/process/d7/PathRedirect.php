@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Plugin\migrate\process\PathRedirect.
+ * Contains \Drupal\redirect\Plugin\migrate\process\d7\PathRedirect.
  */
 
-namespace Drupal\redirect\Plugin\migrate\process;
+namespace Drupal\redirect\Plugin\migrate\process\d7;
 
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
@@ -13,7 +13,7 @@ use Drupal\migrate\Row;
 
 /**
  * @MigrateProcessPlugin(
- *   id = "d6_path_redirect"
+ *   id = "d7_path_redirect"
  * )
  */
 class PathRedirect extends ProcessPluginBase {
@@ -35,10 +35,14 @@ class PathRedirect extends ProcessPluginBase {
       $uri = 'internal:/' . $value[0];
     }
 
-    // Check if there is a query.
+    // Check if there are options.
     if (!empty($value[1])) {
-      // Add it to the end of the url.
-      $uri .= '?' . $value[1];
+      // Check if there is a query.
+      $options = unserialize($value[1]);
+      if (!empty($options['query'])) {
+        // Add it to the end of the url.
+        $uri .= '?' . http_build_query($options['query']);
+      }
     }
 
     return $uri;
