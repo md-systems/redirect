@@ -61,13 +61,15 @@ class RedirectRepository {
    *   The redirect source path query.
    * @param $language
    *   The language for which is the redirect.
+   * @param bool $enabled only
+   *   Whether oto only retrieve enabled redirects.
    *
    * @return \Drupal\redirect\Entity\Redirect
    *   The matched redirect entity.
    *
    * @throws \Drupal\redirect\Exception\RedirectLoopException
    */
-  public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
+  public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED, $enabled_only = TRUE) {
     $hashes = [Redirect::generateHash($source_path, $query, $language)];
     if ($language != Language::LANGCODE_NOT_SPECIFIED) {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
@@ -82,7 +84,12 @@ class RedirectRepository {
     }
 
     // Load redirects by hash. A direct query is used to improve performance.
-    $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[]) ORDER BY LENGTH(redirect_source__query) DESC', [':hashes[]' => $hashes])->fetchField();
+    if ($enabled_only) {
+      $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[]) AND status = 1 ORDER BY LENGTH(redirect_source__query) DESC', [':hashes[]' => $hashes])->fetchField();
+    }
+    else {
+      $rid = $this->connection->query('SELECT rid FROM {redirect} WHERE hash IN (:hashes[]) ORDER BY LENGTH(redirect_source__query) DESC', [':hashes[]' => $hashes])->fetchField();
+    }
 
     if (!empty($rid)) {
       // Check if this is a loop.
@@ -119,7 +126,7 @@ class RedirectRepository {
     $baseUrl = \Drupal::request()->getBaseUrl();
     $path = ltrim(substr($uri->toString(), strlen($baseUrl)), '/');
     $query = $uri->getOption('query') ?: [];
-    return $this->findMatchingRedirect($path, $query, $language);
+    return $this->findMatchingRedirect($path, $query, $language, TRUE);
   }
 
   /**
@@ -131,8 +138,13 @@ class RedirectRepository {
    * @return \Drupal\redirect\Entity\Redirect[]
    *   Array of redirect entities.
    */
-  public function findBySourcePath($source_path) {
-    return $this->manager->getStorage('redirect')->loadByProperties(array('redirect_source__path' => $source_path));
+  public function findBySourcePath($source_path, $langcode = NULL) {
+    $properties = ['redirect__source__path' => $source_path];
+    if (isset($langcode)) {
+      $properties[] = ['langcode' => $langcode];
+    }
+
+    return $this->manager->getStorage('redirect')->loadByProperties($properties);
   }
 
   /**

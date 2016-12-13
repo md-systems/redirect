@@ -78,16 +78,21 @@ function redirect_path_update(array $path) {
   }
   $original_path = $path['original'];
 
-  // Delete all redirects having the same source as this alias.
-  redirect_delete_by_path($path['alias'], $path['langcode'], FALSE);
+  // Disable all redirects having the same source as this alias.
+  redirect_disable_by_path($path['alias'], $path['langcode']);
   if ($original_path['alias'] != $path['alias']) {
-    if (!redirect_repository()->findMatchingRedirect($original_path['alias'], array(), $original_path['langcode'])) {
+    $existing = redirect_repository()->findMatchingRedirect($original_path['alias'], array(), $original_path['langcode'], TRUE);
+    if (!$existing) {
       $redirect = Redirect::create();
       $redirect->setSource($original_path['alias']);
       $redirect->setRedirect($path['source']);
       $redirect->setLanguage($original_path['langcode']);
       $redirect->setStatusCode(\Drupal::config('redirect.settings')->get('default_status_code'));
       $redirect->save();
+    }
+    // If the existing redirect is disabled, re-enable it.
+    else {
+      $existing->setEnabled(TRUE);
     }
   }
 }
@@ -97,7 +102,7 @@ function redirect_path_update(array $path) {
  */
 function redirect_path_insert(array $path) {
   // Delete all redirects having the same source as this alias.
-  redirect_delete_by_path($path['alias'], $path['langcode'], FALSE);
+  redirect_disable_by_path($path['alias'], $path['langcode']);
 }
 
 /**
@@ -224,6 +229,28 @@ function redirect_delete_by_path($path, $langcode = NULL, $match_subpaths_and_re
     foreach (redirect_repository()->loadMultiple($rids) as $redirect) {
       $redirect->delete();
     }
+  }
+}
+
+/**
+ * Disable any redirects associated with a path.
+ *
+ * Given a source like 'node/1' this function will delete any redirects that
+ * have that specific source.
+ *
+ * @param $path
+ *   An string with an internal Drupal path.
+ *
+ * @param @langcode
+ *   The langcode of the path.
+ *
+ * @ingroup redirect_api
+ */
+function redirect_disable_by_path($path, $langcode) {
+  $redirect_repository = redirect_repository();
+  $redirects = $redirect_repository->findBySourcePath($path, $langcode);
+  foreach ($redirects as $redirect) {
+    $redirect->setDisabled();
   }
 }
 

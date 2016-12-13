@@ -142,7 +142,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     $this->context->fromRequest($request);
 
     try {
-      $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->getId());
+      $redirect = $this->redirectRepository->findMatchingRedirect($path, $request_query, $this->languageManager->getCurrentLanguage()->getId(), TRUE);
     }
     catch (RedirectLoopException $e) {
       \Drupal::logger('redirect')->warning($e->getMessage());
