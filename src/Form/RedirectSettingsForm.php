@@ -55,6 +55,12 @@ class RedirectSettingsForm extends ConfigFormBase {
       '#options' => redirect_status_code_options(),
       '#default_value' => $config->get('default_status_code'),
     );
+    $form['redirect_error_log'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Log 404 errors.'),
+      '#default_value' => $config->get('error_log'),
+      '#description' => t('In case you directly import 404 errors from the webserver, you need to disable logging to avoid duplicates.'),
+    );
     $form['globals'] = array(
       '#type' => 'fieldset',
       '#title' => $this->t('Global redirects'),
