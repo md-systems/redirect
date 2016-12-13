@@ -27,9 +27,8 @@ class RedirectStorageSchema extends SqlContentEntityStorageSchema {
     ];
     $schema['redirect']['indexes'] += [
       // Limit length to 191.
-      'source_language' => [['redirect_source__path', 191],'language'],
+      'source_language' => [['redirect_source__path', 191], 'language'],
     ];
-
     return $schema;
   }
 

@@ -7,10 +7,11 @@
 
 namespace Drupal\redirect\Form;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -27,23 +28,14 @@ class RedirectFix404Form extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $destination = drupal_get_destination();
+    $destination = $this->getDestinationArray();
 
     $search = $this->getRequest()->get('search');
     $form['#attributes'] = array('class' => array('search-form'));
 
-    // The following requires the dblog module. If it's not available, provide a message.
-    if (! \Drupal::moduleHandler()->moduleExists('dblog')) {
-      $form['message'] = [
-        '#type' => 'markup',
-        '#markup' => t('This page requires the Database Logging (dblog) module, which is currently not installed.'),
-      ];
-      return $form;
-    }
-
     $form['basic'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Filter 404s'),
+      '#title' => $this->t('Filter 404s'),
       '#attributes' => array('class' => array('container-inline')),
     );
     $form['basic']['filter'] = array(
@@ -55,72 +47,73 @@ class RedirectFix404Form extends FormBase {
     );
     $form['basic']['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Filter'),
+      '#value' => $this->t('Filter'),
       '#action' => 'filter',
     );
     if ($search) {
       $form['basic']['reset'] = array(
         '#type' => 'submit',
-        '#value' => t('Reset'),
+        '#value' => $this->t('Reset'),
         '#action' => 'reset',
       );
     }
 
+    $languages = \Drupal::languageManager()->getLanguages(LanguageInterface::STATE_ALL);
+    $multilingual = \Drupal::languageManager()->isMultilingual();
+
     $header = array(
-      array('data' => t('Page'), 'field' => 'message'),
-      array('data' => t('Count'), 'field' => 'count', 'sort' => 'desc'),
-      array('data' => t('Last accessed'), 'field' => 'timestamp'),
-      array('data' => t('Operations')),
+      array('data' => $this->t('Path'), 'field' => 'path'),
+      array('data' => $this->t('Count'), 'field' => 'count', 'sort' => 'desc'),
+      array('data' => $this->t('Last accessed'), 'field' => 'timestamp'),
     );
+    if ($multilingual) {
+      $header[] = array('data' => $this->t('Language'), 'field' => 'language');
+    }
+    $header[] = array('data' => $this->t('Operations'));
 
-    $count_query = db_select('watchdog', 'w');
-    $count_query->addExpression('COUNT(DISTINCT(w.message))');
-    $count_query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
-    $count_query->condition('w.type', 'page not found');
-    $count_query->isNull('r.rid');
-    $this->filterQuery($count_query, array('w.message'), $search);
+    $query = \Drupal::database()
+      ->select('redirect_404', 'r404')
+      ->extend('Drupal\Core\Database\Query\TableSortExtender')
+      ->orderByHeader($header)
+      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
+      ->limit(25)
+      ->fields('r404');
 
-    $query = db_select('watchdog', 'w')
-      ->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header)
-      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
-    $query->fields('w', array('message', 'variables'));
-    $query->addExpression('COUNT(wid)', 'count');
-    $query->addExpression('MAX(timestamp)', 'timestamp');
-    $query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
-    $query->isNull('r.rid');
-    $query->condition('w.type', 'page not found');
-    $query->groupBy('w.message');
-    $query->groupBy('w.variables');
-    $this->filterQuery($query, array('w.message'), $search);
-    $query->setCountQuery($count_query);
+    if ($search) {
+      // Replace wildcards with PDO wildcards.
+      $wildcard = '%' . trim(preg_replace('!\*+!', '%', \Drupal::database()->escapeLike($search)), '%') . '%';
+      $query->condition('path', $wildcard, 'LIKE');
+    }
     $results = $query->execute();
 
     $rows = array();
     foreach ($results as $result) {
-
-      // @todo Detect the language from the url.
-      $url = SafeMarkup::format($result->message, unserialize($result->variables));
-
-      $request = Request::create($url, 'GET', [], [], [], \Drupal::request()->server->all());
-      $path = ltrim($request->getPathInfo(), '/');
+      $path = ltrim($result->path, '/');
 
       $row = array();
-      $row['source'] = \Drupal::l($url, Url::fromUri('base:' . $path, array('query' => $destination)));
+      $row['source'] = Link::fromTextAndUrl($result->path, Url::fromUri('base:' . $path, array('query' => $destination)));
       $row['count'] = $result->count;
-      $row['timestamp'] = format_date($result->timestamp, 'short');
+      $row['timestamp'] = \Drupal::service('date.formatter')->format($result->timestamp, 'short');
+      if ($multilingual) {
+        if (isset($languages[$result->langcode])) {
+          $row['language'] =$languages[$result->langcode]->getName();
+        }
+        else {
+          $row['language'] =$this->t('Undefined @langcode', array('@langcode' => $result->langcode));
+        }
+      }
 
       $operations = array();
-      if (\Drupal::entityManager()->getAccessControlHandler('redirect')->createAccess()) {
+      if (\Drupal::entityTypeManager()->getAccessControlHandler('redirect')->createAccess()) {
         $operations['add'] = array(
-          'title' => t('Add redirect'),
-          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path) + $destination]),
+          'title' =>$this->t('Add redirect'),
+          'url' => Url::fromRoute('redirect.add', [], ['query' => array('source' => $path, 'language' => $result->langcode) + $destination]),
         );
       }
       $row['operations'] = array(
         'data' => array(
-          '#theme' => 'links',
+          '#type' => 'operations',
           '#links' => $operations,
-          '#attributes' => array('class' => array('links', 'inline', 'nowrap')),
         ),
       );
 
@@ -131,7 +124,7 @@ class RedirectFix404Form extends FormBase {
       '#theme' => 'table',
       '#header' => $header,
       '#rows' => $rows,
-      '#empty' => t('No 404 pages without redirects found.'),
+      '#empty' => $this->config('redirect.settings')->get('log_404') ? $this->t('No 404 pages without redirects found.') : $this->t('404 requests are currently not logged, enable it in the Settings.'),
     );
     $form['redirect_404_pager'] = array('#type' => 'pager');
     return $form;
@@ -147,26 +140,6 @@ class RedirectFix404Form extends FormBase {
     }
     else {
       $form_state->setRedirect('redirect.fix_404');
-    }
-  }
-
-  /**
-   * Extends a query object for URL redirect filters.
-   *
-   * @param $query
-   *   Query object that should be filtered.
-   * @param $keys
-   *   The filter string to use.
-   */
-  protected function filterQuery(SelectInterface $query, array $fields, $keys = '') {
-    if ($keys && $fields) {
-      // Replace wildcards with PDO wildcards.
-      $conditions = db_or();
-      $wildcard = '%' . trim(preg_replace('!\*+!', '%', db_like($keys)), '%') . '%';
-      foreach ($fields as $field) {
-        $conditions->condition($field, $wildcard, 'LIKE');
-      }
-      $query->condition($conditions);
     }
   }
 

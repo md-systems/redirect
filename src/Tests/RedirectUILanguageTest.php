@@ -2,10 +2,11 @@
 
 /**
  * @file
- * Contains \Drupal\redirect\Tests\RedirectUILanguageTest
+ * Contains \Drupal\redirect\Tests\RedirectUILanguageTest.
  */
 
 namespace Drupal\redirect\Tests;
+use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 
 /**
@@ -83,6 +84,46 @@ class RedirectUILanguageTest extends RedirectUITest {
 
     // Check redirect for spanish.
     $this->assertRedirect('es/langpath', '/es/user', 'HTTP/1.1 301 Moved Permanently');
+  }
+
+
+  public function testFix404RedirectList() {
+    $this->drupalLogin($this->drupalCreateUser(array(
+      'administer redirects',
+      'administer languages',
+    )));
+
+    // Add predefined language.
+    $this->drupalPostForm('admin/config/regional/language/add', array('predefined_langcode' => 'fr'), t('Add language'));
+    $this->assertText('French');
+
+    // Visit a non existing page to have the 404 redirect_error entry.
+    $this->drupalGet('fr/testing');
+
+    $redirect = db_select('redirect_error')->fields('redirect_error')->condition('source', 'testing')->execute()->fetchAll();
+    if (count($redirect) == 0) {
+      $this->fail('No record was added');
+    }
+
+    // Go to the "fix 404" page and check the listing.
+    $this->drupalGet('admin/config/search/redirect/404');
+    $this->assertText('testing');
+    $this->assertText('French');
+    $this->clickLink(t('Add redirect'));
+
+    // Check if we generate correct Add redirect url and if the form is
+    // pre-filled.
+    $destination = Url::fromUri('base:admin/config/search/redirect/404')->toString();
+    $this->assertUrl('admin/config/search/redirect/add', ['query' => ['source' => 'testing', 'language' => 'fr', 'destination' => $destination]]);
+    $this->assertFieldByName('redirect_source[0][path]', 'testing');
+    $this->assertOptionSelected('edit-language-0-value', 'fr');
+
+    // Save the redirect.
+    $this->drupalPostForm(NULL, array('redirect_redirect[0][uri]' => '/node'), t('Save'));
+    $this->assertUrl('admin/config/search/redirect/404');
+
+    // Check if the redirect works as expected.
+    $this->assertRedirect('fr/testing', 'fr/node', 'HTTP/1.1 301 Moved Permanently');
   }
 
 }
