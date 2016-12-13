@@ -73,13 +73,6 @@ class RedirectFix404Form extends FormBase {
       array('data' => t('Operations')),
     );
 
-    $count_query = db_select('watchdog', 'w');
-    $count_query->addExpression('COUNT(DISTINCT(w.message))');
-    $count_query->leftJoin('redirect', 'r', 'w.message = r.redirect_source__path');
-    $count_query->condition('w.type', 'page not found');
-    $count_query->isNull('r.rid');
-    $this->filterQuery($count_query, array('w.message'), $search);
-
     $query = db_select('watchdog', 'w')
       ->extend('Drupal\Core\Database\Query\TableSortExtender')->orderByHeader($header)
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(25);
@@ -92,7 +85,6 @@ class RedirectFix404Form extends FormBase {
     $query->groupBy('w.message');
     $query->groupBy('w.variables');
     $this->filterQuery($query, array('w.message'), $search);
-    $query->setCountQuery($count_query);
     $results = $query->execute();
 
     $rows = array();
