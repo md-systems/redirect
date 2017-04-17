@@ -1,2 +1,4 @@
 administer redirects:
   title: 'Administer URL redirections'
+change redirect settings:
+  title: 'Change redirect settings'
