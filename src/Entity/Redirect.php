@@ -40,7 +40,6 @@ use Drupal\link\LinkItemInterface;
  *     "id" = "rid",
  *     "label" = "redirect_source",
  *     "uuid" = "uuid",
- *     "bundle" = "type",
  *     "langcode" = "language",
  *   },
  *   links = {
