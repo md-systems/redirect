@@ -287,6 +287,7 @@ class RedirectRequestSubscriber implements EventSubscriberInterface {
     $this->context->fromRequest($request);
 
     parse_str($request->getQueryString(), $query);
+    unset($query['q']);
     $url->setOption('query', $query);
     $url->setAbsolute(TRUE);
 
